@@ -1,0 +1,128 @@
+PokerStars Hand #234567890123: Hold'em No Limit ($0.50/$1.00 USD) - 2025/03/26 14:30:15 ET
+Table 'Andromeda IV' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($100.00 in chips)
+Seat 2: TightTina ($85.50 in chips)
+Seat 3: AggroAlice ($120.00 in chips)
+Seat 4: PassivePete ($95.00 in chips)
+Seat 5: ManiacMike ($200.00 in chips)
+Seat 6: SolidSam ($100.00 in chips)
+PassivePete: posts small blind $0.50
+ManiacMike: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ah Kd]
+SolidSam: folds
+HeroPlayer: raises $3.00 to $4.00
+TightTina: folds
+AggroAlice: raises $9.00 to $13.00
+PassivePete: folds
+ManiacMike: folds
+HeroPlayer: raises $22.00 to $35.00
+AggroAlice: calls $22.00
+*** FLOP *** [Ac 7s 2h]
+HeroPlayer: bets $25.00
+AggroAlice: calls $25.00
+*** TURN *** [Ac 7s 2h] [Qd]
+HeroPlayer: bets $40.00 and is all-in
+AggroAlice: folds
+HeroPlayer collected $119.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $121.50 | Rake $2.00
+Board [Ac 7s 2h Qd]
+Seat 1: HeroPlayer collected ($119.50)
+Seat 2: TightTina folded before Flop (didn't bet)
+Seat 3: AggroAlice (button) folded on the Turn
+Seat 4: PassivePete (small blind) folded before Flop
+Seat 5: ManiacMike (big blind) folded before Flop
+Seat 6: SolidSam folded before Flop (didn't bet)
+
+
+PokerStars Hand #234567890124: Hold'em No Limit ($0.50/$1.00 USD) - 2025/03/26 14:35:22 ET
+Table 'Andromeda IV' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($184.50 in chips)
+Seat 2: TightTina ($85.50 in chips)
+Seat 3: AggroAlice ($60.00 in chips)
+Seat 4: PassivePete ($94.50 in chips)
+Seat 5: ManiacMike ($199.00 in chips)
+Seat 6: SolidSam ($100.00 in chips)
+ManiacMike: posts small blind $0.50
+SolidSam: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [9h 9s]
+HeroPlayer: raises $2.50 to $3.50
+TightTina: calls $3.50
+AggroAlice: folds
+PassivePete: folds
+ManiacMike: calls $3.00
+SolidSam: folds
+*** FLOP *** [Jc 9d 3c]
+ManiacMike: checks
+HeroPlayer: bets $7.00
+TightTina: folds
+ManiacMike: raises $14.00 to $21.00
+HeroPlayer: raises $35.00 to $56.00
+ManiacMike: calls $35.00
+*** TURN *** [Jc 9d 3c] [2s]
+ManiacMike: checks
+HeroPlayer: bets $125.00 and is all-in
+ManiacMike: calls $125.00
+*** RIVER *** [Jc 9d 3c 2s] [Kh]
+*** SHOW DOWN ***
+ManiacMike: shows [Jd Jh] (three of a kind, Jacks)
+HeroPlayer: shows [9h 9s] (three of a kind, Nines)
+ManiacMike collected $370.50 from pot
+*** SUMMARY ***
+Total pot $373.50 | Rake $3.00
+Board [Jc 9d 3c 2s Kh]
+Seat 1: HeroPlayer showed [9h 9s] and lost with three of a kind, Nines
+Seat 2: TightTina folded on the Flop
+Seat 3: AggroAlice folded before Flop (didn't bet)
+Seat 4: PassivePete (button) folded before Flop (didn't bet)
+Seat 5: ManiacMike (small blind) showed [Jd Jh] and won ($370.50) with three of a kind, Jacks
+Seat 6: SolidSam (big blind) folded before Flop
+
+
+PokerStars Hand #234567890125: Hold'em No Limit ($0.50/$1.00 USD) - 2025/03/26 14:40:10 ET
+Table 'Andromeda IV' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($100.00 in chips)
+Seat 2: TightTina ($82.00 in chips)
+Seat 3: AggroAlice ($60.00 in chips)
+Seat 4: PassivePete ($94.50 in chips)
+Seat 5: ManiacMike ($385.00 in chips)
+Seat 6: SolidSam ($99.00 in chips)
+SolidSam: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [As Qs]
+TightTina: folds
+AggroAlice: raises $2.00 to $3.00
+PassivePete: folds
+ManiacMike: calls $3.00
+SolidSam: folds
+HeroPlayer: calls $2.00
+*** FLOP *** [Qh 7d 2c]
+HeroPlayer: checks
+AggroAlice: bets $5.00
+ManiacMike: folds
+HeroPlayer: calls $5.00
+*** TURN *** [Qh 7d 2c] [Ks]
+HeroPlayer: checks
+AggroAlice: bets $12.00
+HeroPlayer: calls $12.00
+*** RIVER *** [Qh 7d 2c Ks] [3h]
+HeroPlayer: checks
+AggroAlice: bets $30.00
+HeroPlayer: calls $30.00
+*** SHOW DOWN ***
+AggroAlice: shows [Kh Kc] (three of a kind, Kings)
+HeroPlayer: mucks hand
+AggroAlice collected $101.50 from pot
+*** SUMMARY ***
+Total pot $103.50 | Rake $2.00
+Board [Qh 7d 2c Ks 3h]
+Seat 1: HeroPlayer (big blind) mucked [As Qs]
+Seat 2: TightTina folded before Flop (didn't bet)
+Seat 3: AggroAlice showed [Kh Kc] and won ($101.50) with three of a kind, Kings
+Seat 4: PassivePete folded before Flop (didn't bet)
+Seat 5: ManiacMike (button) folded on the Flop
+Seat 6: SolidSam (small blind) folded before Flop
