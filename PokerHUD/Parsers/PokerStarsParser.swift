@@ -13,8 +13,8 @@ class PokerStarsParser: HandHistoryParser {
         let handTexts = text.components(separatedBy: "\n\n\n")
             .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-        return try handTexts.compactMap { handText in
-            try parseHand(handText.trimmingCharacters(in: .whitespacesAndNewlines))
+        return handTexts.compactMap { handText in
+            try? parseHand(handText.trimmingCharacters(in: .whitespacesAndNewlines))
         }
     }
 
@@ -53,7 +53,7 @@ class PokerStarsParser: HandHistoryParser {
         var playerSeats: [Int: String] = [:]
         var playerStacks: [String: Double] = [:]
         for line in lines {
-            if line.hasPrefix("Seat ") {
+            if line.hasPrefix("Seat ") && line.contains("in chips") {
                 let (seat, username, stack) = try parseSeatInfo(from: line)
                 playerSeats[seat] = username
                 playerStacks[username] = stack

@@ -22,7 +22,8 @@ class AppState: ObservableObject {
         )
     }
 
-    func importHandHistoryFiles(_ urls: [URL]) async throws {
+    @discardableResult
+    func importHandHistoryFiles(_ urls: [URL]) async throws -> ImportResult {
         await MainActor.run {
             isImporting = true
             importProgress = 0.0
@@ -35,7 +36,7 @@ class AppState: ObservableObject {
             }
         }
 
-        try await importEngine.importFiles(urls) { progress in
+        return try await importEngine.importFiles(urls) { progress in
             Task { @MainActor in
                 self.importProgress = progress
             }

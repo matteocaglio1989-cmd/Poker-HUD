@@ -33,6 +33,7 @@ class PlayerRepository {
                 playerType: nil
             )
             try newPlayer.insert(db)
+            newPlayer.id = db.lastInsertedRowID
             return newPlayer
         }
     }

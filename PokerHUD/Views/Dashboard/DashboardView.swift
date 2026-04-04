@@ -6,6 +6,9 @@ struct DashboardView: View {
     @State private var totalHands = 0
     @State private var totalPlayers = 0
     @State private var recentHands: [Hand] = []
+    @State private var showImportAlert = false
+    @State private var importAlertTitle = ""
+    @State private var importAlertMessage = ""
 
     var body: some View {
         ScrollView {
@@ -94,6 +97,11 @@ struct DashboardView: View {
         ) { result in
             handleImport(result)
         }
+        .alert(importAlertTitle, isPresented: $showImportAlert) {
+            Button("OK") {}
+        } message: {
+            Text(importAlertMessage)
+        }
         .task {
             await loadData()
         }
@@ -117,13 +125,23 @@ struct DashboardView: View {
             switch result {
             case .success(let urls):
                 do {
-                    try await appState.importHandHistoryFiles(urls)
+                    let importResult = try await appState.importHandHistoryFiles(urls)
                     await loadData()
+                    importAlertTitle = "Import Complete"
+                    importAlertMessage = "\(importResult.handsImported) hands imported, \(importResult.newPlayers) players found."
+                    if !importResult.errors.isEmpty {
+                        importAlertMessage += "\n\(importResult.errors.count) error(s) occurred."
+                    }
+                    showImportAlert = true
                 } catch {
-                    print("Import error: \(error)")
+                    importAlertTitle = "Import Failed"
+                    importAlertMessage = error.localizedDescription
+                    showImportAlert = true
                 }
             case .failure(let error):
-                print("File selection error: \(error)")
+                importAlertTitle = "File Error"
+                importAlertMessage = error.localizedDescription
+                showImportAlert = true
             }
         }
     }

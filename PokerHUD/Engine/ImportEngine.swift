@@ -196,6 +196,7 @@ class ImportEngine {
 
             var site = Site(id: nil, name: name, handHistoryPath: nil, autoImport: false)
             try site.insert(db)
+            site.id = db.lastInsertedRowID
             return site
         }
     }
@@ -227,6 +228,7 @@ class ImportEngine {
                 gameType: nil
             )
             try tournament.insert(db)
+            tournament.id = db.lastInsertedRowID
             return tournament
         }
     }

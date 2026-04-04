@@ -17,6 +17,12 @@ struct Site: Codable, FetchableRecord, PersistableRecord {
 extension Site: Identifiable {}
 
 extension Site {
+    enum Columns: String, ColumnExpression {
+        case id, name, handHistoryPath, autoImport
+    }
+}
+
+extension Site {
     static let players = hasMany(Player.self)
     static let hands = hasMany(Hand.self)
     static let tournaments = hasMany(Tournament.self)
