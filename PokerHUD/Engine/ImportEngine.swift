@@ -232,6 +232,55 @@ class ImportEngine {
             return tournament
         }
     }
+
+    // MARK: - HUD Import
+
+    /// Import a single file and return enriched results for HUD refresh
+    func importFileForHUD(_ url: URL) async throws -> HUDImportResult {
+        let content = try String(contentsOf: url, encoding: .utf8)
+
+        guard let parser = ParserFactory.parser(for: content) else {
+            throw ImportEngineError.unsupportedFormat
+        }
+
+        let site = try findOrCreateSite(name: parser.siteName)
+        let parsedHands = try parser.parse(content)
+
+        var handsImported = 0
+        var affectedTableNames = Set<String>()
+        var affectedPlayerNames = Set<String>()
+        var errors: [ImportError] = []
+
+        for parsedHand in parsedHands {
+            do {
+                if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: site.id!) != nil {
+                    continue
+                }
+
+                let playersWithStats = statsCalculator.calculateHandStats(
+                    players: parsedHand.players,
+                    actions: parsedHand.actions
+                )
+
+                try await importHand(parsedHand.hand, players: playersWithStats, actions: parsedHand.actions, site: site)
+
+                handsImported += 1
+                affectedTableNames.insert(parsedHand.hand.tableName)
+                for player in parsedHand.players {
+                    affectedPlayerNames.insert(player.username)
+                }
+            } catch {
+                errors.append(ImportError(file: url.lastPathComponent, error: error))
+            }
+        }
+
+        return HUDImportResult(
+            handsImported: handsImported,
+            affectedTableNames: affectedTableNames,
+            affectedPlayerNames: affectedPlayerNames,
+            errors: errors
+        )
+    }
 }
 
 // MARK: - Supporting Types

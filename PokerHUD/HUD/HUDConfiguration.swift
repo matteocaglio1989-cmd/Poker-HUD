@@ -6,7 +6,7 @@ struct HUDConfiguration: Codable {
     var opacity: Double
     var fontSize: Double
     var showPlayerType: Bool
-    var statsToDisplay: [HUDStat]
+    var statsToDisplay: [HUDStatType]
     var colorThresholds: HUDColorThresholds
 
     static let standard = HUDConfiguration(
@@ -27,7 +27,7 @@ struct HUDConfiguration: Codable {
 }
 
 /// Stats available for HUD display
-enum HUDStat: String, Codable, CaseIterable, Identifiable {
+enum HUDStatType: String, Codable, CaseIterable, Identifiable {
     case vpip = "VPIP"
     case pfr = "PFR"
     case threeBet = "3Bet"
