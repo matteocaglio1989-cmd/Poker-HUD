@@ -9,8 +9,11 @@ class PokerStarsParser: HandHistoryParser {
     }
 
     func parse(_ text: String) throws -> [ParsedHand] {
+        // Strip BOM if present
+        let cleanText = text.hasPrefix("\u{FEFF}") ? String(text.dropFirst()) : text
+
         // Split by hand separator (blank lines between hands)
-        let handTexts = text.components(separatedBy: "\n\n\n")
+        let handTexts = cleanText.components(separatedBy: "\n\n\n")
             .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
         return handTexts.compactMap { handText in
@@ -248,8 +251,8 @@ class PokerStarsParser: HandHistoryParser {
             limitType = "FL"
         }
 
-        // Extract blinds: ($0.50/$1.00) or ($0.50/$1.00 USD)
-        let pattern = #"\$?([\d.]+)/\$?([\d.]+)"#
+        // Extract blinds: ($0.50/$1.00) or (€0.01/€0.02 EUR) or (0.50/1.00)
+        let pattern = #"[\$€£]?([\d.]+)/[\$€£]?([\d.]+)"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
               let sbRange = Range(match.range(at: 1), in: line),
@@ -261,7 +264,7 @@ class PokerStarsParser: HandHistoryParser {
 
         // Check for ante
         var ante = 0.0
-        let antePattern = #"Ante \$?([\d.]+)"#
+        let antePattern = #"Ante [\$€£]?([\d.]+)"#
         if let anteRegex = try? NSRegularExpression(pattern: antePattern),
            let anteMatch = anteRegex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
            let anteRange = Range(anteMatch.range(at: 1), in: line) {
@@ -272,23 +275,45 @@ class PokerStarsParser: HandHistoryParser {
     }
 
     private func parseDate(from line: String) throws -> Date {
-        // Format: 2025/01/15 12:34:56 ET
-        let pattern = #"(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})"#
-        guard let regex = try? NSRegularExpression(pattern: pattern),
+        // Format 1: 2025/01/15 12:34:56 ET
+        // Format 2: 2026/04/04 13:00:40 UTC [2026/04/04 9:00:40 ET]
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
+
+        // Try UTC timestamp first (more precise)
+        let utcPattern = #"(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) UTC"#
+        if let regex = try? NSRegularExpression(pattern: utcPattern),
+           let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+           let range = Range(match.range(at: 1), in: line) {
+            formatter.timeZone = TimeZone(identifier: "UTC")
+            if let date = formatter.date(from: String(line[range])) {
+                return date
+            }
+        }
+
+        // Fall back to ET timestamp
+        let etPattern = #"(\d{4}/\d{2}/\d{2} \d{1,2}:\d{2}:\d{2}) ET"#
+        if let regex = try? NSRegularExpression(pattern: etPattern),
+           let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+           let range = Range(match.range(at: 1), in: line) {
+            formatter.timeZone = TimeZone(identifier: "America/New_York")
+            if let date = formatter.date(from: String(line[range])) {
+                return date
+            }
+        }
+
+        // Last resort: any datetime pattern
+        let anyPattern = #"(\d{4}/\d{2}/\d{2} \d{1,2}:\d{2}:\d{2})"#
+        guard let regex = try? NSRegularExpression(pattern: anyPattern),
               let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
               let range = Range(match.range(at: 1), in: line) else {
             throw ParserError.invalidDate
         }
 
-        let dateString = String(line[range])
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd HH:mm:ss"
-        formatter.timeZone = TimeZone(identifier: "America/New_York") // ET timezone
-
-        guard let date = formatter.date(from: dateString) else {
+        formatter.timeZone = TimeZone(identifier: "America/New_York")
+        guard let date = formatter.date(from: String(line[range])) else {
             throw ParserError.invalidDate
         }
-
         return date
     }
 
@@ -312,7 +337,8 @@ class PokerStarsParser: HandHistoryParser {
 
     private func parseSeatInfo(from line: String) throws -> (seat: Int, username: String, stack: Double) {
         // Seat 1: PlayerName ($100.00 in chips)
-        let pattern = #"Seat (\d+): ([^\(]+) \(\$?([\d.]+)"#
+        // Seat 1: PlayerName (€2 in chips) is sitting out
+        let pattern = #"Seat (\d+): ([^\(]+) \([\$€£]?([\d.]+) in chips\)"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
               let seatRange = Range(match.range(at: 1), in: line),
@@ -442,8 +468,8 @@ class PokerStarsParser: HandHistoryParser {
             }
         }
 
-        // Parse call/bet/raise with amount
-        let amountPattern = #": (calls|bets|raises) \$?([\d.]+)"#
+        // Parse call/bet/raise with amount (handles $, €, £)
+        let amountPattern = #": (calls|bets|raises) [\$€£]?([\d.]+)"#
         if let regex = try? NSRegularExpression(pattern: amountPattern),
            let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
            let actionRange = Range(match.range(at: 1), in: line),
@@ -488,18 +514,18 @@ class PokerStarsParser: HandHistoryParser {
     }
 
     private func parsePotAndRake(from line: String) -> (pot: Double, rake: Double) {
-        // Total pot $100 | Rake $5
+        // Total pot $100 | Rake $5  OR  Total pot €0.06 | Rake €0
         var pot = 0.0
         var rake = 0.0
 
-        let potPattern = #"Total pot \$?([\d.]+)"#
+        let potPattern = #"Total pot [\$€£]?([\d.]+)"#
         if let regex = try? NSRegularExpression(pattern: potPattern),
            let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
            let range = Range(match.range(at: 1), in: line) {
             pot = Double(line[range]) ?? 0.0
         }
 
-        let rakePattern = #"Rake \$?([\d.]+)"#
+        let rakePattern = #"Rake [\$€£]?([\d.]+)"#
         if let regex = try? NSRegularExpression(pattern: rakePattern),
            let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
            let range = Range(match.range(at: 1), in: line) {
@@ -510,8 +536,8 @@ class PokerStarsParser: HandHistoryParser {
     }
 
     private func parseWinner(from line: String) -> (username: String, amount: Double) {
-        // PlayerName collected $100 from pot
-        let pattern = #"([^\s]+) collected \$?([\d.]+)"#
+        // PlayerName collected $100 from pot  OR  collected (€0.06)
+        let pattern = #"([^\s]+) collected [\(\$€£]*([\d.]+)"#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
               let usernameRange = Range(match.range(at: 1), in: line),

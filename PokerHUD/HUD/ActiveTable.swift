@@ -83,7 +83,8 @@ struct SeatAssignment: Identifiable, Codable {
 
 /// Result returned by the HUD-aware import pipeline
 struct HUDImportResult {
-    let handsImported: Int
+    let handsImported: Int       // newly imported hands
+    let handsParsed: Int         // total hands found in file (including duplicates)
     let affectedTableNames: Set<String>
     let affectedPlayerNames: Set<String>
     let errors: [ImportError]

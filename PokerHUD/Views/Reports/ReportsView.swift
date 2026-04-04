@@ -1,11 +1,15 @@
 import SwiftUI
-import Charts
+import GRDB
 
 struct ReportsView: View {
+    @EnvironmentObject var appState: AppState
     @State private var playerStats: [PlayerStats] = []
     @State private var isLoading = false
     @State private var selectedTimeRange: TimeRange = .allTime
-    @State private var minHands = 10
+    @State private var minHands = 1
+    @State private var errorMessage: String? = nil
+    @State private var heroPlayerName: String = ""
+    @State private var availableHeroes: [String] = []
 
     var body: some View {
         ScrollView {
@@ -23,18 +27,52 @@ struct ReportsView: View {
                     Spacer()
 
                     // Filters
-                    HStack {
-                        Picker("Time Range", selection: $selectedTimeRange) {
-                            ForEach(TimeRange.allCases) { range in
-                                Text(range.title).tag(range)
+                    VStack(alignment: .trailing, spacing: 8) {
+                        HStack {
+                            if !availableHeroes.isEmpty {
+                                Picker("Hero", selection: $heroPlayerName) {
+                                    Text("All Players").tag("")
+                                    ForEach(availableHeroes, id: \.self) { name in
+                                        Text(name).tag(name)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 200)
                             }
-                        }
-                        .pickerStyle(.menu)
 
-                        Stepper("Min Hands: \(minHands)", value: $minHands, in: 1...1000, step: 10)
+                            Picker("Time Range", selection: $selectedTimeRange) {
+                                ForEach(TimeRange.allCases) { range in
+                                    Text(range.title).tag(range)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+
+                        Stepper("Min Hands: \(minHands)", value: $minHands, in: 1...1000, step: 5)
                     }
                 }
                 .padding()
+
+                // Error display
+                if let error = errorMessage {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding()
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+
+                // Hero summary card
+                if !heroPlayerName.isEmpty, let heroStats = playerStats.first(where: { $0.playerName == heroPlayerName }) {
+                    HeroSummaryCard(stats: heroStats)
+                        .padding(.horizontal)
+                }
 
                 // Loading State
                 if isLoading {
@@ -46,11 +84,14 @@ struct ReportsView: View {
                 // Stats Table
                 if !playerStats.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Player Statistics")
-                            .font(.headline)
-                            .padding(.horizontal)
+                        HStack {
+                            Text("Player Statistics (\(playerStats.count) players)")
+                                .font(.headline)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
 
-                        PlayerStatsTable(stats: playerStats)
+                        PlayerStatsTable(stats: playerStats, heroName: heroPlayerName)
                     }
                 } else if !isLoading {
                     EmptyReportView()
@@ -58,6 +99,7 @@ struct ReportsView: View {
             }
         }
         .task {
+            await loadHeroes()
             await loadStats()
         }
         .onChange(of: selectedTimeRange) { _, _ in
@@ -66,17 +108,48 @@ struct ReportsView: View {
         .onChange(of: minHands) { _, _ in
             Task { await loadStats() }
         }
+        .onChange(of: heroPlayerName) { _, _ in
+            Task { await loadStats() }
+        }
+    }
+
+    private func loadHeroes() async {
+        do {
+            // Find all players that have been marked as hero in any hand
+            let heroes: [String] = try await DatabaseManager.shared.reader.read { db in
+                let rows = try Row.fetchAll(db, sql: """
+                    SELECT DISTINCT p.username
+                    FROM players p
+                    INNER JOIN hand_players hp ON hp.playerId = p.id
+                    WHERE hp.isHero = 1
+                    ORDER BY p.username
+                """)
+                return rows.map { $0["username"] as String }
+            }
+            availableHeroes = heroes
+            // Auto-select the first hero if available
+            if heroPlayerName.isEmpty, let first = heroes.first {
+                heroPlayerName = first
+            }
+        } catch {
+            print("Error loading heroes: \(error)")
+        }
     }
 
     private func loadStats() async {
         isLoading = true
+        errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let calculator = StatsCalculator()
             let filters = createFilters(for: selectedTimeRange)
-            playerStats = try calculator.getAllPlayerStats(minHands: minHands, filters: filters)
+            let allStats = try StatsCalculator().getAllPlayerStats(minHands: minHands, filters: filters)
+            playerStats = allStats
+            if allStats.isEmpty {
+                errorMessage = "No players found with \(minHands)+ hands. Try lowering Min Hands."
+            }
         } catch {
+            errorMessage = "Error: \(error.localizedDescription)"
             print("Error loading stats: \(error)")
         }
     }
@@ -102,8 +175,85 @@ struct ReportsView: View {
     }
 }
 
+// MARK: - Hero Summary Card
+
+struct HeroSummaryCard: View {
+    let stats: PlayerStats
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(stats.playerName)
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                PlayerTypeBadge(type: stats.playerType, fontSize: 11)
+
+                Spacer()
+
+                Text("\(stats.handsPlayed) hands")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            Divider()
+
+            HStack(spacing: 0) {
+                VStack(spacing: 4) {
+                    Text("BB/100").font(.caption2).foregroundColor(.secondary)
+                    Text(String(format: "%+.2f", stats.bb100))
+                        .font(.title3).fontWeight(.bold)
+                        .foregroundColor(stats.bb100 >= 0 ? .green : .red)
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 4) {
+                    Text("Total Won").font(.caption2).foregroundColor(.secondary)
+                    Text(String(format: "%+.2f", stats.totalWon))
+                        .font(.title3).fontWeight(.bold)
+                        .foregroundColor(stats.totalWon >= 0 ? .green : .red)
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 4) {
+                    Text("VPIP / PFR").font(.caption2).foregroundColor(.secondary)
+                    Text(String(format: "%.0f / %.0f", stats.vpip, stats.pfr))
+                        .font(.title3).fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 4) {
+                    Text("3-Bet").font(.caption2).foregroundColor(.secondary)
+                    Text(String(format: "%.1f%%", stats.threeBet))
+                        .font(.title3).fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+
+                VStack(spacing: 4) {
+                    Text("AF").font(.caption2).foregroundColor(.secondary)
+                    Text(String(format: "%.1f", stats.aggressionFactor))
+                        .font(.title3).fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(stats.bb100 >= 0 ? Color.green.opacity(0.05) : Color.red.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(stats.bb100 >= 0 ? Color.green.opacity(0.2) : Color.red.opacity(0.2), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Stats Table
+
 struct PlayerStatsTable: View {
     let stats: [PlayerStats]
+    let heroName: String
 
     var body: some View {
         VStack(spacing: 0) {
@@ -140,7 +290,7 @@ struct PlayerStatsTable: View {
 
             // Rows
             ForEach(stats) { stat in
-                PlayerStatsRow(stat: stat)
+                PlayerStatsRow(stat: stat, isHero: stat.playerName == heroName)
                 Divider()
             }
         }
@@ -152,12 +302,22 @@ struct PlayerStatsTable: View {
 
 struct PlayerStatsRow: View {
     let stat: PlayerStats
+    let isHero: Bool
 
     var body: some View {
         HStack {
-            Text(stat.playerName)
-                .frame(width: 150, alignment: .leading)
-                .lineLimit(1)
+            HStack(spacing: 4) {
+                if isHero {
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.yellow)
+                        .font(.caption2)
+                }
+                Text(stat.playerName)
+                    .fontWeight(isHero ? .bold : .regular)
+            }
+            .frame(width: 150, alignment: .leading)
+            .lineLimit(1)
+
             Text("\(stat.handsPlayed)")
                 .frame(width: 60, alignment: .trailing)
             Text(String(format: "%.1f", stat.vpip))
@@ -188,6 +348,7 @@ struct PlayerStatsRow: View {
         .font(.system(.body, design: .monospaced))
         .padding(.vertical, 8)
         .padding(.horizontal)
+        .background(isHero ? Color.yellow.opacity(0.05) : Color.clear)
     }
 
     private func colorForVPIP(_ vpip: Double) -> Color {

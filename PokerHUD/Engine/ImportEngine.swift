@@ -276,6 +276,7 @@ class ImportEngine {
 
         return HUDImportResult(
             handsImported: handsImported,
+            handsParsed: parsedHands.count,
             affectedTableNames: affectedTableNames,
             affectedPlayerNames: affectedPlayerNames,
             errors: errors
