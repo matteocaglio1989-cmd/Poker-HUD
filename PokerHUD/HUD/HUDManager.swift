@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 class HUDManager {
     private var panels: [PanelKey: HUDPanel] = [:]
-    private var playerStats: [String: PlayerStats] = [:] // playerName -> stats cache
+    private var playerStats: [String: PlayerStats] = [:]
     private let statsRepository: StatsRepository
     private let playerRepository: PlayerRepository
     private var configuration: HUDConfiguration
@@ -22,19 +22,53 @@ class HUDManager {
 
     // MARK: - Panel Lifecycle
 
-    /// Show HUD panels for all assigned seats on a table
+    /// Show HUD panels for all assigned seats on a table — fetches stats first
     func showHUD(for table: ActiveTable) {
+        // First fetch stats for all assigned players, then show panels
+        let playerNames = table.seatAssignments.compactMap { $0.playerName }.filter { !$0.isEmpty }
+        guard !playerNames.isEmpty else { return }
+
+        Task {
+            let fetchedStats = await Task.detached { [statsRepository, playerRepository] in
+                var results: [String: PlayerStats] = [:]
+                for playerName in playerNames {
+                    if let player = try? playerRepository.fetchByUsername(playerName, siteId: nil),
+                       let playerId = player.id,
+                       let stats = try? statsRepository.fetchPlayerStats(playerId: playerId) {
+                        results[playerName] = stats
+                    }
+                }
+                return results
+            }.value
+
+            for (name, stats) in fetchedStats {
+                playerStats[name] = stats
+            }
+
+            // Now create panels with stats loaded
+            createPanels(for: table)
+        }
+    }
+
+    /// Create the actual NSPanel windows for a table
+    private func createPanels(for table: ActiveTable) {
+        // Calculate base position — center of screen with offsets
+        let screen = NSScreen.main ?? NSScreen.screens.first
+        let screenFrame = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+        let baseX = screenFrame.midX - 200
+        let baseY = screenFrame.midY - 150
+
         for seat in table.seatAssignments {
             guard let playerName = seat.playerName, !playerName.isEmpty else { continue }
 
             let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-            guard panels[key] == nil else { continue } // Already showing
+            guard panels[key] == nil else { continue }
 
             let panelRect = NSRect(
-                x: table.origin.x + seat.offset.x,
-                y: table.origin.y + seat.offset.y,
+                x: baseX + seat.offset.x,
+                y: baseY + seat.offset.y,
                 width: 180,
-                height: 100
+                height: 90
             )
 
             let panel = HUDPanel(contentRect: panelRect)
@@ -75,7 +109,6 @@ class HUDManager {
     /// Refresh stats for specific players and update their panels
     func refreshStats(for playerNames: [String], tables: [ActiveTable]) {
         Task {
-            // Fetch stats off the main thread
             let fetchedStats = await Task.detached { [statsRepository, playerRepository] in
                 var results: [String: PlayerStats] = [:]
                 for playerName in playerNames {
@@ -88,7 +121,6 @@ class HUDManager {
                 return results
             }.value
 
-            // Update cache and panels on MainActor
             for (name, stats) in fetchedStats {
                 playerStats[name] = stats
             }
@@ -96,7 +128,6 @@ class HUDManager {
         }
     }
 
-    /// Update panel content for given players (must be called on MainActor)
     private func updatePanels(for playerNames: [String], tables: [ActiveTable]) {
         for table in tables {
             for seat in table.seatAssignments {
@@ -115,23 +146,19 @@ class HUDManager {
         }
     }
 
-    /// Refresh all stats for all visible panels
     func refreshAllStats(tables: [ActiveTable]) {
         let allPlayers = Set(tables.flatMap { $0.seatAssignments.compactMap { $0.playerName } })
         refreshStats(for: Array(allPlayers), tables: tables)
     }
 
-    /// Handle new hands imported — selectively refresh affected panels
     func handleNewHands(result: HUDImportResult, tables: [ActiveTable]) {
         let affectedPlayers = Array(result.affectedPlayerNames)
         guard !affectedPlayers.isEmpty else { return }
         refreshStats(for: affectedPlayers, tables: tables)
     }
 
-    /// Update HUD configuration
     func updateConfiguration(_ config: HUDConfiguration, tables: [ActiveTable]) {
         self.configuration = config
         refreshAllStats(tables: tables)
     }
-
 }

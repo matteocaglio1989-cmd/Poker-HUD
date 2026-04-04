@@ -26,6 +26,7 @@ class AppState: ObservableObject {
     let statsCalculator: StatsCalculator
     // TableManager used only for matching logic, not as source of truth
     var hudManager: HUDManager?
+    var menuBarController: MenuBarController?
     var fileWatcher: FileWatcher?
     private var fileWatcherCancellable: AnyCancellable?
 
@@ -37,6 +38,7 @@ class AppState: ObservableObject {
             statsCalculator: statsCalculator
         )
         self.hudManager = HUDManager()
+        self.menuBarController = nil // Set after init since it needs self
 
         // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
@@ -46,6 +48,13 @@ class AppState: ObservableObject {
             } else {
                 handHistoryPath = savedPath
             }
+        }
+    }
+
+    /// Initialize the menu bar icon (must be called after init since it needs `self`)
+    func setupMenuBar() {
+        if menuBarController == nil {
+            menuBarController = MenuBarController(appState: self)
         }
     }
 
