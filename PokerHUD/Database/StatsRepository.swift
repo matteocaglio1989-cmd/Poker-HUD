@@ -148,11 +148,7 @@ class StatsRepository {
                 }
             }
 
-            sql += """
-                GROUP BY p.id, p.username
-                HAVING COUNT(DISTINCT hp.handId) >= ?
-                ORDER BY handsPlayed DESC
-                """
+            sql += " GROUP BY p.id, p.username HAVING COUNT(DISTINCT hp.handId) >= ? ORDER BY handsPlayed DESC"
             arguments.append(minHands)
 
             let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))

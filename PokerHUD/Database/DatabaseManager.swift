@@ -20,7 +20,13 @@ class DatabaseManager {
             try fileManager.createDirectory(at: dbDirectory, withIntermediateDirectories: true)
 
             let dbPath = dbDirectory.appendingPathComponent("poker.db").path
-            dbQueue = try DatabaseQueue(path: dbPath)
+            var config = Configuration()
+            config.prepareDatabase { db in
+                // Use WAL mode for better concurrent read/write performance
+                try db.execute(sql: "PRAGMA journal_mode = WAL")
+                try db.execute(sql: "PRAGMA busy_timeout = 5000")
+            }
+            dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
 
             try migrator.migrate(dbQueue)
         } catch {

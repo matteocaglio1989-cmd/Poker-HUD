@@ -17,6 +17,8 @@ class AppState: ObservableObject {
     @Published var isFileWatcherActive: Bool = false
     @Published var handHistoryPath: String? = nil
     @Published var hudConfiguration: HUDConfiguration = .standard
+    @Published var autoImportLog: [AutoImportEvent] = []
+    @Published var lastAutoImportTime: Date? = nil
 
     // MARK: - Services
     let databaseManager: DatabaseManager
@@ -36,9 +38,14 @@ class AppState: ObservableObject {
         )
         self.hudManager = HUDManager()
 
-        // Restore saved hand history path
+        // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
-            handHistoryPath = savedPath
+            let url = URL(fileURLWithPath: savedPath)
+            if FileManager.default.fileExists(atPath: savedPath) {
+                startFileWatcher(directory: url)
+            } else {
+                handHistoryPath = savedPath
+            }
         }
     }
 
@@ -144,14 +151,39 @@ class AppState: ObservableObject {
 
     /// Handle a file change event from the watcher
     private func handleFileWatcherEvent(url: URL) async {
+        let filename = url.lastPathComponent
         do {
             let result = try await importEngine.importFileForHUD(url)
+
+            let event = AutoImportEvent(
+                timestamp: Date(),
+                filename: filename,
+                handsImported: result.handsImported,
+                handsSkipped: result.handsParsed - result.handsImported,
+                playersAffected: result.affectedPlayerNames.count,
+                success: true
+            )
+            autoImportLog.insert(event, at: 0)
+            if autoImportLog.count > 50 { autoImportLog.removeLast() }
+
             if result.handsImported > 0 {
+                lastAutoImportTime = Date()
                 // Refresh HUD panels for affected players
                 let visibleTables = managedTables.filter { $0.isHUDVisible }
                 hudManager?.handleNewHands(result: result, tables: visibleTables)
             }
         } catch {
+            let event = AutoImportEvent(
+                timestamp: Date(),
+                filename: filename,
+                handsImported: 0,
+                handsSkipped: 0,
+                playersAffected: 0,
+                success: false,
+                errorMessage: error.localizedDescription
+            )
+            autoImportLog.insert(event, at: 0)
+            if autoImportLog.count > 50 { autoImportLog.removeLast() }
             print("[AppState] File watcher import error: \(error)")
         }
     }
@@ -163,4 +195,16 @@ struct TableInfo: Identifiable {
     let site: String
     let stakes: String
     let playerCount: Int
+}
+
+/// A single auto-import event for the activity log
+struct AutoImportEvent: Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let filename: String
+    let handsImported: Int    // newly imported
+    let handsSkipped: Int     // already in DB (duplicates)
+    let playersAffected: Int
+    let success: Bool
+    var errorMessage: String? = nil
 }

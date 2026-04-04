@@ -56,17 +56,19 @@ struct TableSetupView: View {
             }
         }
         .sheet(isPresented: $showAddTable) {
-            AddTableSheet(
-                tableName: $newTableName,
-                tableSize: $newTableSize,
-                stakes: $newStakes,
-                onAdd: {
-                    appState.addTable(name: newTableName, tableSize: newTableSize, stakes: newStakes)
-                    newTableName = ""
-                    showAddTable = false
-                },
-                onCancel: { showAddTable = false }
-            )
+            NavigationStack {
+                AddTableSheet(
+                    tableName: $newTableName,
+                    tableSize: $newTableSize,
+                    stakes: $newStakes,
+                    onAdd: {
+                        appState.addTable(name: newTableName, tableSize: newTableSize, stakes: newStakes)
+                        newTableName = ""
+                        showAddTable = false
+                    },
+                    onCancel: { showAddTable = false }
+                )
+            }
         }
     }
 }
@@ -163,33 +165,38 @@ struct AddTableSheet: View {
     let onAdd: () -> Void
     let onCancel: () -> Void
 
+    @FocusState private var isTableNameFocused: Bool
+
     var body: some View {
-        VStack(spacing: 20) {
-            Text("Add Poker Table")
-                .font(.headline)
+        Form {
+            Section {
+                TextField("Table name (e.g. Vega III)", text: $tableName)
+                    .focused($isTableNameFocused)
 
-            TextField("Table name (e.g. Vega III)", text: $tableName)
-                .textFieldStyle(.roundedBorder)
+                Picker("Table Size", selection: $tableSize) {
+                    Text("6-max").tag(6)
+                    Text("9-max").tag(9)
+                }
+                .pickerStyle(.segmented)
 
-            Picker("Table Size", selection: $tableSize) {
-                Text("6-max").tag(6)
-                Text("9-max").tag(9)
+                TextField("Stakes (e.g. 0.5/1.0)", text: $stakes)
             }
-            .pickerStyle(.segmented)
-
-            TextField("Stakes (e.g. 0.5/1.0)", text: $stakes)
-                .textFieldStyle(.roundedBorder)
-
-            HStack {
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Add Poker Table")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel", action: onCancel)
-                    .buttonStyle(.bordered)
+            }
+            ToolbarItem(placement: .confirmationAction) {
                 Button("Add Table", action: onAdd)
-                    .buttonStyle(.borderedProminent)
                     .disabled(tableName.isEmpty)
             }
         }
-        .padding(24)
-        .frame(width: 350)
+        .onAppear {
+            isTableNameFocused = true
+        }
+        .frame(width: 400, height: 220)
     }
 }
 
