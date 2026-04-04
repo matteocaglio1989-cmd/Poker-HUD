@@ -52,10 +52,15 @@ class PlayerRepository {
         }
     }
 
-    func fetchByUsername(_ username: String, siteId: Int64) throws -> Player? {
+    func fetchByUsername(_ username: String, siteId: Int64? = nil) throws -> Player? {
         try dbManager.reader.read { db in
-            try Player
-                .filter(Player.Columns.username == username && Player.Columns.siteId == siteId)
+            if let siteId = siteId {
+                return try Player
+                    .filter(Player.Columns.username == username && Player.Columns.siteId == siteId)
+                    .fetchOne(db)
+            }
+            return try Player
+                .filter(Player.Columns.username == username)
                 .fetchOne(db)
         }
     }

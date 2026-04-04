@@ -24,8 +24,8 @@ struct MainView: View {
                     DashboardView()
                 case .reports:
                     ReportsView()
-                case .opponents:
-                    OpponentListView()
+                case .hud:
+                    TableSetupView()
                 case .replayer:
                     ReplayerPlaceholderView()
                 case .settings:
@@ -40,7 +40,7 @@ struct MainView: View {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case dashboard
     case reports
-    case opponents
+    case hud
     case replayer
     case settings
 
@@ -50,7 +50,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "Dashboard"
         case .reports: return "Reports"
-        case .opponents: return "Opponents"
+        case .hud: return "HUD"
         case .replayer: return "Hand Replayer"
         case .settings: return "Settings"
         }
@@ -60,7 +60,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "chart.line.uptrend.xyaxis"
         case .reports: return "doc.text.magnifyingglass"
-        case .opponents: return "person.3.fill"
+        case .hud: return "rectangle.on.rectangle"
         case .replayer: return "play.circle.fill"
         case .settings: return "gear"
         }
@@ -83,17 +83,4 @@ struct ReplayerPlaceholderView: View {
     }
 }
 
-struct OpponentListView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "person.3")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-            Text("Opponent Analysis")
-                .font(.title)
-            Text("Coming in Phase 3")
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
+// OpponentListView moved to Phase 3
