@@ -177,6 +177,10 @@ class AppState: ObservableObject {
 
             if result.handsImported > 0 {
                 lastAutoImportTime = Date()
+
+                // Auto-create/update tables and show HUD
+                autoManageTables(from: result)
+
                 // Refresh HUD panels for affected players
                 let visibleTables = managedTables.filter { $0.isHUDVisible }
                 hudManager?.handleNewHands(result: result, tables: visibleTables)
@@ -194,6 +198,62 @@ class AppState: ObservableObject {
             autoImportLog.insert(event, at: 0)
             if autoImportLog.count > 50 { autoImportLog.removeLast() }
             print("[AppState] File watcher import error: \(error)")
+        }
+    }
+
+    // MARK: - Auto Table Management
+
+    /// Automatically create/update tables from imported hand data and show HUD
+    private func autoManageTables(from result: HUDImportResult) {
+        guard hudEnabled else { return }
+
+        for (tableName, seats) in result.tableSeats {
+            // Check if we already have this table
+            if let existingIndex = managedTables.firstIndex(where: { $0.tableName == tableName }) {
+                // Update seat assignments with latest player positions
+                updateTableSeats(at: existingIndex, with: seats)
+
+                // Auto-show HUD if not already visible
+                if !managedTables[existingIndex].isHUDVisible {
+                    managedTables[existingIndex].isHUDVisible = true
+                    hudManager?.showHUD(for: managedTables[existingIndex])
+                }
+            } else {
+                // Create new table automatically
+                let tableSize = seats.first?.tableSize ?? 6
+                let stakes = seats.first?.stakes ?? "?"
+
+                var seatAssignments = SeatAssignment.defaultLayout(for: tableSize)
+                for seatInfo in seats {
+                    if let idx = seatAssignments.firstIndex(where: { $0.seatNumber == seatInfo.seatNumber }) {
+                        seatAssignments[idx].playerName = seatInfo.playerName
+                    }
+                }
+
+                var table = ActiveTable(
+                    tableName: tableName,
+                    site: "PokerStars",
+                    stakes: stakes,
+                    tableSize: tableSize,
+                    seatAssignments: seatAssignments,
+                    isHUDVisible: true
+                )
+                // Override with populated seats
+                table.seatAssignments = seatAssignments
+
+                managedTables.append(table)
+                hudManager?.showHUD(for: table)
+                print("[AppState] Auto-created table: \(tableName) with \(seats.count) players")
+            }
+        }
+    }
+
+    /// Update seat assignments for an existing table
+    private func updateTableSeats(at index: Int, with seats: [TableSeatInfo]) {
+        for seatInfo in seats {
+            if let seatIdx = managedTables[index].seatAssignments.firstIndex(where: { $0.seatNumber == seatInfo.seatNumber }) {
+                managedTables[index].seatAssignments[seatIdx].playerName = seatInfo.playerName
+            }
         }
     }
 }

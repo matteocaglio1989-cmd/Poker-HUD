@@ -193,6 +193,7 @@ struct AddTableSheet: View {
                     .disabled(tableName.isEmpty)
             }
         }
+        .fixSheetFocus()
         .onAppear {
             isTableNameFocused = true
         }

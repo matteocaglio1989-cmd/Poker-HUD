@@ -88,4 +88,15 @@ struct HUDImportResult {
     let affectedTableNames: Set<String>
     let affectedPlayerNames: Set<String>
     let errors: [ImportError]
+    /// Latest seat layout per table name (for auto-creating HUD tables)
+    let tableSeats: [String: [TableSeatInfo]]
+}
+
+/// Player-to-seat mapping from a parsed hand
+struct TableSeatInfo {
+    let seatNumber: Int
+    let playerName: String
+    let isHero: Bool
+    let tableSize: Int
+    let stakes: String
 }

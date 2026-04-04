@@ -20,11 +20,16 @@ class HUDPanel: NSPanel {
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
+        // Allow mouse for dragging and clicks, but never steal keyboard focus
         ignoresMouseEvents = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         isMovableByWindowBackground = true
         hidesOnDeactivate = false
     }
+
+    // Never let the HUD panel become key window (would steal keyboard from main app)
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
 
     /// Set or replace the SwiftUI content of the panel
     func setContent<V: View>(_ view: V) {
