@@ -16,7 +16,7 @@ class StatsRepository {
                 SELECT
                     p.id as playerId,
                     p.username as playerName,
-                    COUNT(DISTINCT hp.hand_id) as handsPlayed,
+                    COUNT(DISTINCT hp.handId) as handsPlayed,
                     ROUND(AVG(CASE WHEN hp.vpip = 1 THEN 100.0 ELSE 0.0 END), 2) as vpip,
                     ROUND(AVG(CASE WHEN hp.pfr = 1 THEN 100.0 ELSE 0.0 END), 2) as pfr,
                     ROUND(AVG(CASE WHEN hp.threeBet = 1 THEN 100.0 ELSE 0.0 END), 2) as threeBet,
@@ -34,7 +34,7 @@ class StatsRepository {
                     ROUND(AVG(CASE WHEN hp.wentToShowdown = 1 THEN 100.0 ELSE 0.0 END), 2) as wtsd,
                     ROUND(AVG(CASE WHEN hp.wonAtShowdown = 1 AND hp.wentToShowdown = 1 THEN 100.0 ELSE 0.0 END), 2) as wsd,
                     SUM(hp.netResult) as totalWon,
-                    ROUND((SUM(hp.netResult) / AVG(h.bigBlind)) / COUNT(DISTINCT hp.hand_id) * 100, 2) as bb100
+                    ROUND((SUM(hp.netResult) / AVG(h.bigBlind)) / COUNT(DISTINCT hp.handId) * 100, 2) as bb100
                 FROM players p
                 INNER JOIN hand_players hp ON hp.playerId = p.id
                 INNER JOIN hands h ON h.id = hp.handId
@@ -102,7 +102,7 @@ class StatsRepository {
                 SELECT
                     p.id as playerId,
                     p.username as playerName,
-                    COUNT(DISTINCT hp.hand_id) as handsPlayed,
+                    COUNT(DISTINCT hp.handId) as handsPlayed,
                     ROUND(AVG(CASE WHEN hp.vpip = 1 THEN 100.0 ELSE 0.0 END), 2) as vpip,
                     ROUND(AVG(CASE WHEN hp.pfr = 1 THEN 100.0 ELSE 0.0 END), 2) as pfr,
                     ROUND(AVG(CASE WHEN hp.threeBet = 1 THEN 100.0 ELSE 0.0 END), 2) as threeBet,
@@ -120,7 +120,7 @@ class StatsRepository {
                     ROUND(AVG(CASE WHEN hp.wentToShowdown = 1 THEN 100.0 ELSE 0.0 END), 2) as wtsd,
                     ROUND(AVG(CASE WHEN hp.wonAtShowdown = 1 AND hp.wentToShowdown = 1 THEN 100.0 ELSE 0.0 END), 2) as wsd,
                     SUM(hp.netResult) as totalWon,
-                    ROUND((SUM(hp.netResult) / AVG(h.bigBlind)) / COUNT(DISTINCT hp.hand_id) * 100, 2) as bb100
+                    ROUND((SUM(hp.netResult) / AVG(h.bigBlind)) / COUNT(DISTINCT hp.handId) * 100, 2) as bb100
                 FROM players p
                 INNER JOIN hand_players hp ON hp.playerId = p.id
                 INNER JOIN hands h ON h.id = hp.handId
@@ -150,7 +150,7 @@ class StatsRepository {
 
             sql += """
                 GROUP BY p.id, p.username
-                HAVING COUNT(DISTINCT hp.hand_id) >= ?
+                HAVING COUNT(DISTINCT hp.handId) >= ?
                 ORDER BY handsPlayed DESC
                 """
             arguments.append(minHands)

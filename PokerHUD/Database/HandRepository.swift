@@ -19,6 +19,7 @@ class HandRepository {
     func insertHandWithPlayers(_ hand: inout Hand, players: inout [HandPlayer], actions: [Action]) throws {
         try dbManager.writer.write { db in
             try hand.insert(db)
+            hand.id = db.lastInsertedRowID
 
             for i in 0..<players.count {
                 var player = players[i]

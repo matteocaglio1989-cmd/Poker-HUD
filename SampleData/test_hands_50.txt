@@ -1,0 +1,2028 @@
+PokerStars Hand #300000000001: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:00:15 ET
+Table 'Vega III' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($100.00 in chips)
+Seat 2: FishyFrank ($80.00 in chips)
+Seat 3: NitNancy ($150.00 in chips)
+Seat 4: LAGLarry ($200.00 in chips)
+Seat 5: TAGTom ($120.00 in chips)
+Seat 6: CallingCarl ($90.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ad Kh]
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: calls $3.50
+HeroPlayer: raises $10.00 to $13.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: calls $10.00
+CallingCarl: calls $10.00
+*** FLOP *** [Ah 9c 3d]
+LAGLarry: checks
+CallingCarl: checks
+HeroPlayer: bets $22.00
+LAGLarry: folds
+CallingCarl: folds
+HeroPlayer collected $41.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $42.00 | Rake $0.50
+Board [Ah 9c 3d]
+Seat 1: HeroPlayer (button) collected ($41.50)
+Seat 2: FishyFrank (small blind) folded before Flop
+Seat 3: NitNancy (big blind) folded before Flop
+Seat 4: LAGLarry folded on the Flop
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl folded on the Flop
+
+
+PokerStars Hand #300000000002: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:05:30 ET
+Table 'Vega III' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($128.00 in chips)
+Seat 2: FishyFrank ($79.50 in chips)
+Seat 3: NitNancy ($149.00 in chips)
+Seat 4: LAGLarry ($186.50 in chips)
+Seat 5: TAGTom ($120.00 in chips)
+Seat 6: CallingCarl ($76.50 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Jc Jd]
+TAGTom: raises $2.50 to $3.50
+CallingCarl: calls $3.50
+HeroPlayer: raises $10.00 to $13.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+TAGTom: calls $10.00
+CallingCarl: folds
+*** FLOP *** [7h 4s 2d]
+TAGTom: checks
+HeroPlayer: bets $18.00
+TAGTom: calls $18.00
+*** TURN *** [7h 4s 2d] [Tc]
+TAGTom: checks
+HeroPlayer: bets $40.00
+TAGTom: folds
+HeroPlayer collected $66.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $67.00 | Rake $1.00
+Board [7h 4s 2d Tc]
+Seat 1: HeroPlayer collected ($66.00)
+Seat 2: FishyFrank (button) folded before Flop (didn't bet)
+Seat 3: NitNancy (small blind) folded before Flop
+Seat 4: LAGLarry (big blind) folded before Flop
+Seat 5: TAGTom folded on the Turn
+Seat 6: CallingCarl folded before Flop
+
+
+PokerStars Hand #300000000003: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:10:45 ET
+Table 'Vega III' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($180.50 in chips)
+Seat 2: FishyFrank ($79.50 in chips)
+Seat 3: NitNancy ($148.50 in chips)
+Seat 4: LAGLarry ($185.50 in chips)
+Seat 5: TAGTom ($88.50 in chips)
+Seat 6: CallingCarl ($73.00 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [7s 8s]
+CallingCarl: calls $1.00
+HeroPlayer: calls $1.00
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $4.00 to $5.00
+TAGTom: folds
+CallingCarl: calls $4.00
+HeroPlayer: calls $4.00
+FishyFrank: calls $4.00
+*** FLOP *** [6s 9s Td]
+LAGLarry: bets $12.00
+CallingCarl: calls $12.00
+HeroPlayer: raises $30.00 to $42.00
+FishyFrank: folds
+LAGLarry: folds
+CallingCarl: calls $30.00
+*** TURN *** [6s 9s Td] [2s]
+CallingCarl: checks
+HeroPlayer: bets $50.00
+CallingCarl: calls $26.00 and is all-in
+Uncalled bet ($24.00) returned to HeroPlayer
+*** RIVER *** [6s 9s Td 2s] [Kd]
+*** SHOW DOWN ***
+HeroPlayer: shows [7s 8s] (a flush, Nine high)
+CallingCarl: shows [Ts Jc] (a pair of Tens)
+HeroPlayer collected $150.00 from pot
+*** SUMMARY ***
+Total pot $153.00 | Rake $3.00
+Board [6s 9s Td 2s Kd]
+Seat 1: HeroPlayer showed [7s 8s] and won ($150.00) with a flush, Nine high
+Seat 2: FishyFrank folded on the Flop
+Seat 3: NitNancy (button) folded before Flop (didn't bet)
+Seat 4: LAGLarry (small blind) folded on the Flop
+Seat 5: TAGTom (big blind) folded before Flop
+Seat 6: CallingCarl showed [Ts Jc] and lost with a pair of Tens
+
+
+PokerStars Hand #300000000004: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:15:20 ET
+Table 'Vega III' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($282.50 in chips)
+Seat 2: FishyFrank ($74.50 in chips)
+Seat 3: NitNancy ($148.50 in chips)
+Seat 4: LAGLarry ($168.50 in chips)
+Seat 5: TAGTom ($87.50 in chips)
+Seat 6: CallingCarl ($100.00 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Qd Qs]
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: calls $3.50
+NitNancy: folds
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: calls $2.50
+*** FLOP *** [Qc 8h 5d]
+CallingCarl: checks
+HeroPlayer: bets $6.50
+FishyFrank: calls $6.50
+CallingCarl: folds
+*** TURN *** [Qc 8h 5d] [4c]
+HeroPlayer: bets $16.00
+FishyFrank: calls $16.00
+*** RIVER *** [Qc 8h 5d 4c] [Js]
+HeroPlayer: bets $35.00
+FishyFrank: calls $35.00
+*** SHOW DOWN ***
+HeroPlayer: shows [Qd Qs] (three of a kind, Queens)
+FishyFrank: shows [8c 8d] (three of a kind, Eights)
+HeroPlayer collected $124.50 from pot
+*** SUMMARY ***
+Total pot $126.50 | Rake $2.00
+Board [Qc 8h 5d 4c Js]
+Seat 1: HeroPlayer showed [Qd Qs] and won ($124.50) with three of a kind, Queens
+Seat 2: FishyFrank showed [8c 8d] and lost with three of a kind, Eights
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry (button) folded before Flop (didn't bet)
+Seat 5: TAGTom (small blind) folded before Flop
+Seat 6: CallingCarl (big blind) folded on the Flop
+
+
+PokerStars Hand #300000000005: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:20:05 ET
+Table 'Vega III' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($346.00 in chips)
+Seat 2: FishyFrank ($13.50 in chips)
+Seat 3: NitNancy ($148.50 in chips)
+Seat 4: LAGLarry ($168.50 in chips)
+Seat 5: TAGTom ($87.00 in chips)
+Seat 6: CallingCarl ($96.50 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [5c 6c]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: folds
+FishyFrank: calls $3.00
+*** FLOP *** [4c 7c 8h]
+FishyFrank: checks
+LAGLarry: bets $6.00
+FishyFrank: calls $6.00
+*** TURN *** [4c 7c 8h] [Kd]
+FishyFrank: checks
+LAGLarry: bets $15.00
+FishyFrank: calls $3.50 and is all-in
+Uncalled bet ($11.50) returned to LAGLarry
+*** RIVER *** [4c 7c 8h Kd] [As]
+*** SHOW DOWN ***
+LAGLarry: shows [Ac Qh] (a pair of Aces)
+FishyFrank: shows [6h 7h] (a pair of Sevens)
+LAGLarry collected $28.00 from pot
+*** SUMMARY ***
+Total pot $28.50 | Rake $0.50
+Board [4c 7c 8h Kd As]
+Seat 1: HeroPlayer (big blind) folded before Flop
+Seat 2: FishyFrank showed [6h 7h] and lost with a pair of Sevens
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry showed [Ac Qh] and won ($28.00) with a pair of Aces
+Seat 5: TAGTom (button) folded before Flop (didn't bet)
+Seat 6: CallingCarl (small blind) folded before Flop
+
+
+PokerStars Hand #300000000006: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:25:18 ET
+Table 'Vega III' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($345.00 in chips)
+Seat 2: FishyFrank ($100.00 in chips)
+Seat 3: NitNancy ($148.50 in chips)
+Seat 4: LAGLarry ($183.00 in chips)
+Seat 5: TAGTom ($87.00 in chips)
+Seat 6: CallingCarl ($96.00 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kc Ks]
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: raises $9.00 to $12.50
+FishyFrank: folds
+LAGLarry: calls $9.00
+*** FLOP *** [Kd 5h 3s]
+HeroPlayer: bets $15.00
+LAGLarry: calls $15.00
+*** TURN *** [Kd 5h 3s] [9c]
+HeroPlayer: bets $35.00
+LAGLarry: raises $70.00 to $105.00
+HeroPlayer: raises $70.00 to $175.00
+LAGLarry: calls $50.50 and is all-in
+Uncalled bet ($19.50) returned to HeroPlayer
+*** RIVER *** [Kd 5h 3s 9c] [Jh]
+*** SHOW DOWN ***
+HeroPlayer: shows [Kc Ks] (three of a kind, Kings)
+LAGLarry: shows [9d 9h] (three of a kind, Nines)
+HeroPlayer collected $366.50 from pot
+*** SUMMARY ***
+Total pot $367.00 | Rake $0.50
+Board [Kd 5h 3s 9c Jh]
+Seat 1: HeroPlayer (small blind) showed [Kc Ks] and won ($366.50) with three of a kind, Kings
+Seat 2: FishyFrank (big blind) folded before Flop
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry showed [9d 9h] and lost with three of a kind, Nines
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl (button) folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000007: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:30:02 ET
+Table 'Vega III' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($528.50 in chips)
+Seat 2: FishyFrank ($99.00 in chips)
+Seat 3: NitNancy ($148.50 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($87.00 in chips)
+Seat 6: CallingCarl ($96.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ah Ac]
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: calls $3.50
+HeroPlayer: raises $10.00 to $13.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: raises $25.00 to $38.50
+CallingCarl: folds
+HeroPlayer: raises $50.00 to $88.50
+LAGLarry: calls $50.00
+*** FLOP *** [Jd 8c 4h]
+LAGLarry: checks
+HeroPlayer: bets $11.50 and is all-in
+LAGLarry: calls $11.50 and is all-in
+*** TURN *** [Jd 8c 4h] [2h]
+*** RIVER *** [Jd 8c 4h 2h] [6d]
+*** SHOW DOWN ***
+HeroPlayer: shows [Ah Ac] (a pair of Aces)
+LAGLarry: shows [Kd Qd] (high card, King)
+HeroPlayer collected $203.00 from pot
+*** SUMMARY ***
+Total pot $205.00 | Rake $2.00
+Board [Jd 8c 4h 2h 6d]
+Seat 1: HeroPlayer (button) showed [Ah Ac] and won ($203.00) with a pair of Aces
+Seat 2: FishyFrank (small blind) folded before Flop
+Seat 3: NitNancy (big blind) folded before Flop
+Seat 4: LAGLarry showed [Kd Qd] and lost with high card, King
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl folded before Flop
+
+
+PokerStars Hand #300000000008: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:35:44 ET
+Table 'Vega III' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($630.00 in chips)
+Seat 2: FishyFrank ($98.50 in chips)
+Seat 3: NitNancy ($147.50 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($87.00 in chips)
+Seat 6: CallingCarl ($92.50 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Td Th]
+TAGTom: raises $2.50 to $3.50
+CallingCarl: calls $3.50
+HeroPlayer: calls $3.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+*** FLOP *** [Ts 6c 2h]
+TAGTom: bets $8.00
+CallingCarl: calls $8.00
+HeroPlayer: raises $20.00 to $28.00
+TAGTom: folds
+CallingCarl: calls $20.00
+*** TURN *** [Ts 6c 2h] [Qc]
+CallingCarl: checks
+HeroPlayer: bets $45.00
+CallingCarl: calls $45.00
+*** RIVER *** [Ts 6c 2h Qc] [7h]
+CallingCarl: checks
+HeroPlayer: bets $16.00 and is all-in
+CallingCarl: calls $16.00 and is all-in
+*** SHOW DOWN ***
+HeroPlayer: shows [Td Th] (three of a kind, Tens)
+CallingCarl: shows [Qs Qd] (three of a kind, Queens)
+CallingCarl collected $196.50 from pot
+*** SUMMARY ***
+Total pot $198.50 | Rake $2.00
+Board [Ts 6c 2h Qc 7h]
+Seat 1: HeroPlayer showed [Td Th] and lost with three of a kind, Tens
+Seat 2: FishyFrank (button) folded before Flop (didn't bet)
+Seat 3: NitNancy (small blind) folded before Flop
+Seat 4: LAGLarry (big blind) folded before Flop
+Seat 5: TAGTom folded on the Flop
+Seat 6: CallingCarl showed [Qs Qd] and won ($196.50) with three of a kind, Queens
+
+
+PokerStars Hand #300000000009: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:40:10 ET
+Table 'Vega III' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($537.50 in chips)
+Seat 2: FishyFrank ($98.50 in chips)
+Seat 3: NitNancy ($147.00 in chips)
+Seat 4: LAGLarry ($99.00 in chips)
+Seat 5: TAGTom ($75.50 in chips)
+Seat 6: CallingCarl ($196.50 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [4d 4h]
+CallingCarl: calls $1.00
+HeroPlayer: calls $1.00
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: calls $0.50
+TAGTom: raises $4.00 to $5.00
+CallingCarl: calls $4.00
+HeroPlayer: calls $4.00
+LAGLarry: folds
+*** FLOP *** [4s Kh Jc]
+TAGTom: bets $10.00
+CallingCarl: folds
+HeroPlayer: calls $10.00
+*** TURN *** [4s Kh Jc] [8d]
+TAGTom: checks
+HeroPlayer: bets $22.00
+TAGTom: calls $22.00
+*** RIVER *** [4s Kh Jc 8d] [Ac]
+TAGTom: checks
+HeroPlayer: bets $45.00
+TAGTom: calls $38.50 and is all-in
+Uncalled bet ($6.50) returned to HeroPlayer
+*** SHOW DOWN ***
+HeroPlayer: shows [4d 4h] (three of a kind, Fours)
+TAGTom: shows [Kd Qs] (a pair of Kings)
+HeroPlayer collected $157.00 from pot
+*** SUMMARY ***
+Total pot $158.00 | Rake $1.00
+Board [4s Kh Jc 8d Ac]
+Seat 1: HeroPlayer showed [4d 4h] and won ($157.00) with three of a kind, Fours
+Seat 2: FishyFrank folded before Flop (didn't bet)
+Seat 3: NitNancy (button) folded before Flop (didn't bet)
+Seat 4: LAGLarry (small blind) folded before Flop
+Seat 5: TAGTom (big blind) showed [Kd Qs] and lost with a pair of Kings
+Seat 6: CallingCarl folded on the Flop
+
+
+PokerStars Hand #300000000010: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:45:33 ET
+Table 'Vega III' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($643.00 in chips)
+Seat 2: FishyFrank ($98.50 in chips)
+Seat 3: NitNancy ($147.00 in chips)
+Seat 4: LAGLarry ($98.00 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($191.50 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [2c 7d]
+HeroPlayer: folds
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+FishyFrank: calls $3.00
+*** FLOP *** [Jh 5s 3c]
+FishyFrank: checks
+LAGLarry: bets $6.00
+FishyFrank: calls $6.00
+*** TURN *** [Jh 5s 3c] [9h]
+FishyFrank: checks
+LAGLarry: bets $15.00
+FishyFrank: folds
+LAGLarry collected $21.00 from pot
+LAGLarry: doesn't show hand
+*** SUMMARY ***
+Total pot $21.50 | Rake $0.50
+Board [Jh 5s 3c 9h]
+Seat 1: HeroPlayer folded before Flop (didn't bet)
+Seat 2: FishyFrank folded on the Turn
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry (button) collected ($21.00)
+Seat 5: TAGTom (small blind) folded before Flop
+Seat 6: CallingCarl (big blind) folded before Flop
+
+
+PokerStars Hand #300000000011: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:50:05 ET
+Table 'Vega III' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($643.00 in chips)
+Seat 2: FishyFrank ($88.50 in chips)
+Seat 3: NitNancy ($147.00 in chips)
+Seat 4: LAGLarry ($109.00 in chips)
+Seat 5: TAGTom ($99.50 in chips)
+Seat 6: CallingCarl ($190.50 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ks Qh]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: calls $3.00
+*** FLOP *** [Kh 7d 2s]
+HeroPlayer: checks
+FishyFrank: checks
+LAGLarry: bets $8.00
+HeroPlayer: calls $8.00
+FishyFrank: folds
+*** TURN *** [Kh 7d 2s] [5c]
+HeroPlayer: checks
+LAGLarry: bets $18.00
+HeroPlayer: calls $18.00
+*** RIVER *** [Kh 7d 2s 5c] [Th]
+HeroPlayer: checks
+LAGLarry: checks
+*** SHOW DOWN ***
+HeroPlayer: shows [Ks Qh] (a pair of Kings)
+LAGLarry: shows [Ad Jd] (high card, Ace)
+HeroPlayer collected $63.50 from pot
+*** SUMMARY ***
+Total pot $64.50 | Rake $1.00
+Board [Kh 7d 2s 5c Th]
+Seat 1: HeroPlayer (big blind) showed [Ks Qh] and won ($63.50) with a pair of Kings
+Seat 2: FishyFrank folded on the Flop
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry showed [Ad Jd] and lost with high card, Ace
+Seat 5: TAGTom (button) folded before Flop (didn't bet)
+Seat 6: CallingCarl (small blind) folded before Flop
+
+
+PokerStars Hand #300000000012: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 10:55:22 ET
+Table 'Vega III' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($676.50 in chips)
+Seat 2: FishyFrank ($84.50 in chips)
+Seat 3: NitNancy ($147.00 in chips)
+Seat 4: LAGLarry ($79.00 in chips)
+Seat 5: TAGTom ($99.50 in chips)
+Seat 6: CallingCarl ($190.00 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [9c 8c]
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: calls $2.50
+*** FLOP *** [7c Tc 2d]
+HeroPlayer: checks
+FishyFrank: checks
+LAGLarry: bets $7.00
+HeroPlayer: calls $7.00
+FishyFrank: folds
+*** TURN *** [7c Tc 2d] [6c]
+HeroPlayer: bets $18.00
+LAGLarry: raises $50.50 to $68.50 and is all-in
+HeroPlayer: calls $50.50
+*** RIVER *** [7c Tc 2d 6c] [Ah]
+*** SHOW DOWN ***
+HeroPlayer: shows [9c 8c] (a flush, Ten high)
+LAGLarry: shows [Jh Ts] (a pair of Tens)
+HeroPlayer collected $162.50 from pot
+*** SUMMARY ***
+Total pot $164.50 | Rake $2.00
+Board [7c Tc 2d 6c Ah]
+Seat 1: HeroPlayer (small blind) showed [9c 8c] and won ($162.50) with a flush, Ten high
+Seat 2: FishyFrank (big blind) folded on the Flop
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry showed [Jh Ts] and lost with a pair of Tens
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl (button) folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000013: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:00:15 ET
+Table 'Vega III' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($760.00 in chips)
+Seat 2: FishyFrank ($81.00 in chips)
+Seat 3: NitNancy ($147.00 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($99.50 in chips)
+Seat 6: CallingCarl ($190.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [As Jh]
+LAGLarry: folds
+TAGTom: raises $2.50 to $3.50
+CallingCarl: folds
+HeroPlayer: raises $7.50 to $11.00
+FishyFrank: folds
+NitNancy: folds
+TAGTom: calls $7.50
+*** FLOP *** [Ah 5d 3c]
+TAGTom: checks
+HeroPlayer: bets $14.00
+TAGTom: folds
+HeroPlayer collected $23.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $23.50 | Rake $0.50
+Board [Ah 5d 3c]
+Seat 1: HeroPlayer (button) collected ($23.00)
+Seat 2: FishyFrank (small blind) folded before Flop
+Seat 3: NitNancy (big blind) folded before Flop
+Seat 4: LAGLarry folded before Flop (didn't bet)
+Seat 5: TAGTom folded on the Flop
+Seat 6: CallingCarl folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000014: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:05:30 ET
+Table 'Vega III' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($771.50 in chips)
+Seat 2: FishyFrank ($80.50 in chips)
+Seat 3: NitNancy ($146.00 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($85.00 in chips)
+Seat 6: CallingCarl ($190.00 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [6d 6s]
+TAGTom: folds
+CallingCarl: calls $1.00
+HeroPlayer: raises $3.50 to $4.50
+FishyFrank: calls $4.50
+NitNancy: folds
+LAGLarry: folds
+CallingCarl: calls $3.50
+*** FLOP *** [6h Jd 9s]
+CallingCarl: checks
+HeroPlayer: bets $10.00
+FishyFrank: calls $10.00
+CallingCarl: calls $10.00
+*** TURN *** [6h Jd 9s] [3h]
+CallingCarl: checks
+HeroPlayer: bets $30.00
+FishyFrank: folds
+CallingCarl: calls $30.00
+*** RIVER *** [6h Jd 9s 3h] [Kc]
+CallingCarl: checks
+HeroPlayer: bets $55.00
+CallingCarl: calls $55.00
+*** SHOW DOWN ***
+HeroPlayer: shows [6d 6s] (three of a kind, Sixes)
+CallingCarl: shows [Jc 9c] (two pair, Jacks and Nines)
+HeroPlayer collected $212.50 from pot
+*** SUMMARY ***
+Total pot $214.50 | Rake $2.00
+Board [6h Jd 9s 3h Kc]
+Seat 1: HeroPlayer showed [6d 6s] and won ($212.50) with three of a kind, Sixes
+Seat 2: FishyFrank (button) folded on the Turn
+Seat 3: NitNancy (small blind) folded before Flop
+Seat 4: LAGLarry (big blind) folded before Flop
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl showed [Jc 9c] and lost with two pair, Jacks and Nines
+
+
+PokerStars Hand #300000000015: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:10:45 ET
+Table 'Vega III' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($929.50 in chips)
+Seat 2: FishyFrank ($66.00 in chips)
+Seat 3: NitNancy ($145.50 in chips)
+Seat 4: LAGLarry ($99.00 in chips)
+Seat 5: TAGTom ($85.00 in chips)
+Seat 6: CallingCarl ($91.50 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ac Tc]
+CallingCarl: folds
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: folds
+NitNancy: raises $8.00 to $11.50
+LAGLarry: folds
+TAGTom: folds
+HeroPlayer: calls $8.00
+*** FLOP *** [Ts 4c 2c]
+HeroPlayer: checks
+NitNancy: bets $15.00
+HeroPlayer: calls $15.00
+*** TURN *** [Ts 4c 2c] [3c]
+HeroPlayer: checks
+NitNancy: bets $30.00
+HeroPlayer: raises $60.00 to $90.00
+NitNancy: folds
+HeroPlayer collected $114.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $115.50 | Rake $1.00
+Board [Ts 4c 2c 3c]
+Seat 1: HeroPlayer collected ($114.50)
+Seat 2: FishyFrank folded before Flop (didn't bet)
+Seat 3: NitNancy (button) folded on the Turn
+Seat 4: LAGLarry (small blind) folded before Flop
+Seat 5: TAGTom (big blind) folded before Flop
+Seat 6: CallingCarl folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000016: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:15:18 ET
+Table 'Vega III' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($992.50 in chips)
+Seat 2: FishyFrank ($66.00 in chips)
+Seat 3: NitNancy ($89.00 in chips)
+Seat 4: LAGLarry ($98.50 in chips)
+Seat 5: TAGTom ($84.00 in chips)
+Seat 6: CallingCarl ($91.50 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [3h 5h]
+HeroPlayer: folds
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: calls $3.00
+FishyFrank: calls $3.00
+*** FLOP *** [2h 4h Kd]
+CallingCarl: checks
+FishyFrank: checks
+LAGLarry: bets $8.00
+CallingCarl: folds
+FishyFrank: calls $8.00
+*** TURN *** [2h 4h Kd] [Jc]
+FishyFrank: checks
+LAGLarry: bets $20.00
+FishyFrank: calls $20.00
+*** RIVER *** [2h 4h Kd Jc] [Qd]
+FishyFrank: checks
+LAGLarry: bets $40.00
+FishyFrank: calls $34.00 and is all-in
+Uncalled bet ($6.00) returned to LAGLarry
+*** SHOW DOWN ***
+LAGLarry: shows [Kc Qc] (two pair, Kings and Queens)
+FishyFrank: shows [Kh 8h] (a pair of Kings)
+LAGLarry collected $134.50 from pot
+*** SUMMARY ***
+Total pot $136.50 | Rake $2.00
+Board [2h 4h Kd Jc Qd]
+Seat 1: HeroPlayer folded before Flop (didn't bet)
+Seat 2: FishyFrank showed [Kh 8h] and lost with a pair of Kings
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry (button) showed [Kc Qc] and won ($134.50) with two pair, Kings and Queens
+Seat 5: TAGTom (small blind) folded before Flop
+Seat 6: CallingCarl (big blind) folded on the Flop
+
+
+PokerStars Hand #300000000017: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:20:02 ET
+Table 'Vega III' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($992.50 in chips)
+Seat 2: FishyFrank ($100.00 in chips)
+Seat 3: NitNancy ($89.00 in chips)
+Seat 4: LAGLarry ($193.00 in chips)
+Seat 5: TAGTom ($83.50 in chips)
+Seat 6: CallingCarl ($87.50 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Jh Ts]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: calls $3.00
+*** FLOP *** [Jd 9h 3s]
+HeroPlayer: checks
+FishyFrank: checks
+LAGLarry: bets $8.00
+HeroPlayer: calls $8.00
+FishyFrank: folds
+*** TURN *** [Jd 9h 3s] [4d]
+HeroPlayer: checks
+LAGLarry: checks
+*** RIVER *** [Jd 9h 3s 4d] [2c]
+HeroPlayer: bets $15.00
+LAGLarry: folds
+HeroPlayer collected $28.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $29.00 | Rake $0.50
+Board [Jd 9h 3s 4d 2c]
+Seat 1: HeroPlayer (big blind) collected ($28.50)
+Seat 2: FishyFrank folded on the Flop
+Seat 3: NitNancy folded before Flop (didn't bet)
+Seat 4: LAGLarry folded on the River
+Seat 5: TAGTom (button) folded before Flop (didn't bet)
+Seat 6: CallingCarl (small blind) folded before Flop
+
+
+PokerStars Hand #300000000018: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:25:40 ET
+Table 'Vega III' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($1009.00 in chips)
+Seat 2: FishyFrank ($96.00 in chips)
+Seat 3: NitNancy ($89.00 in chips)
+Seat 4: LAGLarry ($181.00 in chips)
+Seat 5: TAGTom ($83.50 in chips)
+Seat 6: CallingCarl ($87.00 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [As Kd]
+NitNancy: raises $3.00 to $4.00
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: raises $9.00 to $13.00
+FishyFrank: folds
+NitNancy: calls $9.00
+*** FLOP *** [Ad 7s 5h]
+HeroPlayer: bets $16.00
+NitNancy: calls $16.00
+*** TURN *** [Ad 7s 5h] [8c]
+HeroPlayer: bets $32.00
+NitNancy: folds
+HeroPlayer collected $59.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $60.00 | Rake $1.00
+Board [Ad 7s 5h 8c]
+Seat 1: HeroPlayer (small blind) collected ($59.00)
+Seat 2: FishyFrank (big blind) folded before Flop
+Seat 3: NitNancy folded on the Turn
+Seat 4: LAGLarry folded before Flop (didn't bet)
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl (button) folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000019: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:30:15 ET
+Table 'Vega III' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($1039.00 in chips)
+Seat 2: FishyFrank ($95.00 in chips)
+Seat 3: NitNancy ($60.00 in chips)
+Seat 4: LAGLarry ($181.00 in chips)
+Seat 5: TAGTom ($83.50 in chips)
+Seat 6: CallingCarl ($87.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [8d 9d]
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: calls $3.50
+HeroPlayer: calls $3.50
+FishyFrank: folds
+NitNancy: folds
+*** FLOP *** [7d Td Jc]
+LAGLarry: bets $8.00
+CallingCarl: folds
+HeroPlayer: raises $20.00 to $28.00
+LAGLarry: calls $20.00
+*** TURN *** [7d Td Jc] [2s]
+LAGLarry: checks
+HeroPlayer: bets $50.00
+LAGLarry: folds
+HeroPlayer collected $64.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $65.00 | Rake $0.50
+Board [7d Td Jc 2s]
+Seat 1: HeroPlayer (button) collected ($64.50)
+Seat 2: FishyFrank (small blind) folded before Flop
+Seat 3: NitNancy (big blind) folded before Flop
+Seat 4: LAGLarry folded on the Turn
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl folded before Flop
+
+
+PokerStars Hand #300000000020: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 11:35:30 ET
+Table 'Vega III' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($1092.00 in chips)
+Seat 2: FishyFrank ($94.50 in chips)
+Seat 3: NitNancy ($59.00 in chips)
+Seat 4: LAGLarry ($149.50 in chips)
+Seat 5: TAGTom ($83.50 in chips)
+Seat 6: CallingCarl ($83.50 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kd Jc]
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: calls $3.50
+NitNancy: folds
+LAGLarry: folds
+*** FLOP *** [Ks 8d 4c]
+HeroPlayer: bets $5.00
+FishyFrank: calls $5.00
+*** TURN *** [Ks 8d 4c] [6h]
+HeroPlayer: bets $12.00
+FishyFrank: calls $12.00
+*** RIVER *** [Ks 8d 4c 6h] [Qh]
+HeroPlayer: bets $25.00
+FishyFrank: folds
+HeroPlayer collected $42.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $43.00 | Rake $0.50
+Board [Ks 8d 4c 6h Qh]
+Seat 1: HeroPlayer collected ($42.50)
+Seat 2: FishyFrank (button) folded on the River
+Seat 3: NitNancy (small blind) folded before Flop
+Seat 4: LAGLarry (big blind) folded before Flop
+Seat 5: TAGTom folded before Flop (didn't bet)
+Seat 6: CallingCarl folded before Flop (didn't bet)
+
+
+PokerStars Hand #300000000021: Hold'em No Limit ($1.00/$2.00 USD) - 2025/04/01 12:00:10 ET
+Table 'Sirius IX' 9-max Seat #5 is the button
+Seat 1: SharkSteve ($200.00 in chips)
+Seat 2: HeroPlayer ($200.00 in chips)
+Seat 3: WildWendy ($250.00 in chips)
+Seat 4: RockRob ($180.00 in chips)
+Seat 5: BluffBilly ($300.00 in chips)
+Seat 6: LuckyLou ($150.00 in chips)
+Seat 7: GrindGary ($220.00 in chips)
+Seat 8: SemiSam ($175.00 in chips)
+Seat 9: TiltTerry ($190.00 in chips)
+LuckyLou: posts small blind $1.00
+GrindGary: posts big blind $2.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Qh Qd]
+SemiSam: folds
+TiltTerry: raises $4.00 to $6.00
+SharkSteve: folds
+HeroPlayer: raises $14.00 to $20.00
+WildWendy: folds
+RockRob: folds
+BluffBilly: folds
+LuckyLou: folds
+GrindGary: folds
+TiltTerry: calls $14.00
+*** FLOP *** [9h 5c 2d]
+TiltTerry: checks
+HeroPlayer: bets $25.00
+TiltTerry: calls $25.00
+*** TURN *** [9h 5c 2d] [7s]
+TiltTerry: checks
+HeroPlayer: bets $55.00
+TiltTerry: folds
+HeroPlayer collected $93.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $95.00 | Rake $2.00
+Board [9h 5c 2d 7s]
+Seat 2: HeroPlayer collected ($93.00)
+Seat 9: TiltTerry folded on the Turn
+
+
+PokerStars Hand #300000000022: Hold'em No Limit ($1.00/$2.00 USD) - 2025/04/01 12:05:30 ET
+Table 'Sirius IX' 9-max Seat #6 is the button
+Seat 1: SharkSteve ($200.00 in chips)
+Seat 2: HeroPlayer ($268.00 in chips)
+Seat 3: WildWendy ($250.00 in chips)
+Seat 4: RockRob ($180.00 in chips)
+Seat 5: BluffBilly ($300.00 in chips)
+Seat 6: LuckyLou ($149.00 in chips)
+Seat 7: GrindGary ($218.00 in chips)
+Seat 8: SemiSam ($175.00 in chips)
+Seat 9: TiltTerry ($145.00 in chips)
+GrindGary: posts small blind $1.00
+SemiSam: posts big blind $2.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [5s 5d]
+TiltTerry: folds
+SharkSteve: raises $4.00 to $6.00
+HeroPlayer: calls $6.00
+WildWendy: calls $6.00
+RockRob: folds
+BluffBilly: folds
+LuckyLou: folds
+GrindGary: folds
+SemiSam: folds
+*** FLOP *** [5h 8s Kc]
+SharkSteve: bets $12.00
+HeroPlayer: calls $12.00
+WildWendy: folds
+*** TURN *** [5h 8s Kc] [Jd]
+SharkSteve: bets $28.00
+HeroPlayer: raises $56.00 to $84.00
+SharkSteve: calls $56.00
+*** RIVER *** [5h 8s Kc Jd] [3c]
+SharkSteve: checks
+HeroPlayer: bets $100.00
+SharkSteve: calls $98.00 and is all-in
+Uncalled bet ($2.00) returned to HeroPlayer
+*** SHOW DOWN ***
+HeroPlayer: shows [5s 5d] (three of a kind, Fives)
+SharkSteve: shows [Kh Kd] (three of a kind, Kings)
+SharkSteve collected $409.00 from pot
+*** SUMMARY ***
+Total pot $411.00 | Rake $2.00
+Board [5h 8s Kc Jd 3c]
+Seat 1: SharkSteve showed [Kh Kd] and won ($409.00) with three of a kind, Kings
+Seat 2: HeroPlayer showed [5s 5d] and lost with three of a kind, Fives
+Seat 3: WildWendy folded on the Flop
+
+
+PokerStars Hand #300000000023: Hold'em No Limit ($1.00/$2.00 USD) - 2025/04/01 12:10:18 ET
+Table 'Sirius IX' 9-max Seat #7 is the button
+Seat 1: SharkSteve ($409.00 in chips)
+Seat 2: HeroPlayer ($66.00 in chips)
+Seat 3: WildWendy ($244.00 in chips)
+Seat 4: RockRob ($180.00 in chips)
+Seat 5: BluffBilly ($300.00 in chips)
+Seat 6: LuckyLou ($149.00 in chips)
+Seat 7: GrindGary ($217.00 in chips)
+Seat 8: SemiSam ($173.00 in chips)
+Seat 9: TiltTerry ($145.00 in chips)
+SemiSam: posts small blind $1.00
+TiltTerry: posts big blind $2.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ah Kc]
+SharkSteve: folds
+HeroPlayer: raises $4.00 to $6.00
+WildWendy: folds
+RockRob: folds
+BluffBilly: raises $12.00 to $18.00
+LuckyLou: folds
+GrindGary: folds
+SemiSam: folds
+TiltTerry: folds
+HeroPlayer: raises $48.00 to $66.00 and is all-in
+BluffBilly: calls $48.00
+*** FLOP *** [Ac 7d 4s]
+*** TURN *** [Ac 7d 4s] [9h]
+*** RIVER *** [Ac 7d 4s 9h] [2c]
+*** SHOW DOWN ***
+HeroPlayer: shows [Ah Kc] (a pair of Aces)
+BluffBilly: shows [Jd Jh] (a pair of Jacks)
+HeroPlayer collected $135.00 from pot
+*** SUMMARY ***
+Total pot $137.00 | Rake $2.00
+Board [Ac 7d 4s 9h 2c]
+Seat 2: HeroPlayer showed [Ah Kc] and won ($135.00) with a pair of Aces
+Seat 5: BluffBilly showed [Jd Jh] and lost with a pair of Jacks
+
+
+PokerStars Hand #300000000024: Hold'em No Limit ($1.00/$2.00 USD) - 2025/04/01 12:15:05 ET
+Table 'Sirius IX' 9-max Seat #8 is the button
+Seat 1: SharkSteve ($409.00 in chips)
+Seat 2: HeroPlayer ($135.00 in chips)
+Seat 3: WildWendy ($244.00 in chips)
+Seat 4: RockRob ($180.00 in chips)
+Seat 5: BluffBilly ($234.00 in chips)
+Seat 6: LuckyLou ($149.00 in chips)
+Seat 7: GrindGary ($217.00 in chips)
+Seat 8: SemiSam ($172.00 in chips)
+Seat 9: TiltTerry ($143.00 in chips)
+TiltTerry: posts small blind $1.00
+SharkSteve: posts big blind $2.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [7h 8h]
+HeroPlayer: folds
+WildWendy: raises $4.00 to $6.00
+RockRob: folds
+BluffBilly: folds
+LuckyLou: calls $6.00
+GrindGary: folds
+SemiSam: folds
+TiltTerry: calls $5.00
+SharkSteve: folds
+*** FLOP *** [6h 9h Ts]
+TiltTerry: checks
+WildWendy: bets $14.00
+LuckyLou: calls $14.00
+TiltTerry: raises $35.00 to $49.00
+WildWendy: folds
+LuckyLou: calls $35.00
+*** TURN *** [6h 9h Ts] [Kd]
+TiltTerry: bets $88.00 and is all-in
+LuckyLou: calls $88.00
+*** RIVER *** [6h 9h Ts Kd] [5s]
+*** SHOW DOWN ***
+TiltTerry: shows [Td Tc] (three of a kind, Tens)
+LuckyLou: shows [9s 9d] (three of a kind, Nines)
+TiltTerry collected $290.00 from pot
+*** SUMMARY ***
+Total pot $294.00 | Rake $4.00
+Board [6h 9h Ts Kd 5s]
+Seat 9: TiltTerry (small blind) showed [Td Tc] and won ($290.00) with three of a kind, Tens
+Seat 6: LuckyLou showed [9s 9d] and lost with three of a kind, Nines
+
+
+PokerStars Hand #300000000025: Hold'em No Limit ($1.00/$2.00 USD) - 2025/04/01 12:20:30 ET
+Table 'Sirius IX' 9-max Seat #9 is the button
+Seat 1: SharkSteve ($407.00 in chips)
+Seat 2: HeroPlayer ($135.00 in chips)
+Seat 3: WildWendy ($224.00 in chips)
+Seat 4: RockRob ($180.00 in chips)
+Seat 5: BluffBilly ($234.00 in chips)
+Seat 6: LuckyLou ($6.00 in chips)
+Seat 7: GrindGary ($217.00 in chips)
+Seat 8: SemiSam ($172.00 in chips)
+Seat 9: TiltTerry ($290.00 in chips)
+SharkSteve: posts small blind $1.00
+HeroPlayer: posts big blind $2.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Td 9d]
+WildWendy: folds
+RockRob: folds
+BluffBilly: raises $4.00 to $6.00
+LuckyLou: calls $6.00 and is all-in
+GrindGary: folds
+SemiSam: folds
+TiltTerry: folds
+SharkSteve: folds
+HeroPlayer: calls $4.00
+*** FLOP *** [9c Td 3h]
+HeroPlayer: bets $12.00
+BluffBilly: calls $12.00
+*** TURN *** [9c Td 3h] [5d]
+HeroPlayer: bets $25.00
+BluffBilly: folds
+*** RIVER *** [9c Td 3h 5d] [Qs]
+HeroPlayer collected $12.00 from side pot
+*** SHOW DOWN ***
+HeroPlayer: shows [Td 9d] (two pair, Tens and Nines)
+LuckyLou: shows [Ac 7c] (high card, Ace)
+HeroPlayer collected $19.00 from main pot
+*** SUMMARY ***
+Total pot $32.00 | Rake $1.00
+Board [9c Td 3h 5d Qs]
+Seat 2: HeroPlayer (big blind) showed [Td 9d] and won ($31.00) with two pair, Tens and Nines
+Seat 5: BluffBilly folded on the Turn
+Seat 6: LuckyLou showed [Ac 7c] and lost with high card, Ace
+
+
+PokerStars Hand #300000000026: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:00:15 ET
+Table 'Polaris VI' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($100.00 in chips)
+Seat 2: FishyFrank ($100.00 in chips)
+Seat 3: NitNancy ($100.00 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($100.00 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ac Jd]
+TAGTom: folds
+CallingCarl: calls $1.00
+HeroPlayer: raises $3.00 to $4.00
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+CallingCarl: calls $3.00
+*** FLOP *** [Jh 8c 3d]
+CallingCarl: checks
+HeroPlayer: bets $6.00
+CallingCarl: calls $6.00
+*** TURN *** [Jh 8c 3d] [5s]
+CallingCarl: checks
+HeroPlayer: bets $14.00
+CallingCarl: folds
+HeroPlayer collected $21.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $21.50 | Rake $0.50
+Board [Jh 8c 3d 5s]
+Seat 1: HeroPlayer collected ($21.00)
+Seat 6: CallingCarl folded on the Turn
+
+
+PokerStars Hand #300000000027: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:05:30 ET
+Table 'Polaris VI' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($111.00 in chips)
+Seat 2: FishyFrank ($100.00 in chips)
+Seat 3: NitNancy ($99.50 in chips)
+Seat 4: LAGLarry ($99.00 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($86.00 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [2h 3c]
+CallingCarl: folds
+HeroPlayer: folds
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+FishyFrank: calls $3.00
+*** FLOP *** [Ah 9c 6d]
+LAGLarry: bets $6.00
+FishyFrank: calls $6.00
+*** TURN *** [Ah 9c 6d] [Tc]
+LAGLarry: bets $15.00
+FishyFrank: folds
+LAGLarry collected $21.00 from pot
+LAGLarry: doesn't show hand
+*** SUMMARY ***
+Total pot $21.50 | Rake $0.50
+Board [Ah 9c 6d Tc]
+Seat 1: HeroPlayer folded before Flop (didn't bet)
+Seat 2: FishyFrank folded on the Turn
+Seat 4: LAGLarry (small blind) collected ($21.00)
+
+
+PokerStars Hand #300000000028: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:10:45 ET
+Table 'Polaris VI' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($111.00 in chips)
+Seat 2: FishyFrank ($90.00 in chips)
+Seat 3: NitNancy ($99.50 in chips)
+Seat 4: LAGLarry ($114.00 in chips)
+Seat 5: TAGTom ($99.00 in chips)
+Seat 6: CallingCarl ($86.00 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ah Qd]
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: calls $3.50
+TAGTom: folds
+CallingCarl: folds
+*** FLOP *** [Qh 7c 4d]
+HeroPlayer: bets $5.50
+LAGLarry: calls $5.50
+*** TURN *** [Qh 7c 4d] [2h]
+HeroPlayer: bets $14.00
+LAGLarry: calls $14.00
+*** RIVER *** [Qh 7c 4d 2h] [9s]
+HeroPlayer: bets $30.00
+LAGLarry: folds
+HeroPlayer collected $47.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $48.00 | Rake $0.50
+Board [Qh 7c 4d 2h 9s]
+Seat 1: HeroPlayer collected ($47.50)
+Seat 4: LAGLarry (button) folded on the River
+
+
+PokerStars Hand #300000000029: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:15:20 ET
+Table 'Polaris VI' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($135.50 in chips)
+Seat 2: FishyFrank ($90.00 in chips)
+Seat 3: NitNancy ($99.50 in chips)
+Seat 4: LAGLarry ($91.00 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($85.00 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kh Jh]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: calls $3.00
+*** FLOP *** [Kc 8h 4h]
+HeroPlayer: checks
+FishyFrank: checks
+LAGLarry: bets $8.00
+HeroPlayer: raises $18.00 to $26.00
+FishyFrank: folds
+LAGLarry: calls $18.00
+*** TURN *** [Kc 8h 4h] [3h]
+HeroPlayer: bets $40.00
+LAGLarry: folds
+HeroPlayer collected $64.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $65.00 | Rake $0.50
+Board [Kc 8h 4h 3h]
+Seat 1: HeroPlayer (big blind) collected ($64.50)
+Seat 2: FishyFrank folded on the Flop
+Seat 4: LAGLarry folded on the Turn
+Seat 6: CallingCarl (small blind) folded before Flop
+
+
+PokerStars Hand #300000000030: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:20:05 ET
+Table 'Polaris VI' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($173.50 in chips)
+Seat 2: FishyFrank ($86.00 in chips)
+Seat 3: NitNancy ($99.50 in chips)
+Seat 4: LAGLarry ($61.00 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($84.50 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Tc 9c]
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: calls $3.50
+HeroPlayer: calls $3.00
+FishyFrank: folds
+*** FLOP *** [8c 7c Qd]
+HeroPlayer: checks
+LAGLarry: bets $7.00
+CallingCarl: calls $7.00
+HeroPlayer: calls $7.00
+*** TURN *** [8c 7c Qd] [6c]
+HeroPlayer: bets $25.00
+LAGLarry: folds
+CallingCarl: calls $25.00
+*** RIVER *** [8c 7c Qd 6c] [Kd]
+HeroPlayer: bets $50.00
+CallingCarl: folds
+HeroPlayer collected $73.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $74.00 | Rake $0.50
+Board [8c 7c Qd 6c Kd]
+Seat 1: HeroPlayer (small blind) collected ($73.50)
+Seat 4: LAGLarry folded on the Turn
+Seat 6: CallingCarl (button) folded on the River
+
+
+PokerStars Hand #300000000031: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:25:18 ET
+Table 'Polaris VI' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($236.50 in chips)
+Seat 2: FishyFrank ($85.00 in chips)
+Seat 3: NitNancy ($99.50 in chips)
+Seat 4: LAGLarry ($50.50 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($49.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ad Qc]
+LAGLarry: folds
+TAGTom: raises $2.50 to $3.50
+CallingCarl: folds
+HeroPlayer: raises $8.00 to $11.50
+FishyFrank: folds
+NitNancy: folds
+TAGTom: calls $8.00
+*** FLOP *** [Qd 7s 2h]
+TAGTom: checks
+HeroPlayer: bets $14.00
+TAGTom: raises $28.00 to $42.00
+HeroPlayer: raises $42.00 to $84.00
+TAGTom: calls $45.00 and is all-in
+Uncalled bet ($39.00) returned to HeroPlayer
+*** TURN *** [Qd 7s 2h] [5d]
+*** RIVER *** [Qd 7s 2h 5d] [Tc]
+*** SHOW DOWN ***
+HeroPlayer: shows [Ad Qc] (a pair of Queens)
+TAGTom: shows [Jd Jc] (a pair of Jacks)
+HeroPlayer collected $198.50 from pot
+*** SUMMARY ***
+Total pot $200.00 | Rake $1.50
+Board [Qd 7s 2h 5d Tc]
+Seat 1: HeroPlayer (button) showed [Ad Qc] and won ($198.50) with a pair of Queens
+Seat 5: TAGTom showed [Jd Jc] and lost with a pair of Jacks
+
+
+PokerStars Hand #300000000032: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:30:02 ET
+Table 'Polaris VI' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($336.50 in chips)
+Seat 2: FishyFrank ($84.50 in chips)
+Seat 3: NitNancy ($98.50 in chips)
+Seat 4: LAGLarry ($50.50 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($49.00 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [4c 7d]
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: folds
+FishyFrank: calls $1.00
+NitNancy: raises $3.00 to $4.00
+LAGLarry: folds
+FishyFrank: calls $3.00
+*** FLOP *** [Ac 9h 6s]
+NitNancy: bets $6.00
+FishyFrank: calls $6.00
+*** TURN *** [Ac 9h 6s] [Kd]
+NitNancy: bets $14.00
+FishyFrank: folds
+NitNancy collected $21.50 from pot
+NitNancy: doesn't show hand
+*** SUMMARY ***
+Total pot $22.00 | Rake $0.50
+Board [Ac 9h 6s Kd]
+Seat 1: HeroPlayer folded before Flop (didn't bet)
+Seat 2: FishyFrank (button) folded on the Turn
+Seat 3: NitNancy (small blind) collected ($21.50)
+
+
+PokerStars Hand #300000000033: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:35:44 ET
+Table 'Polaris VI' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($336.50 in chips)
+Seat 2: FishyFrank ($74.50 in chips)
+Seat 3: NitNancy ($110.00 in chips)
+Seat 4: LAGLarry ($49.50 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($49.00 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [As Ks]
+CallingCarl: folds
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: raises $10.00 to $13.50
+TAGTom: folds
+HeroPlayer: raises $20.00 to $33.50
+LAGLarry: calls $20.00
+*** FLOP *** [Kd 9s 4c]
+LAGLarry: checks
+HeroPlayer: bets $16.00 and is all-in
+LAGLarry: calls $16.00 and is all-in
+*** TURN *** [Kd 9s 4c] [8h]
+*** RIVER *** [Kd 9s 4c 8h] [2d]
+*** SHOW DOWN ***
+HeroPlayer: shows [As Ks] (a pair of Kings)
+LAGLarry: shows [Qd Qh] (a pair of Queens)
+HeroPlayer collected $100.00 from pot
+*** SUMMARY ***
+Total pot $101.00 | Rake $1.00
+Board [Kd 9s 4c 8h 2d]
+Seat 1: HeroPlayer showed [As Ks] and won ($100.00) with a pair of Kings
+Seat 4: LAGLarry (small blind) showed [Qd Qh] and lost with a pair of Queens
+
+
+PokerStars Hand #300000000034: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:40:10 ET
+Table 'Polaris VI' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($387.00 in chips)
+Seat 2: FishyFrank ($74.50 in chips)
+Seat 3: NitNancy ($110.00 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($99.00 in chips)
+Seat 6: CallingCarl ($49.00 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [8s 7s]
+HeroPlayer: calls $1.00
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $4.00 to $5.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $4.00
+FishyFrank: calls $4.00
+*** FLOP *** [6s 5c 9d]
+LAGLarry: bets $10.00
+HeroPlayer: raises $25.00 to $35.00
+FishyFrank: folds
+LAGLarry: folds
+HeroPlayer collected $33.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $34.00 | Rake $0.50
+Board [6s 5c 9d]
+Seat 1: HeroPlayer collected ($33.50)
+Seat 4: LAGLarry (button) folded on the Flop
+
+
+PokerStars Hand #300000000035: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:45:33 ET
+Table 'Polaris VI' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($405.00 in chips)
+Seat 2: FishyFrank ($69.50 in chips)
+Seat 3: NitNancy ($110.00 in chips)
+Seat 4: LAGLarry ($85.00 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($48.00 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [6d 6c]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: folds
+TAGTom: raises $3.00 to $4.00
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: calls $3.00
+*** FLOP *** [6h As 8d]
+HeroPlayer: checks
+FishyFrank: checks
+TAGTom: bets $8.00
+HeroPlayer: calls $8.00
+FishyFrank: folds
+*** TURN *** [6h As 8d] [Jc]
+HeroPlayer: checks
+TAGTom: bets $18.00
+HeroPlayer: raises $36.00 to $54.00
+TAGTom: calls $36.00
+*** RIVER *** [6h As 8d Jc] [4d]
+HeroPlayer: bets $70.00
+TAGTom: calls $32.50 and is all-in
+Uncalled bet ($37.50) returned to HeroPlayer
+*** SHOW DOWN ***
+HeroPlayer: shows [6d 6c] (three of a kind, Sixes)
+TAGTom: shows [Ah Jd] (two pair, Aces and Jacks)
+HeroPlayer collected $201.50 from pot
+*** SUMMARY ***
+Total pot $203.50 | Rake $2.00
+Board [6h As 8d Jc 4d]
+Seat 1: HeroPlayer (big blind) showed [6d 6c] and won ($201.50) with three of a kind, Sixes
+Seat 5: TAGTom (button) showed [Ah Jd] and lost with two pair, Aces and Jacks
+
+
+PokerStars Hand #300000000036: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:50:05 ET
+Table 'Polaris VI' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($540.00 in chips)
+Seat 2: FishyFrank ($65.50 in chips)
+Seat 3: NitNancy ($110.00 in chips)
+Seat 4: LAGLarry ($85.00 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($47.50 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Qc Jc]
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $3.00
+FishyFrank: folds
+*** FLOP *** [Jd 4s 2c]
+HeroPlayer: checks
+LAGLarry: bets $5.50
+HeroPlayer: calls $5.50
+*** TURN *** [Jd 4s 2c] [Qd]
+HeroPlayer: checks
+LAGLarry: bets $14.00
+HeroPlayer: raises $28.00 to $42.00
+LAGLarry: folds
+HeroPlayer collected $49.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $49.50 | Rake $0.50
+Board [Jd 4s 2c Qd]
+Seat 1: HeroPlayer (small blind) collected ($49.00)
+Seat 4: LAGLarry folded on the Turn
+
+
+PokerStars Hand #300000000037: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 13:55:18 ET
+Table 'Polaris VI' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($580.00 in chips)
+Seat 2: FishyFrank ($64.50 in chips)
+Seat 3: NitNancy ($110.00 in chips)
+Seat 4: LAGLarry ($62.00 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($47.50 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kh Qh]
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: calls $3.50
+HeroPlayer: raises $10.00 to $13.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: calls $10.00
+CallingCarl: calls $10.00
+*** FLOP *** [Kd 8c 5h]
+LAGLarry: checks
+CallingCarl: checks
+HeroPlayer: bets $22.00
+LAGLarry: folds
+CallingCarl: calls $22.00
+*** TURN *** [Kd 8c 5h] [7h]
+CallingCarl: checks
+HeroPlayer: bets $12.00 and is all-in
+CallingCarl: calls $12.00 and is all-in
+*** RIVER *** [Kd 8c 5h 7h] [4d]
+*** SHOW DOWN ***
+HeroPlayer: shows [Kh Qh] (a pair of Kings)
+CallingCarl: shows [8d 8s] (three of a kind, Eights)
+CallingCarl collected $97.50 from pot
+*** SUMMARY ***
+Total pot $99.50 | Rake $2.00
+Board [Kd 8c 5h 7h 4d]
+Seat 1: HeroPlayer (button) showed [Kh Qh] and lost with a pair of Kings
+Seat 6: CallingCarl showed [8d 8s] and won ($97.50) with three of a kind, Eights
+
+
+PokerStars Hand #300000000038: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:00:02 ET
+Table 'Polaris VI' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($532.50 in chips)
+Seat 2: FishyFrank ($64.00 in chips)
+Seat 3: NitNancy ($109.00 in chips)
+Seat 4: LAGLarry ($48.50 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($97.50 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Th 9h]
+TAGTom: folds
+CallingCarl: calls $1.00
+HeroPlayer: calls $1.00
+FishyFrank: folds
+NitNancy: calls $0.50
+LAGLarry: checks
+*** FLOP *** [Jh 8h 2c]
+NitNancy: checks
+LAGLarry: checks
+CallingCarl: bets $3.00
+HeroPlayer: raises $8.00 to $11.00
+NitNancy: folds
+LAGLarry: folds
+CallingCarl: calls $8.00
+*** TURN *** [Jh 8h 2c] [4h]
+CallingCarl: checks
+HeroPlayer: bets $20.00
+CallingCarl: calls $20.00
+*** RIVER *** [Jh 8h 2c 4h] [Ks]
+CallingCarl: checks
+HeroPlayer: bets $35.00
+CallingCarl: calls $35.00
+*** SHOW DOWN ***
+HeroPlayer: shows [Th 9h] (a flush, Jack high)
+CallingCarl: shows [Jc 8c] (two pair, Jacks and Eights)
+HeroPlayer collected $135.00 from pot
+*** SUMMARY ***
+Total pot $137.00 | Rake $2.00
+Board [Jh 8h 2c 4h Ks]
+Seat 1: HeroPlayer showed [Th 9h] and won ($135.00) with a flush, Jack high
+Seat 6: CallingCarl showed [Jc 8c] and lost with two pair, Jacks and Eights
+
+
+PokerStars Hand #300000000039: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:05:40 ET
+Table 'Polaris VI' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($636.50 in chips)
+Seat 2: FishyFrank ($64.00 in chips)
+Seat 3: NitNancy ($108.00 in chips)
+Seat 4: LAGLarry ($47.50 in chips)
+Seat 5: TAGTom ($100.00 in chips)
+Seat 6: CallingCarl ($31.50 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ac Ad]
+CallingCarl: calls $1.00
+HeroPlayer: raises $3.00 to $4.00
+FishyFrank: calls $4.00
+NitNancy: folds
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: calls $3.00
+*** FLOP *** [Td 5c 3s]
+CallingCarl: checks
+HeroPlayer: bets $8.00
+FishyFrank: calls $8.00
+CallingCarl: folds
+*** TURN *** [Td 5c 3s] [7d]
+HeroPlayer: bets $20.00
+FishyFrank: calls $20.00
+*** RIVER *** [Td 5c 3s 7d] [9h]
+HeroPlayer: bets $35.00
+FishyFrank: calls $32.00 and is all-in
+Uncalled bet ($3.00) returned to HeroPlayer
+*** SHOW DOWN ***
+HeroPlayer: shows [Ac Ad] (a pair of Aces)
+FishyFrank: shows [Td 9c] (two pair, Tens and Nines)
+FishyFrank collected $131.00 from pot
+*** SUMMARY ***
+Total pot $133.50 | Rake $2.50
+Board [Td 5c 3s 7d 9h]
+Seat 1: HeroPlayer showed [Ac Ad] and lost with a pair of Aces
+Seat 2: FishyFrank showed [Td 9c] and won ($131.00) with two pair, Tens and Nines
+
+
+PokerStars Hand #300000000040: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:10:15 ET
+Table 'Polaris VI' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($572.50 in chips)
+Seat 2: FishyFrank ($131.00 in chips)
+Seat 3: NitNancy ($108.00 in chips)
+Seat 4: LAGLarry ($47.00 in chips)
+Seat 5: TAGTom ($99.00 in chips)
+Seat 6: CallingCarl ($27.50 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [5d 5c]
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: calls $2.50
+*** FLOP *** [5s Jh 8c]
+CallingCarl: checks
+HeroPlayer: bets $5.00
+CallingCarl: raises $19.00 to $24.00 and is all-in
+HeroPlayer: calls $19.00
+*** TURN *** [5s Jh 8c] [3d]
+*** RIVER *** [5s Jh 8c 3d] [Ah]
+*** SHOW DOWN ***
+HeroPlayer: shows [5d 5c] (three of a kind, Fives)
+CallingCarl: shows [Jd Jc] (three of a kind, Jacks)
+CallingCarl collected $55.50 from pot
+*** SUMMARY ***
+Total pot $56.50 | Rake $1.00
+Board [5s Jh 8c 3d Ah]
+Seat 1: HeroPlayer showed [5d 5c] and lost with three of a kind, Fives
+Seat 6: CallingCarl (big blind) showed [Jd Jc] and won ($55.50) with three of a kind, Jacks
+
+
+PokerStars Hand #300000000041: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:15:30 ET
+Table 'Polaris VI' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($545.00 in chips)
+Seat 2: FishyFrank ($131.00 in chips)
+Seat 3: NitNancy ($108.00 in chips)
+Seat 4: LAGLarry ($47.00 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($55.50 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ah Td]
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: calls $2.50
+*** FLOP *** [Tc 4d 2s]
+HeroPlayer: checks
+LAGLarry: bets $5.00
+HeroPlayer: calls $5.00
+*** TURN *** [Tc 4d 2s] [Qh]
+HeroPlayer: checks
+LAGLarry: checks
+*** RIVER *** [Tc 4d 2s Qh] [6c]
+HeroPlayer: bets $12.00
+LAGLarry: folds
+HeroPlayer collected $18.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $19.00 | Rake $0.50
+Board [Tc 4d 2s Qh 6c]
+Seat 1: HeroPlayer (big blind) collected ($18.50)
+Seat 4: LAGLarry folded on the River
+
+
+PokerStars Hand #300000000042: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:20:45 ET
+Table 'Polaris VI' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($555.00 in chips)
+Seat 2: FishyFrank ($131.00 in chips)
+Seat 3: NitNancy ($108.00 in chips)
+Seat 4: LAGLarry ($38.50 in chips)
+Seat 5: TAGTom ($98.50 in chips)
+Seat 6: CallingCarl ($55.00 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Jh Jd]
+NitNancy: folds
+LAGLarry: raises $2.50 to $3.50
+TAGTom: calls $3.50
+CallingCarl: folds
+HeroPlayer: raises $12.00 to $15.50
+FishyFrank: folds
+LAGLarry: calls $12.00
+TAGTom: folds
+*** FLOP *** [9s 5d 3c]
+HeroPlayer: bets $18.00
+LAGLarry: calls $18.00
+*** TURN *** [9s 5d 3c] [7h]
+HeroPlayer: bets $5.00 and is all-in
+LAGLarry: calls $5.00 and is all-in
+*** RIVER *** [9s 5d 3c 7h] [Kd]
+*** SHOW DOWN ***
+HeroPlayer: shows [Jh Jd] (a pair of Jacks)
+LAGLarry: shows [As 8c] (high card, Ace)
+HeroPlayer collected $81.50 from pot
+*** SUMMARY ***
+Total pot $82.50 | Rake $1.00
+Board [9s 5d 3c 7h Kd]
+Seat 1: HeroPlayer (small blind) showed [Jh Jd] and won ($81.50) with a pair of Jacks
+Seat 4: LAGLarry showed [As 8c] and lost with high card, Ace
+
+
+PokerStars Hand #300000000043: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:25:18 ET
+Table 'Polaris VI' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($598.00 in chips)
+Seat 2: FishyFrank ($130.00 in chips)
+Seat 3: NitNancy ($104.50 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($95.00 in chips)
+Seat 6: CallingCarl ($55.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kc Tc]
+LAGLarry: folds
+TAGTom: raises $2.50 to $3.50
+CallingCarl: calls $3.50
+HeroPlayer: calls $3.50
+FishyFrank: calls $3.00
+NitNancy: folds
+*** FLOP *** [Td Kd 5c]
+FishyFrank: checks
+TAGTom: bets $8.00
+CallingCarl: folds
+HeroPlayer: raises $18.00 to $26.00
+FishyFrank: folds
+TAGTom: calls $18.00
+*** TURN *** [Td Kd 5c] [3s]
+TAGTom: checks
+HeroPlayer: bets $40.00
+TAGTom: folds
+HeroPlayer collected $63.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $64.00 | Rake $0.50
+Board [Td Kd 5c 3s]
+Seat 1: HeroPlayer (button) collected ($63.50)
+Seat 5: TAGTom folded on the Turn
+
+
+PokerStars Hand #300000000044: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:30:02 ET
+Table 'Polaris VI' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($625.00 in chips)
+Seat 2: FishyFrank ($126.50 in chips)
+Seat 3: NitNancy ($103.50 in chips)
+Seat 4: LAGLarry ($100.00 in chips)
+Seat 5: TAGTom ($65.50 in chips)
+Seat 6: CallingCarl ($51.50 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [9d 8d]
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: raises $2.00 to $3.00
+FishyFrank: calls $3.00
+NitNancy: folds
+LAGLarry: calls $2.00
+*** FLOP *** [7d 6d 2c]
+LAGLarry: checks
+HeroPlayer: bets $6.00
+FishyFrank: calls $6.00
+LAGLarry: folds
+*** TURN *** [7d 6d 2c] [Td]
+HeroPlayer: bets $18.00
+FishyFrank: calls $18.00
+*** RIVER *** [7d 6d 2c Td] [Qh]
+HeroPlayer: bets $40.00
+FishyFrank: folds
+HeroPlayer collected $56.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $57.50 | Rake $1.00
+Board [7d 6d 2c Td Qh]
+Seat 1: HeroPlayer collected ($56.50)
+Seat 2: FishyFrank (button) folded on the River
+
+
+PokerStars Hand #300000000045: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:35:40 ET
+Table 'Polaris VI' 6-max Seat #3 is the button
+Seat 1: HeroPlayer ($672.00 in chips)
+Seat 2: FishyFrank ($99.50 in chips)
+Seat 3: NitNancy ($103.00 in chips)
+Seat 4: LAGLarry ($94.00 in chips)
+Seat 5: TAGTom ($65.50 in chips)
+Seat 6: CallingCarl ($51.50 in chips)
+LAGLarry: posts small blind $0.50
+TAGTom: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [3d 4s]
+CallingCarl: folds
+HeroPlayer: folds
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: raises $1.50 to $2.50
+TAGTom: calls $1.50
+*** FLOP *** [Qs 8c 3c]
+LAGLarry: bets $4.00
+TAGTom: calls $4.00
+*** TURN *** [Qs 8c 3c] [Jh]
+LAGLarry: bets $10.00
+TAGTom: raises $20.00 to $30.00
+LAGLarry: folds
+TAGTom collected $33.50 from pot
+TAGTom: doesn't show hand
+*** SUMMARY ***
+Total pot $34.00 | Rake $0.50
+Board [Qs 8c 3c Jh]
+Seat 1: HeroPlayer folded before Flop (didn't bet)
+Seat 4: LAGLarry (small blind) folded on the Turn
+Seat 5: TAGTom (big blind) collected ($33.50)
+
+
+PokerStars Hand #300000000046: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:40:10 ET
+Table 'Polaris VI' 6-max Seat #4 is the button
+Seat 1: HeroPlayer ($672.00 in chips)
+Seat 2: FishyFrank ($99.50 in chips)
+Seat 3: NitNancy ($103.00 in chips)
+Seat 4: LAGLarry ($77.50 in chips)
+Seat 5: TAGTom ($92.00 in chips)
+Seat 6: CallingCarl ($51.50 in chips)
+TAGTom: posts small blind $0.50
+CallingCarl: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ac 8c]
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: calls $2.50
+*** FLOP *** [8d 3c 2c]
+CallingCarl: checks
+HeroPlayer: bets $5.00
+CallingCarl: calls $5.00
+*** TURN *** [8d 3c 2c] [Ac]
+CallingCarl: checks
+HeroPlayer: bets $12.00
+CallingCarl: folds
+HeroPlayer collected $18.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $18.50 | Rake $0.50
+Board [8d 3c 2c Ac]
+Seat 1: HeroPlayer collected ($18.00)
+Seat 6: CallingCarl (big blind) folded on the Turn
+
+
+PokerStars Hand #300000000047: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:45:33 ET
+Table 'Polaris VI' 6-max Seat #5 is the button
+Seat 1: HeroPlayer ($684.50 in chips)
+Seat 2: FishyFrank ($99.50 in chips)
+Seat 3: NitNancy ($103.00 in chips)
+Seat 4: LAGLarry ($77.50 in chips)
+Seat 5: TAGTom ($91.50 in chips)
+Seat 6: CallingCarl ($43.50 in chips)
+CallingCarl: posts small blind $0.50
+HeroPlayer: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Qd Js]
+FishyFrank: calls $1.00
+NitNancy: folds
+LAGLarry: raises $3.00 to $4.00
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: folds
+FishyFrank: calls $3.00
+*** FLOP *** [Qh 4c 7s]
+FishyFrank: checks
+LAGLarry: bets $6.00
+FishyFrank: raises $12.00 to $18.00
+LAGLarry: calls $12.00
+*** TURN *** [Qh 4c 7s] [5d]
+FishyFrank: bets $25.00
+LAGLarry: folds
+FishyFrank collected $45.50 from pot
+FishyFrank: doesn't show hand
+*** SUMMARY ***
+Total pot $46.00 | Rake $0.50
+Board [Qh 4c 7s 5d]
+Seat 1: HeroPlayer (big blind) folded before Flop
+Seat 2: FishyFrank collected ($45.50)
+Seat 4: LAGLarry folded on the Turn
+
+
+PokerStars Hand #300000000048: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:50:05 ET
+Table 'Polaris VI' 6-max Seat #6 is the button
+Seat 1: HeroPlayer ($683.50 in chips)
+Seat 2: FishyFrank ($123.00 in chips)
+Seat 3: NitNancy ($103.00 in chips)
+Seat 4: LAGLarry ($55.50 in chips)
+Seat 5: TAGTom ($91.50 in chips)
+Seat 6: CallingCarl ($43.00 in chips)
+HeroPlayer: posts small blind $0.50
+FishyFrank: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Kd Qd]
+NitNancy: folds
+LAGLarry: folds
+TAGTom: raises $2.50 to $3.50
+CallingCarl: folds
+HeroPlayer: raises $8.00 to $11.50
+FishyFrank: folds
+TAGTom: calls $8.00
+*** FLOP *** [Kh 9d 4c]
+HeroPlayer: bets $14.00
+TAGTom: calls $14.00
+*** TURN *** [Kh 9d 4c] [2s]
+HeroPlayer: bets $30.00
+TAGTom: folds
+HeroPlayer collected $52.00 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $53.00 | Rake $1.00
+Board [Kh 9d 4c 2s]
+Seat 1: HeroPlayer (small blind) collected ($52.00)
+Seat 5: TAGTom folded on the Turn
+
+
+PokerStars Hand #300000000049: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 14:55:18 ET
+Table 'Polaris VI' 6-max Seat #1 is the button
+Seat 1: HeroPlayer ($724.00 in chips)
+Seat 2: FishyFrank ($122.00 in chips)
+Seat 3: NitNancy ($103.00 in chips)
+Seat 4: LAGLarry ($55.50 in chips)
+Seat 5: TAGTom ($66.00 in chips)
+Seat 6: CallingCarl ($43.00 in chips)
+FishyFrank: posts small blind $0.50
+NitNancy: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [As Qd]
+LAGLarry: folds
+TAGTom: folds
+CallingCarl: folds
+HeroPlayer: raises $2.50 to $3.50
+FishyFrank: calls $3.00
+NitNancy: folds
+*** FLOP *** [Ad 7c 3s]
+FishyFrank: checks
+HeroPlayer: bets $5.00
+FishyFrank: calls $5.00
+*** TURN *** [Ad 7c 3s] [Jd]
+FishyFrank: checks
+HeroPlayer: bets $12.00
+FishyFrank: folds
+HeroPlayer collected $18.50 from pot
+HeroPlayer: doesn't show hand
+*** SUMMARY ***
+Total pot $19.00 | Rake $0.50
+Board [Ad 7c 3s Jd]
+Seat 1: HeroPlayer (button) collected ($18.50)
+Seat 2: FishyFrank folded on the Turn
+
+
+PokerStars Hand #300000000050: Hold'em No Limit ($0.50/$1.00 USD) - 2025/04/01 15:00:02 ET
+Table 'Polaris VI' 6-max Seat #2 is the button
+Seat 1: HeroPlayer ($734.00 in chips)
+Seat 2: FishyFrank ($113.50 in chips)
+Seat 3: NitNancy ($102.00 in chips)
+Seat 4: LAGLarry ($55.50 in chips)
+Seat 5: TAGTom ($66.00 in chips)
+Seat 6: CallingCarl ($43.00 in chips)
+NitNancy: posts small blind $0.50
+LAGLarry: posts big blind $1.00
+*** HOLE CARDS ***
+Dealt to HeroPlayer [Ts Td]
+TAGTom: raises $2.50 to $3.50
+CallingCarl: folds
+HeroPlayer: raises $8.00 to $11.50
+FishyFrank: folds
+NitNancy: folds
+LAGLarry: folds
+TAGTom: calls $8.00
+*** FLOP *** [9h 6c 2d]
+TAGTom: checks
+HeroPlayer: bets $15.00
+TAGTom: raises $39.50 to $54.50 and is all-in
+HeroPlayer: calls $39.50
+*** TURN *** [9h 6c 2d] [3c]
+*** RIVER *** [9h 6c 2d 3c] [8s]
+*** SHOW DOWN ***
+HeroPlayer: shows [Ts Td] (a pair of Tens)
+TAGTom: shows [Ah Kh] (high card, Ace)
+HeroPlayer collected $134.50 from pot
+*** SUMMARY ***
+Total pot $135.50 | Rake $1.00
+Board [9h 6c 2d 3c 8s]
+Seat 1: HeroPlayer showed [Ts Td] and won ($134.50) with a pair of Tens
+Seat 5: TAGTom showed [Ah Kh] and lost with high card, Ace
