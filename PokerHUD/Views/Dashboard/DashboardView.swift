@@ -130,7 +130,7 @@ struct DashboardView: View {
         // Find the hero player (isHero = true) and their recent hands
         let rows: [Row] = try db.reader.read { database in
             try Row.fetchAll(database, sql: """
-                SELECT h.id, h.playedAt, h.tableName, h.bigBlind, h.stakes,
+                SELECT h.id, h.playedAt, h.tableName, h.bigBlind, h.smallBlind,
                        hp.netResult, hp.vpip, hp.pfr, hp.wentToShowdown, hp.wonAtShowdown, hp.isHero
                 FROM hand_players hp
                 INNER JOIN hands h ON h.id = hp.handId
@@ -160,7 +160,9 @@ struct DashboardView: View {
 
             if index == 0 {
                 tableName = row["tableName"] as? String
-                stakes = row["stakes"] as? String
+                let sb: Double = row["smallBlind"]
+                let bb: Double = row["bigBlind"]
+                stakes = "\(sb)/\(bb)"
                 sessionHands.append((playedAt, netResult, bigBlind, vpip, pfr, wtsd, wsd))
                 continue
             }

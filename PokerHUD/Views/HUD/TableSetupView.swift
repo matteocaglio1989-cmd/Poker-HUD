@@ -39,6 +39,26 @@ struct TableSetupView: View {
                 }
                 .padding()
 
+                // Screen Recording permission (needed for multi-table)
+                if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("Screen Recording permission needed for multi-table HUD")
+                            .font(.caption)
+                        Spacer()
+                        Button("Open Settings") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .padding(8)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+
                 // File Watcher status
                 FileWatcherStatusView()
                     .environmentObject(appState)
