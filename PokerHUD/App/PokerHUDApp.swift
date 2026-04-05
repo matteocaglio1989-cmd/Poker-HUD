@@ -9,6 +9,9 @@ struct PokerHUDApp: App {
             MainView()
                 .environmentObject(appState)
                 .frame(minWidth: 1200, minHeight: 800)
+                .onAppear {
+                    appState.setupMenuBar()
+                }
         }
         .commands {
             CommandGroup(replacing: .newItem) {}

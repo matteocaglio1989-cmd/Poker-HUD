@@ -222,6 +222,7 @@ struct EditSiteView: View {
         }
         .padding(24)
         .frame(width: 500)
+        .fixSheetFocus()
         .onAppear {
             siteName = site.name
             handHistoryPath = site.handHistoryPath ?? ""
@@ -321,6 +322,7 @@ struct AddSiteView: View {
         }
         .padding(24)
         .frame(width: 500)
+        .fixSheetFocus()
     }
 
     private func pickFolder() {

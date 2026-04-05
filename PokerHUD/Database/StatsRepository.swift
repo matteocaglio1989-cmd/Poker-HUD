@@ -66,7 +66,7 @@ class StatsRepository {
                 return nil
             }
 
-            let handsPlayed = row["handsPlayed"] as? Int ?? 0
+            let handsPlayed: Int = row["handsPlayed"]
             guard handsPlayed > 0 else { return nil }
 
             return PlayerStats(

@@ -12,7 +12,7 @@ class AppState: ObservableObject {
     @Published var currentSession: Session?
 
     // MARK: - Phase 2 HUD State
-    @Published var hudEnabled: Bool = false
+    @Published var hudEnabled: Bool = true
     @Published var managedTables: [ActiveTable] = []
     @Published var isFileWatcherActive: Bool = false
     @Published var handHistoryPath: String? = nil
@@ -26,6 +26,7 @@ class AppState: ObservableObject {
     let statsCalculator: StatsCalculator
     // TableManager used only for matching logic, not as source of truth
     var hudManager: HUDManager?
+    var menuBarController: MenuBarController?
     var fileWatcher: FileWatcher?
     private var fileWatcherCancellable: AnyCancellable?
 
@@ -37,6 +38,12 @@ class AppState: ObservableObject {
             statsCalculator: statsCalculator
         )
         self.hudManager = HUDManager()
+        self.menuBarController = nil // Set after init since it needs self
+
+        // Request Screen Recording permission (needed to read poker window titles for multi-table)
+        if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
+            PokerStarsWindowDetector.requestScreenRecordingPermission()
+        }
 
         // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
@@ -46,6 +53,13 @@ class AppState: ObservableObject {
             } else {
                 handHistoryPath = savedPath
             }
+        }
+    }
+
+    /// Initialize the menu bar icon (must be called after init since it needs `self`)
+    func setupMenuBar() {
+        if menuBarController == nil {
+            menuBarController = MenuBarController(appState: self)
         }
     }
 
@@ -168,6 +182,10 @@ class AppState: ObservableObject {
 
             if result.handsImported > 0 {
                 lastAutoImportTime = Date()
+
+                // Auto-create/update tables and show HUD
+                autoManageTables(from: result)
+
                 // Refresh HUD panels for affected players
                 let visibleTables = managedTables.filter { $0.isHUDVisible }
                 hudManager?.handleNewHands(result: result, tables: visibleTables)
@@ -185,6 +203,114 @@ class AppState: ObservableObject {
             autoImportLog.insert(event, at: 0)
             if autoImportLog.count > 50 { autoImportLog.removeLast() }
             print("[AppState] File watcher import error: \(error)")
+        }
+    }
+
+    // MARK: - Auto Table Management
+
+    /// Automatically create/update tables from imported hand data and show HUD
+    private func autoManageTables(from result: HUDImportResult) {
+        guard hudEnabled else { return }
+
+        for (tableName, seats) in result.tableSeats {
+            // Check if we already have this table
+            if let existingIndex = managedTables.firstIndex(where: { $0.tableName == tableName }) {
+                // Update seat assignments with latest player positions
+                updateTableSeats(at: existingIndex, with: seats)
+
+                // Auto-show HUD if not already visible
+                if !managedTables[existingIndex].isHUDVisible {
+                    managedTables[existingIndex].isHUDVisible = true
+                    hudManager?.showHUD(for: managedTables[existingIndex])
+                }
+            } else {
+                // Create new table automatically
+                let tableSize = seats.first?.tableSize ?? 6
+                let stakes = seats.first?.stakes ?? "?"
+
+                var seatAssignments = SeatAssignment.defaultLayout(for: tableSize)
+                for seatInfo in seats {
+                    if let idx = seatAssignments.firstIndex(where: { $0.seatNumber == seatInfo.seatNumber }) {
+                        seatAssignments[idx].playerName = seatInfo.playerName
+                    }
+                }
+
+                var table = ActiveTable(
+                    tableName: tableName,
+                    site: "PokerStars",
+                    stakes: stakes,
+                    tableSize: tableSize,
+                    seatAssignments: seatAssignments,
+                    isHUDVisible: true
+                )
+                // Override with populated seats
+                table.seatAssignments = seatAssignments
+
+                managedTables.append(table)
+
+                // Try to bind this new table to the correct PokerStars window
+                // CGWindowList returns windows front-to-back, so the first unbound
+                // window is most likely the one that just generated this hand
+                let windows = PokerStarsWindowDetector.findTableWindows()
+                let boundIDs = Set(hudManager?.getAllBoundWindowIDs() ?? [])
+                // Try name match first (if Screen Recording permission granted)
+                if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
+                    hudManager?.bindTable(table.id, toWindow: named.windowID)
+                    print("[AppState] Bound new table '\(tableName)' to window \(named.windowID) by name")
+                } else if let unbound = windows.first(where: { !boundIDs.contains($0.windowID) }) {
+                    hudManager?.bindTable(table.id, toWindow: unbound.windowID)
+                    print("[AppState] Bound new table '\(tableName)' to window \(unbound.windowID) (frontmost unbound)")
+                }
+
+                hudManager?.showHUD(for: table)
+                print("[AppState] Auto-created table: \(tableName) with \(seats.count) players")
+            }
+        }
+    }
+
+    /// Update seat assignments for an existing table and handle player changes.
+    /// Adds new players, updates changed seats, and removes players who left.
+    private func updateTableSeats(at index: Int, with seats: [TableSeatInfo]) {
+        var changed = false
+        let newSeatNumbers = Set(seats.map { $0.seatNumber })
+        let newPlayerNames = Set(seats.map { $0.playerName })
+
+        // 1. Remove panels for players who are no longer at the table
+        for seatIdx in managedTables[index].seatAssignments.indices {
+            let seat = managedTables[index].seatAssignments[seatIdx]
+            guard let oldPlayer = seat.playerName, !oldPlayer.isEmpty else { continue }
+
+            if !newPlayerNames.contains(oldPlayer) {
+                // This player left the table
+                let key = PanelKey(tableId: managedTables[index].id, seatNumber: seat.seatNumber)
+                hudManager?.removeSinglePanel(key: key)
+                managedTables[index].seatAssignments[seatIdx].playerName = nil
+                print("[AppState] Player left: \(oldPlayer) from seat \(seat.seatNumber)")
+                changed = true
+            }
+        }
+
+        // 2. Update/add players at their current seats
+        for seatInfo in seats {
+            if let seatIdx = managedTables[index].seatAssignments.firstIndex(where: { $0.seatNumber == seatInfo.seatNumber }) {
+                let oldPlayer = managedTables[index].seatAssignments[seatIdx].playerName
+
+                if oldPlayer != seatInfo.playerName {
+                    // Player changed at this seat — remove old panel
+                    if oldPlayer != nil {
+                        let key = PanelKey(tableId: managedTables[index].id, seatNumber: seatInfo.seatNumber)
+                        hudManager?.removeSinglePanel(key: key)
+                    }
+                    managedTables[index].seatAssignments[seatIdx].playerName = seatInfo.playerName
+                    print("[AppState] Seat \(seatInfo.seatNumber): \(oldPlayer ?? "empty") -> \(seatInfo.playerName)")
+                    changed = true
+                }
+            }
+        }
+
+        // 3. Show new/updated panels
+        if changed && managedTables[index].isHUDVisible {
+            hudManager?.showHUD(for: managedTables[index])
         }
     }
 }

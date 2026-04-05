@@ -250,8 +250,24 @@ class ImportEngine {
         var affectedTableNames = Set<String>()
         var affectedPlayerNames = Set<String>()
         var errors: [ImportError] = []
+        // Track the latest seat layout per table (last hand wins)
+        var tableSeats: [String: [TableSeatInfo]] = [:]
 
         for parsedHand in parsedHands {
+            // Always update seat layout from every hand (even duplicates)
+            // so we always have the latest player positions
+            let tableName = parsedHand.hand.tableName
+            let stakes = "\(parsedHand.hand.smallBlind)/\(parsedHand.hand.bigBlind)"
+            tableSeats[tableName] = parsedHand.players.map { player in
+                TableSeatInfo(
+                    seatNumber: player.seat,
+                    playerName: player.username,
+                    isHero: player.isHero,
+                    tableSize: parsedHand.hand.tableSize,
+                    stakes: stakes
+                )
+            }
+
             do {
                 if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: site.id!) != nil {
                     continue
@@ -265,7 +281,7 @@ class ImportEngine {
                 try await importHand(parsedHand.hand, players: playersWithStats, actions: parsedHand.actions, site: site)
 
                 handsImported += 1
-                affectedTableNames.insert(parsedHand.hand.tableName)
+                affectedTableNames.insert(tableName)
                 for player in parsedHand.players {
                     affectedPlayerNames.insert(player.username)
                 }
@@ -279,7 +295,8 @@ class ImportEngine {
             handsParsed: parsedHands.count,
             affectedTableNames: affectedTableNames,
             affectedPlayerNames: affectedPlayerNames,
-            errors: errors
+            errors: errors,
+            tableSeats: tableSeats
         )
     }
 }

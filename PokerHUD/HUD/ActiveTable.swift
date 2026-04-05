@@ -53,27 +53,28 @@ struct SeatAssignment: Identifiable, Codable {
         let positions: [(Int, CGPoint)]
 
         if tableSize <= 6 {
-            // 6-max oval layout (relative offsets in points)
+            // 6-max PokerStars-style layout (seat positions matching table UI)
+            // Seats arranged: 1=top-left, 2=top-right, 3=right, 4=bottom-right, 5=bottom-center, 6=left
             positions = [
-                (1, CGPoint(x: 0,   y: 0)),    // Bottom-left
-                (2, CGPoint(x: 200, y: 0)),     // Bottom-right
-                (3, CGPoint(x: 300, y: 120)),   // Right
-                (4, CGPoint(x: 200, y: 240)),   // Top-right
-                (5, CGPoint(x: 0,   y: 240)),   // Top-left
-                (6, CGPoint(x: -100, y: 120)),  // Left
+                (1, CGPoint(x: 20,  y: 300)),   // Top-left
+                (2, CGPoint(x: 380, y: 340)),   // Top-right
+                (3, CGPoint(x: 440, y: 150)),   // Right
+                (4, CGPoint(x: 380, y: -20)),   // Bottom-right
+                (5, CGPoint(x: 140, y: -40)),   // Bottom-center (hero)
+                (6, CGPoint(x: -40, y: 150)),   // Left
             ]
         } else {
-            // 9-max oval layout
+            // 9-max layout
             positions = [
-                (1, CGPoint(x: 0,   y: 0)),
-                (2, CGPoint(x: 130, y: 0)),
-                (3, CGPoint(x: 260, y: 0)),
-                (4, CGPoint(x: 340, y: 80)),
-                (5, CGPoint(x: 340, y: 180)),
-                (6, CGPoint(x: 260, y: 260)),
-                (7, CGPoint(x: 130, y: 260)),
-                (8, CGPoint(x: 0,   y: 260)),
-                (9, CGPoint(x: -80, y: 130)),
+                (1, CGPoint(x: 20,  y: 320)),   // Top-left
+                (2, CGPoint(x: 200, y: 360)),   // Top-center
+                (3, CGPoint(x: 400, y: 320)),   // Top-right
+                (4, CGPoint(x: 460, y: 190)),   // Right
+                (5, CGPoint(x: 400, y: 40)),    // Bottom-right
+                (6, CGPoint(x: 280, y: -20)),   // Bottom-center-right
+                (7, CGPoint(x: 140, y: -20)),   // Bottom-center-left (hero)
+                (8, CGPoint(x: 20,  y: 40)),    // Bottom-left
+                (9, CGPoint(x: -40, y: 190)),   // Left
             ]
         }
 
@@ -88,4 +89,15 @@ struct HUDImportResult {
     let affectedTableNames: Set<String>
     let affectedPlayerNames: Set<String>
     let errors: [ImportError]
+    /// Latest seat layout per table name (for auto-creating HUD tables)
+    let tableSeats: [String: [TableSeatInfo]]
+}
+
+/// Player-to-seat mapping from a parsed hand
+struct TableSeatInfo {
+    let seatNumber: Int
+    let playerName: String
+    let isHero: Bool
+    let tableSize: Int
+    let stakes: String
 }
