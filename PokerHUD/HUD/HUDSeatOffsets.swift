@@ -41,13 +41,14 @@ class HUDSeatOffsets {
 
     var hasCustomOffsets: Bool { !offsets.isEmpty }
 
+    // Slot 0=hero(bottom), 1=left, 2=top-left, 3=top-center, 4=top-right, 5=right
     static let default6Max: [Int: CGPoint] = [
-        0: CGPoint(x: 0.42, y: 0.12),
-        1: CGPoint(x: 0.02, y: 0.30),
-        2: CGPoint(x: 0.05, y: 0.63),
-        3: CGPoint(x: 0.38, y: 0.78),
-        4: CGPoint(x: 0.70, y: 0.63),
-        5: CGPoint(x: 0.70, y: 0.30),
+        0: CGPoint(x: 0.40, y: 0.10),   // Hero: bottom-center
+        1: CGPoint(x: 0.02, y: 0.35),   // Left of hero
+        2: CGPoint(x: 0.05, y: 0.65),   // Top-left
+        3: CGPoint(x: 0.38, y: 0.80),   // Top-center
+        4: CGPoint(x: 0.70, y: 0.65),   // Top-right
+        5: CGPoint(x: 0.72, y: 0.35),   // Right of hero
     ]
 
     static let default9Max: [Int: CGPoint] = [

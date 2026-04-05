@@ -61,10 +61,10 @@ class HUDManager {
             let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
             guard panels[key] == nil else { continue }
 
-            // Calculate visual slot (clockwise from hero)
-            // PokerStars layout: hero at bottom, seats go counter-clockwise (seat+1 = left)
-            // Visual clockwise: slot 0=hero(bottom), 1=right, 2=top-right, 3=top, 4=top-left, 5=left
-            let slot = (heroSeat - seat.seatNumber + maxSeats) % maxSeats
+            // Calculate visual slot (counter-clockwise from hero)
+            // PokerStars: hero at bottom, seat+1 = left, seat+2 = top-left, etc.
+            // Slot 0=hero(bottom), 1=left, 2=top-left, 3=top, 4=top-right, 5=right
+            let slot = (seat.seatNumber - heroSeat + maxSeats) % maxSeats
             panelSlots[key] = slot
 
             // Get position: user-saved offset, or default
@@ -224,7 +224,8 @@ class HUDManager {
                     ORDER BY h.playedAt DESC LIMIT 1
                 """, arguments: [table.tableName])
             }
-            return row?["seat"] as? Int ?? 1
+            let seat: Int? = row?["seat"]
+            return seat ?? 1
         } catch {
             return 1
         }
