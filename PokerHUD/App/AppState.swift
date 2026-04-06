@@ -40,10 +40,8 @@ class AppState: ObservableObject {
         self.hudManager = HUDManager()
         self.menuBarController = nil // Set after init since it needs self
 
-        // Request Screen Recording permission (needed to read poker window titles for multi-table)
-        if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
-            PokerStarsWindowDetector.requestScreenRecordingPermission()
-        }
+        // Pre-warm window detection cache
+        PokerStarsWindowDetector.refreshCache()
 
         // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {

@@ -178,22 +178,23 @@ class HUDManager {
             return w.frame
         }
 
-        // 2. Match by extracted table name (AppleScript provides clean table names)
+        // 2. Match by table name (osascript provides reliable table names)
         if let matched = windows.first(where: { $0.tableName == table.tableName }) {
             tableWindowBinding[table.id] = matched.windowID
-            print("[HUD] Bound '\(table.tableName)' to window by exact table name match")
             return matched.frame
         }
 
-        // 3. Try partial match on window title
-        if let matched = windows.first(where: { $0.windowName.contains(table.tableName) }) {
+        // 3. Try partial match
+        if let matched = windows.first(where: {
+            $0.tableName.contains(table.tableName) || table.tableName.contains($0.tableName)
+        }) {
             tableWindowBinding[table.id] = matched.windowID
-            print("[HUD] Bound '\(table.tableName)' to window by partial name match")
+            print("[HUD] Bound '\(table.tableName)' by partial match to '\(matched.tableName)'")
             return matched.frame
         }
 
-        // 4. No match found — table window might not be open yet
-        print("[HUD] No window found for '\(table.tableName)'")
+        // 4. No match — window might not be open
+        print("[HUD] No window for '\(table.tableName)' (available: \(windows.map { $0.tableName }))")
 
         return nil
     }

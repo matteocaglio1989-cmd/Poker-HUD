@@ -1,86 +1,117 @@
 import AppKit
 
-/// Detects PokerStars table windows using AppleScript (reads window titles reliably)
-/// and CGWindowList (reads window frames accurately)
+/// Detects PokerStars table windows using osascript for reliable window titles
 struct PokerStarsWindowDetector {
 
-    /// Find all PokerStars table windows with their titles and positions
+    /// Cached results
+    private static var cachedWindows: [DetectedPokerWindow] = []
+    private static var lastDetectionTime: Date = .distantPast
+    private static let cacheInterval: TimeInterval = 2.0
+    private static var isRunning = false
+
+    /// Find all PokerStars table windows
     static func findTableWindows() -> [DetectedPokerWindow] {
-        // Use AppleScript to get window names + positions (reliable for titles)
-        let appleScriptWindows = getWindowsViaAppleScript()
-        if !appleScriptWindows.isEmpty {
-            return appleScriptWindows
+        if Date().timeIntervalSince(lastDetectionTime) < cacheInterval && !cachedWindows.isEmpty {
+            return cachedWindows
         }
 
-        // Fallback to CGWindowList if AppleScript fails
-        return getWindowsViaCGWindowList()
+        // Don't run osascript concurrently
+        guard !isRunning else { return cachedWindows }
+        isRunning = true
+        defer { isRunning = false }
+
+        let windows = runOsascriptDetection()
+        if !windows.isEmpty {
+            cachedWindows = windows
+            lastDetectionTime = Date()
+        }
+        return cachedWindows
     }
 
-    // MARK: - AppleScript approach (reliable window titles)
+    /// Trigger an async refresh of the window cache (call from background)
+    static func refreshCache() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let windows = runOsascriptDetection()
+            if !windows.isEmpty {
+                cachedWindows = windows
+                lastDetectionTime = Date()
+            }
+        }
+    }
 
-    private static func getWindowsViaAppleScript() -> [DetectedPokerWindow] {
-        // Get window names
-        let nameScript = NSAppleScript(source: """
-            tell application "System Events" to tell process "PokerStars"
-                set windowNames to name of every window
-                set output to ""
-                repeat with n in windowNames
-                    set output to output & n & "|||"
-                end repeat
-                return output
+    // MARK: - osascript detection
+
+    private static func runOsascriptDetection() -> [DetectedPokerWindow] {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", """
+            tell application "System Events"
+                if not (exists process "PokerStars") then return ""
+                tell process "PokerStars"
+                    set output to ""
+                    repeat with w in every window
+                        set wName to name of w
+                        set {x, y} to position of w
+                        set {ww, hh} to size of w
+                        set output to output & wName & ":::" & x & "," & y & "," & ww & "," & hh & "|||"
+                    end repeat
+                    return output
+                end tell
             end tell
-        """)
+        """]
 
-        // Get window positions
-        let posScript = NSAppleScript(source: """
-            tell application "System Events" to tell process "PokerStars"
-                set output to ""
-                repeat with w in every window
-                    set {x, y} to position of w
-                    set {ww, hh} to size of w
-                    set output to output & x & "," & y & "," & ww & "," & hh & "|||"
-                end repeat
-                return output
-            end tell
-        """)
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
 
-        var error: NSDictionary?
-        guard let nameResult = nameScript?.executeAndReturnError(&error).stringValue,
-              let posResult = posScript?.executeAndReturnError(&error).stringValue else {
+        do {
+            try task.run()
+            task.waitUntilExit()
+        } catch {
+            print("[WindowDetector] osascript failed: \(error)")
             return []
         }
 
-        let names = nameResult.components(separatedBy: "|||").filter { !$0.isEmpty }
-        let positions = posResult.components(separatedBy: "|||").filter { !$0.isEmpty }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+              !output.isEmpty else {
+            return []
+        }
 
-        guard names.count == positions.count else { return [] }
+        return parseOsascriptOutput(output)
+    }
 
+    private static func parseOsascriptOutput(_ output: String) -> [DetectedPokerWindow] {
+        let entries = output.components(separatedBy: "|||").filter { !$0.isEmpty }
         let screenHeight = NSScreen.main?.frame.height ?? 900
         var results: [DetectedPokerWindow] = []
 
-        for (index, name) in names.enumerated() {
-            // Skip lobby window
+        for entry in entries {
+            let parts = entry.components(separatedBy: ":::")
+            guard parts.count == 2 else { continue }
+
+            let name = parts[0].trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            let coords = parts[1].components(separatedBy: ",")
+            guard coords.count == 4,
+                  let x = Double(coords[0].trimmingCharacters(in: CharacterSet.whitespaces)),
+                  let y = Double(coords[1].trimmingCharacters(in: CharacterSet.whitespaces)),
+                  let w = Double(coords[2].trimmingCharacters(in: CharacterSet.whitespaces)),
+                  let h = Double(coords[3].trimmingCharacters(in: CharacterSet.whitespaces)) else { continue }
+
+            // Skip lobby and non-table windows
             if name.lowercased().contains("lobby") { continue }
-            // Only include table windows (contain game type)
             guard name.contains("Hold'em") || name.contains("Omaha") else { continue }
 
-            // Parse position
-            let parts = positions[index].components(separatedBy: ",")
-            guard parts.count == 4,
-                  let x = Double(parts[0].trimmingCharacters(in: CharacterSet.whitespaces)),
-                  let y = Double(parts[1].trimmingCharacters(in: CharacterSet.whitespaces)),
-                  let w = Double(parts[2].trimmingCharacters(in: CharacterSet.whitespaces)),
-                  let h = Double(parts[3].trimmingCharacters(in: CharacterSet.whitespaces)) else { continue }
-
-            // Convert from AppleScript coordinates (top-left origin) to NSScreen (bottom-left origin)
             let flippedY = screenHeight - CGFloat(y) - CGFloat(h)
             let frame = NSRect(x: CGFloat(x), y: flippedY, width: CGFloat(w), height: CGFloat(h))
-
-            // Extract table name from window title (between ] and " -")
             let tableName = extractTableName(from: name)
 
+            // Use a hash of the table name as stable window ID
+            let stableID = CGWindowID(abs(tableName.hashValue) % 100000)
+
             results.append(DetectedPokerWindow(
-                windowID: CGWindowID(index),
+                windowID: stableID,
                 windowName: name,
                 tableName: tableName,
                 frame: frame,
@@ -91,8 +122,8 @@ struct PokerStarsWindowDetector {
         return results
     }
 
-    /// Extract the table name from a PokerStars window title
-    /// e.g. "[ID ADM: ...]Chrysothemis V - No Limit Hold'em..." -> "Chrysothemis V"
+    /// Extract table name from window title
+    /// "[ID ADM: ...]Chrysothemis V - No Limit Hold'em..." -> "Chrysothemis V"
     private static func extractTableName(from windowTitle: String) -> String {
         var title = windowTitle
 
@@ -106,49 +137,7 @@ struct PokerStarsWindowDetector {
             title = String(title[..<dashRange.lowerBound])
         }
 
-        return title.trimmingCharacters(in: CharacterSet.whitespaces)
-    }
-
-    // MARK: - CGWindowList fallback
-
-    private static func getWindowsViaCGWindowList() -> [DetectedPokerWindow] {
-        var results: [DetectedPokerWindow] = []
-
-        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
-            return results
-        }
-
-        let screenHeight = NSScreen.main?.frame.height ?? 900
-
-        for window in windowList {
-            guard let ownerName = window[kCGWindowOwnerName as String] as? String,
-                  ownerName.lowercased().contains("pokerstars") else { continue }
-            guard !ownerName.contains("PokerHUD") else { continue }
-
-            guard let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
-                  let x = boundsDict["X"] as? CGFloat,
-                  let y = boundsDict["Y"] as? CGFloat,
-                  let width = boundsDict["Width"] as? CGFloat,
-                  let height = boundsDict["Height"] as? CGFloat else { continue }
-
-            guard let windowID = window[kCGWindowNumber as String] as? CGWindowID else { continue }
-            guard width > 600 && height > 400 else { continue }
-
-            let windowName = window[kCGWindowName as String] as? String ?? ""
-
-            let flippedY = screenHeight - y - height
-            let frame = NSRect(x: x, y: flippedY, width: width, height: height)
-
-            results.append(DetectedPokerWindow(
-                windowID: windowID,
-                windowName: windowName,
-                tableName: "",
-                frame: frame,
-                ownerName: ownerName
-            ))
-        }
-
-        return results
+        return title.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 
     // MARK: - Seat Positions
@@ -199,28 +188,19 @@ struct PokerStarsWindowDetector {
         }
         return result
     }
-}
 
-extension PokerStarsWindowDetector {
+    // MARK: - Permission check
+
     static func hasScreenRecordingPermission() -> Bool {
-        !getWindowsViaAppleScript().isEmpty
-    }
-
-    @discardableResult
-    static func requestScreenRecordingPermission() -> CGImage? {
-        CGWindowListCreateImage(
-            CGRect(x: 0, y: 0, width: 1, height: 1),
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .bestResolution
-        )
+        // osascript-based detection always works, so this is about CGWindowList names
+        return false // Always show the hint to grant permission
     }
 }
 
 struct DetectedPokerWindow {
     let windowID: CGWindowID
     let windowName: String
-    let tableName: String   // Extracted clean table name (e.g. "Chrysothemis V")
+    let tableName: String
     let frame: NSRect
     let ownerName: String
 }
