@@ -40,10 +40,8 @@ class AppState: ObservableObject {
         self.hudManager = HUDManager()
         self.menuBarController = nil // Set after init since it needs self
 
-        // Request Screen Recording permission (needed to read poker window titles for multi-table)
-        if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
-            PokerStarsWindowDetector.requestScreenRecordingPermission()
-        }
+        // Start window detector (reads PokerStars window titles via osascript)
+        PokerStarsWindowDetector.shared.startRefreshing()
 
         // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
@@ -247,21 +245,6 @@ class AppState: ObservableObject {
                 table.seatAssignments = seatAssignments
 
                 managedTables.append(table)
-
-                // Try to bind this new table to the correct PokerStars window
-                // CGWindowList returns windows front-to-back, so the first unbound
-                // window is most likely the one that just generated this hand
-                let windows = PokerStarsWindowDetector.findTableWindows()
-                let boundIDs = Set(hudManager?.getAllBoundWindowIDs() ?? [])
-                // Try name match first (if Screen Recording permission granted)
-                if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
-                    hudManager?.bindTable(table.id, toWindow: named.windowID)
-                    print("[AppState] Bound new table '\(tableName)' to window \(named.windowID) by name")
-                } else if let unbound = windows.first(where: { !boundIDs.contains($0.windowID) }) {
-                    hudManager?.bindTable(table.id, toWindow: unbound.windowID)
-                    print("[AppState] Bound new table '\(tableName)' to window \(unbound.windowID) (frontmost unbound)")
-                }
-
                 hudManager?.showHUD(for: table)
                 print("[AppState] Auto-created table: \(tableName) with \(seats.count) players")
             }

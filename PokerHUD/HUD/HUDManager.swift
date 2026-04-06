@@ -2,9 +2,8 @@ import AppKit
 import SwiftUI
 import GRDB
 
-/// Manages all HUD overlay panels — creates, positions, refreshes, and destroys them.
-/// Panel positions are stored as fractional offsets relative to the poker table window,
-/// so they work across any window size and position.
+/// Manages all HUD overlay panels.
+/// Each table is matched to its PokerStars window by TABLE NAME (via osascript).
 @MainActor
 class HUDManager {
     private var panels: [PanelKey: HUDPanel] = [:]
@@ -12,32 +11,27 @@ class HUDManager {
     private var configuration: HUDConfiguration
     private var positionTimer: Timer?
     private var trackedTables: [ActiveTable] = []
-    private var tableWindowBinding: [UUID: CGWindowID] = [:]
-    /// Maps PanelKey -> slot index (hero-relative position)
     private var panelSlots: [PanelKey: Int] = [:]
+    private var lastWindowFrames: [String: NSRect] = [:] // tableName -> last known frame
 
     init(configuration: HUDConfiguration = .standard) {
         self.configuration = configuration
     }
 
-    // MARK: - Panel Lifecycle
+    // MARK: - Show HUD
 
     func showHUD(for table: ActiveTable) {
         let playerNames = table.seatAssignments.compactMap { $0.playerName }.filter { !$0.isEmpty }
         guard !playerNames.isEmpty else { return }
 
+        // Load stats
         let statsRepo = StatsRepository()
         let playerRepo = PlayerRepository()
-
         for playerName in playerNames {
-            do {
-                if let player = try playerRepo.fetchByUsername(playerName, siteId: nil),
-                   let playerId = player.id,
-                   let stats = try statsRepo.fetchPlayerStats(playerId: playerId) {
-                    playerStats[playerName] = stats
-                }
-            } catch {
-                print("[HUD] Error loading \(playerName): \(error)")
+            if let player = try? playerRepo.fetchByUsername(playerName, siteId: nil),
+               let playerId = player.id,
+               let stats = try? statsRepo.fetchPlayerStats(playerId: playerId) {
+                playerStats[playerName] = stats
             }
         }
 
@@ -49,8 +43,11 @@ class HUDManager {
         startPositionTracking()
     }
 
+    // MARK: - Create Panels
+
     private func createPanels(for table: ActiveTable) {
-        let windowFrame = findWindowFrame(for: table)
+        // Find THIS table's window by name
+        let windowFrame = PokerStarsWindowDetector.shared.window(forTable: table.tableName)?.frame
         let heroSeat = findHeroSeat(in: table)
         let maxSeats = table.tableSize <= 6 ? 6 : 9
         let defaults = table.tableSize <= 6 ? HUDSeatOffsets.default6Max : HUDSeatOffsets.default9Max
@@ -61,13 +58,9 @@ class HUDManager {
             let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
             guard panels[key] == nil else { continue }
 
-            // Calculate visual slot (clockwise from hero)
-            // PokerStars layout: hero at bottom, seats go counter-clockwise (seat+1 = left)
-            // Visual clockwise: slot 0=hero(bottom), 1=right, 2=top-right, 3=top, 4=top-left, 5=left
-            let slot = (heroSeat - seat.seatNumber + maxSeats) % maxSeats
+            let slot = (seat.seatNumber - heroSeat + maxSeats) % maxSeats
             panelSlots[key] = slot
 
-            // Get position: user-saved offset, or default
             let fractionalOffset = HUDSeatOffsets.shared.offset(forSlot: slot) ?? defaults[slot] ?? CGPoint(x: 0.5, y: 0.5)
 
             let position: CGPoint
@@ -82,28 +75,12 @@ class HUDManager {
             let panel = HUDPanel(contentRect: panelRect)
             panel.slotIndex = slot
 
-            // Set up drag callback to save position
-            let tableId = table.id
-            panel.onDragEnd = { [weak self] newOrigin in
-                guard let self = self else { return }
-                // Find the window frame this table is bound to
-                let windows = PokerStarsWindowDetector.findTableWindows()
-                var windowFrame: NSRect?
-
-                if let boundID = self.tableWindowBinding[tableId],
-                   let w = windows.first(where: { $0.windowID == boundID }) {
-                    windowFrame = w.frame
-                } else if let w = windows.first {
-                    // Fallback to any PokerStars window
-                    windowFrame = w.frame
-                }
-
-                if let wf = windowFrame {
+            // Save position on drag — use THIS table's window frame
+            let tableName = table.tableName
+            panel.onDragEnd = { newOrigin in
+                if let wf = PokerStarsWindowDetector.shared.window(forTable: tableName)?.frame {
                     let fraction = HUDSeatOffsets.shared.absoluteToFractional(newOrigin, windowFrame: wf)
                     HUDSeatOffsets.shared.saveOffset(fraction, forSlot: slot)
-                    print("[HUD] Saved slot \(slot) at (\(String(format: "%.3f", fraction.x)), \(String(format: "%.3f", fraction.y)))")
-                } else {
-                    print("[HUD] WARNING: No window found to save slot \(slot)")
                 }
             }
 
@@ -115,7 +92,7 @@ class HUDManager {
         }
     }
 
-    // MARK: - Position Tracking
+    // MARK: - Position Tracking (follow window when moved)
 
     private func startPositionTracking() {
         guard positionTimer == nil else { return }
@@ -131,88 +108,38 @@ class HUDManager {
         positionTimer = nil
     }
 
-    /// Cached last window frames to detect when the poker window actually moved
-    private var lastWindowFrames: [UUID: NSRect] = [:]
-
     private func repositionAllPanels() {
+        let defaults6 = HUDSeatOffsets.default6Max
+        let defaults9 = HUDSeatOffsets.default9Max
+
         for table in trackedTables {
-            guard let windowFrame = findWindowFrame(for: table) else { continue }
+            // Find this table's window BY NAME
+            guard let windowFrame = PokerStarsWindowDetector.shared.window(forTable: table.tableName)?.frame else { continue }
 
-            // Only reposition if the poker window itself moved (not the user dragging HUD panels)
-            if let lastFrame = lastWindowFrames[table.id] {
-                let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
-                let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
-                let wdw = abs(windowFrame.width - lastFrame.width)
-                let wdh = abs(windowFrame.height - lastFrame.height)
-                guard wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2 else { continue }
+            // Only reposition if window actually moved
+            if let lastFrame = lastWindowFrames[table.tableName] {
+                let dx = abs(windowFrame.origin.x - lastFrame.origin.x)
+                let dy = abs(windowFrame.origin.y - lastFrame.origin.y)
+                let dw = abs(windowFrame.width - lastFrame.width)
+                let dh = abs(windowFrame.height - lastFrame.height)
+                guard dx > 2 || dy > 2 || dw > 2 || dh > 2 else { continue }
             }
-            lastWindowFrames[table.id] = windowFrame
+            lastWindowFrames[table.tableName] = windowFrame
 
-            let defaults = table.tableSize <= 6 ? HUDSeatOffsets.default6Max : HUDSeatOffsets.default9Max
+            let defaults = table.tableSize <= 6 ? defaults6 : defaults9
 
             for seat in table.seatAssignments {
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-                guard let panel = panels[key],
-                      let slot = panelSlots[key] else { continue }
+                guard let panel = panels[key], let slot = panelSlots[key] else { continue }
 
                 let fractionalOffset = HUDSeatOffsets.shared.offset(forSlot: slot) ?? defaults[slot] ?? CGPoint(x: 0.5, y: 0.5)
                 let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
-
                 panel.reposition(to: targetPos)
             }
         }
     }
 
-    // MARK: - Window Detection
-
-    private func findWindowFrame(for table: ActiveTable) -> NSRect? {
-        let windows = PokerStarsWindowDetector.findTableWindows()
-        guard !windows.isEmpty else { return nil }
-
-        // 1. Use existing binding if window still exists
-        if let boundID = tableWindowBinding[table.id],
-           let w = windows.first(where: { $0.windowID == boundID }) {
-            return w.frame
-        }
-
-        // 2. Match by window title (works if Screen Recording permission granted)
-        if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
-            tableWindowBinding[table.id] = matched.windowID
-            print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
-            return matched.frame
-        }
-
-        // 3. No window names available — bind by exclusion
-        //    Each table gets a unique window. Already-bound windows are excluded.
-        let boundIDs = Set(tableWindowBinding.values)
-        let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
-
-        if let window = unboundWindows.first {
-            tableWindowBinding[table.id] = window.windowID
-            print("[HUD] Bound '\(table.tableName)' to window \(window.windowID) (first unbound)")
-            return window.frame
-        }
-
-        // 4. All windows are bound — this table's window might have been closed and reopened
-        //    Clear stale binding and try the frontmost window
-        tableWindowBinding.removeValue(forKey: table.id)
-        if let front = windows.first {
-            tableWindowBinding[table.id] = front.windowID
-            return front.frame
-        }
-
-        return nil
-    }
-
-    /// Rebind a table to a specific window
-    func bindTable(_ tableId: UUID, toWindow windowID: CGWindowID) {
-        tableWindowBinding[tableId] = windowID
-    }
-
-    /// Get all currently bound window IDs
-    func getAllBoundWindowIDs() -> [CGWindowID] {
-        Array(tableWindowBinding.values)
-    }
+    // MARK: - Hero Seat
 
     private func findHeroSeat(in table: ActiveTable) -> Int {
         do {
@@ -231,7 +158,7 @@ class HUDManager {
         }
     }
 
-    // MARK: - Single Panel
+    // MARK: - Panel Management
 
     func removeSinglePanel(key: PanelKey) {
         if let panel = panels.removeValue(forKey: key) {
@@ -241,15 +168,12 @@ class HUDManager {
         panelSlots.removeValue(forKey: key)
     }
 
-    // MARK: - Hide
-
     func hideHUD(for table: ActiveTable) {
         for seat in table.seatAssignments {
-            let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-            removeSinglePanel(key: key)
+            removeSinglePanel(key: PanelKey(tableId: table.id, seatNumber: seat.seatNumber))
         }
         trackedTables.removeAll { $0.id == table.id }
-        tableWindowBinding.removeValue(forKey: table.id)
+        lastWindowFrames.removeValue(forKey: table.tableName)
         if trackedTables.isEmpty { stopPositionTracking() }
     }
 
@@ -261,7 +185,7 @@ class HUDManager {
         panels.removeAll()
         panelSlots.removeAll()
         trackedTables.removeAll()
-        tableWindowBinding.removeAll()
+        lastWindowFrames.removeAll()
         stopPositionTracking()
     }
 
@@ -270,7 +194,6 @@ class HUDManager {
     func refreshStats(for playerNames: [String], tables: [ActiveTable]) {
         let statsRepo = StatsRepository()
         let playerRepo = PlayerRepository()
-
         for playerName in playerNames {
             if let player = try? playerRepo.fetchByUsername(playerName, siteId: nil),
                let playerId = player.id,
@@ -287,7 +210,6 @@ class HUDManager {
                 guard let playerName = seat.playerName, playerNames.contains(playerName) else { continue }
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
                 guard let panel = panels[key] else { continue }
-
                 let stats = playerStats[playerName]
                 let view = HUDContentView(playerName: playerName, stats: stats, configuration: configuration)
                 panel.setContent(view)

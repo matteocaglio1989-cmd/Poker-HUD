@@ -1,162 +1,156 @@
 import AppKit
 
-/// Detects PokerStars table windows and their positions using CGWindowList API
-struct PokerStarsWindowDetector {
+/// Detects PokerStars table windows by running osascript to read window titles and positions.
+/// Results are cached and refreshed on a background thread every 2 seconds.
+class PokerStarsWindowDetector {
 
-    /// Find all PokerStars table windows and return their frames
-    static func findTableWindows() -> [DetectedPokerWindow] {
-        var results: [DetectedPokerWindow] = []
+    /// Shared instance manages the background refresh
+    static let shared = PokerStarsWindowDetector()
 
-        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
-            return results
+    private var cache: [DetectedPokerWindow] = []
+    private let lock = NSLock()
+    private var refreshTimer: Timer?
+
+    private init() {}
+
+    /// Start periodic background refresh
+    func startRefreshing() {
+        guard refreshTimer == nil else { return }
+        // Initial fetch
+        refresh()
+        // Refresh every 2 seconds on the main run loop (timer fires on main, work dispatched to background)
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.refresh()
+        }
+    }
+
+    func stopRefreshing() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+    }
+
+    /// Get cached table windows (fast, no blocking)
+    var tableWindows: [DetectedPokerWindow] {
+        lock.lock()
+        defer { lock.unlock() }
+        return cache
+    }
+
+    /// Find window for a specific table name
+    func window(forTable tableName: String) -> DetectedPokerWindow? {
+        tableWindows.first { $0.tableName == tableName }
+    }
+
+    /// Trigger a refresh (runs osascript on background thread)
+    func refresh() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let windows = Self.runOsascript()
+            self?.lock.lock()
+            self?.cache = windows
+            self?.lock.unlock()
+        }
+    }
+
+    // MARK: - osascript execution
+
+    private static func runOsascript() -> [DetectedPokerWindow] {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = ["-e", """
+            tell application "System Events"
+                if not (exists process "PokerStars") then return ""
+                tell process "PokerStars"
+                    set output to ""
+                    repeat with w in every window
+                        set wName to name of w
+                        set {x, y} to position of w
+                        set {ww, hh} to size of w
+                        set output to output & wName & ":::" & x & "," & y & "," & ww & "," & hh & "|||"
+                    end repeat
+                    return output
+                end tell
+            end tell
+        """]
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+        } catch {
+            return []
         }
 
-        for window in windowList {
-            guard let ownerName = window[kCGWindowOwnerName as String] as? String,
-                  ownerName.lowercased().contains("pokerstars") else {
-                continue
-            }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+              !output.isEmpty else {
+            return []
+        }
 
-            guard let boundsDict = window[kCGWindowBounds as String] as? [String: Any],
-                  let x = boundsDict["X"] as? CGFloat,
-                  let y = boundsDict["Y"] as? CGFloat,
-                  let width = boundsDict["Width"] as? CGFloat,
-                  let height = boundsDict["Height"] as? CGFloat else {
-                continue
-            }
+        return parseOutput(output)
+    }
 
-            // kCGWindowName requires Screen Recording permission on macOS 10.15+
-            // If nil, the app doesn't have permission — we handle this gracefully
-            let windowName = window[kCGWindowName as String] as? String ?? ""
+    private static func parseOutput(_ output: String) -> [DetectedPokerWindow] {
+        let screenHeight = NSScreen.main?.frame.height ?? 2160
+        var results: [DetectedPokerWindow] = []
 
-            guard let windowID = window[kCGWindowNumber as String] as? CGWindowID else { continue }
+        let entries = output.components(separatedBy: "|||")
+        for entry in entries {
+            let trimmed = entry.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
 
-            // Skip our own HUD panels
-            guard !ownerName.contains("PokerHUD") else { continue }
+            // Split "WINDOWTITLE:::x,y,w,h"
+            guard let separatorRange = trimmed.range(of: ":::") else { continue }
+            let name = String(trimmed[..<separatorRange.lowerBound])
+            let coordString = String(trimmed[separatorRange.upperBound...])
 
-            // Filter for table windows (minimum size — tables are typically 800+ x 500+)
-            guard width > 600 && height > 400 else { continue }
+            // Only include poker table windows
+            guard name.contains("Hold'em") || name.contains("Omaha") else { continue }
+            if name.lowercased().contains("lobby") { continue }
 
-            // Convert from CGWindow coordinates (top-left origin) to NSScreen (bottom-left origin)
-            let screenHeight = NSScreen.main?.frame.height ?? 900
-            let flippedY = screenHeight - y - height
+            // Parse coordinates
+            let coords = coordString.components(separatedBy: ",")
+            guard coords.count == 4,
+                  let x = Double(coords[0]),
+                  let y = Double(coords[1]),
+                  let w = Double(coords[2]),
+                  let h = Double(coords[3]) else { continue }
 
-            let frame = NSRect(x: x, y: flippedY, width: width, height: height)
+            // Convert AppleScript coords (top-left origin) to NSScreen (bottom-left origin)
+            let flippedY = screenHeight - CGFloat(y) - CGFloat(h)
+            let frame = NSRect(x: CGFloat(x), y: flippedY, width: CGFloat(w), height: CGFloat(h))
+
+            // Extract table name: everything after last ']' and before ' - '
+            let tableName = extractTableName(from: name)
+
             results.append(DetectedPokerWindow(
-                windowID: windowID,
-                windowName: windowName,
+                tableName: tableName,
                 frame: frame,
-                ownerName: ownerName
+                fullTitle: name
             ))
         }
 
         return results
     }
 
-    /// Calculate HUD panel positions relative to a PokerStars table window.
-    /// PokerStars always places the hero at bottom-center, then arranges other players
-    /// clockwise around the table relative to the hero.
-    ///
-    /// - Parameters:
-    ///   - windowFrame: The PokerStars window frame
-    ///   - tableSize: Max seats (6 or 9)
-    ///   - heroSeat: The hero's seat number
-    ///   - occupiedSeats: All occupied seat numbers
-    static func seatPositions(
-        for windowFrame: NSRect,
-        tableSize: Int,
-        heroSeat: Int,
-        occupiedSeats: [Int]
-    ) -> [Int: CGPoint] {
-        let w = windowFrame.width
-        let h = windowFrame.height
-        let x = windowFrame.origin.x
-        let y = windowFrame.origin.y
-
-        // Visual positions around the table (bottom-center is index 0, going clockwise)
-        // macOS coordinate system: Y=0 at bottom of screen, Y increases upward
-        // So top of window = y + h, bottom of window = y
-        // "top" on table = high Y, "bottom" on table = low Y
-        let top = y + h    // top of window
-        let bot = y        // bottom of window
-
-        let visualSlots6: [CGPoint] = [
-            CGPoint(x: x + w * 0.42, y: bot + h * 0.12),  // 0: Bottom-center (HERO)
-            CGPoint(x: x + w * 0.02, y: bot + h * 0.30),  // 1: Bottom-left
-            CGPoint(x: x + w * 0.05, y: top - h * 0.35),  // 2: Top-left
-            CGPoint(x: x + w * 0.38, y: top - h * 0.18),  // 3: Top-center
-            CGPoint(x: x + w * 0.70, y: top - h * 0.35),  // 4: Top-right
-            CGPoint(x: x + w * 0.70, y: bot + h * 0.30),  // 5: Bottom-right
-        ]
-
-        let visualSlots9: [CGPoint] = [
-            CGPoint(x: x + w * 0.42, y: bot + h * 0.10),  // 0: Bottom-center (HERO)
-            CGPoint(x: x + w * 0.02, y: bot + h * 0.22),  // 1: Bottom-left
-            CGPoint(x: x + w * 0.02, y: bot + h * 0.42),  // 2: Left
-            CGPoint(x: x + w * 0.08, y: top - h * 0.30),  // 3: Top-left
-            CGPoint(x: x + w * 0.32, y: top - h * 0.18),  // 4: Top-center-left
-            CGPoint(x: x + w * 0.55, y: top - h * 0.18),  // 5: Top-center-right
-            CGPoint(x: x + w * 0.72, y: top - h * 0.30),  // 6: Top-right
-            CGPoint(x: x + w * 0.78, y: bot + h * 0.42),  // 7: Right
-            CGPoint(x: x + w * 0.70, y: bot + h * 0.22),  // 8: Bottom-right
-        ]
-
-        let slots = tableSize <= 6 ? visualSlots6 : visualSlots9
-        let maxSeats = tableSize <= 6 ? 6 : 9
-
-        // Map seat numbers to visual positions
-        // PokerStars arranges seats clockwise: hero is always at visual slot 0,
-        // then seats go clockwise from hero's left
-        var result: [Int: CGPoint] = [:]
-
-        for seatNumber in occupiedSeats {
-            // Calculate how many positions clockwise this seat is from hero
-            let offset = (seatNumber - heroSeat + maxSeats) % maxSeats
-            if offset < slots.count {
-                result[seatNumber] = slots[offset]
-            }
+    private static func extractTableName(from windowTitle: String) -> String {
+        var title = windowTitle
+        if let lastBracket = title.lastIndex(of: "]") {
+            title = String(title[title.index(after: lastBracket)...])
         }
-
-        return result
+        if let dashRange = title.range(of: " - ") {
+            title = String(title[..<dashRange.lowerBound])
+        }
+        return title.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     }
 }
 
-extension PokerStarsWindowDetector {
-    /// Check if we can read window names (Screen Recording permission)
-    /// Only checks PokerStars windows specifically — system windows always have names
-    static func hasScreenRecordingPermission() -> Bool {
-        guard let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
-            return false
-        }
-        // Check specifically if PokerStars windows have readable names
-        let pokerWindows = windowList.filter {
-            let owner = $0[kCGWindowOwnerName as String] as? String ?? ""
-            return owner.lowercased().contains("pokerstars")
-        }
-        // If no PokerStars windows, we can't tell — assume no permission
-        guard !pokerWindows.isEmpty else { return false }
-        // If ANY PokerStars window has a name, we have permission
-        return pokerWindows.contains { w in
-            let name = w[kCGWindowName as String] as? String
-            return name != nil && !name!.isEmpty
-        }
-    }
-
-    /// Prompt user to grant Screen Recording permission
-    @discardableResult
-    static func requestScreenRecordingPermission() -> CGImage? {
-        CGWindowListCreateImage(
-            CGRect(x: 0, y: 0, width: 1, height: 1),
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .bestResolution
-        )
-    }
-}
-
+/// A detected PokerStars table window
 struct DetectedPokerWindow {
-    let windowID: CGWindowID
-    let windowName: String
-    let frame: NSRect
-    let ownerName: String
+    let tableName: String   // e.g. "Piazzia V"
+    let frame: NSRect       // in NSScreen coordinates (bottom-left origin)
+    let fullTitle: String   // full window title
 }
