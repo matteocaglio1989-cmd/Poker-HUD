@@ -206,6 +206,27 @@ class AppState: ObservableObject {
         }
     }
 
+    /// Swap window bindings between visible tables (fixes labels on wrong table)
+    func swapTableWindows() {
+        let visibleTables = managedTables.filter { $0.isHUDVisible }
+        guard visibleTables.count >= 2 else { return }
+
+        // Hide all HUDs
+        for table in visibleTables {
+            hudManager?.hideHUD(for: table)
+        }
+
+        // Swap the window bindings between the first two visible tables
+        let ids = visibleTables.map { $0.id }
+        hudManager?.swapBindings(tableId1: ids[0], tableId2: ids[1])
+
+        // Re-show HUDs with swapped bindings
+        for table in visibleTables {
+            hudManager?.showHUD(for: table)
+        }
+        print("[AppState] Swapped window bindings between tables")
+    }
+
     // MARK: - Auto Table Management
 
     /// Automatically create/update tables from imported hand data and show HUD
