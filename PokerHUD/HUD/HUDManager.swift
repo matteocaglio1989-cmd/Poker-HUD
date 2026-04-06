@@ -61,10 +61,10 @@ class HUDManager {
             let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
             guard panels[key] == nil else { continue }
 
-            // Calculate visual slot (counter-clockwise from hero)
-            // PokerStars: hero at bottom, seat+1 = left, seat+2 = top-left, etc.
-            // Slot 0=hero(bottom), 1=left, 2=top-left, 3=top, 4=top-right, 5=right
-            let slot = (seat.seatNumber - heroSeat + maxSeats) % maxSeats
+            // Calculate visual slot (clockwise from hero)
+            // PokerStars layout: hero at bottom, seats go counter-clockwise (seat+1 = left)
+            // Visual clockwise: slot 0=hero(bottom), 1=right, 2=top-right, 3=top, 4=top-left, 5=left
+            let slot = (heroSeat - seat.seatNumber + maxSeats) % maxSeats
             panelSlots[key] = slot
 
             // Get position: user-saved offset, or default
@@ -73,12 +73,9 @@ class HUDManager {
             let position: CGPoint
             if let wf = windowFrame {
                 position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: wf)
-                print("[HUD] Panel \(playerName) slot=\(slot) using saved offset, window=\(Int(wf.width))x\(Int(wf.height))")
             } else {
-                // No window found — use saved offsets relative to screen as fallback
                 let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-                position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: screen)
-                print("[HUD] Panel \(playerName) slot=\(slot) NO WINDOW FOUND, using screen fallback")
+                position = CGPoint(x: screen.midX - 90 + CGFloat(slot) * 40, y: screen.midY)
             }
 
             let panelRect = NSRect(x: position.x, y: position.y, width: 180, height: 90)
@@ -178,23 +175,31 @@ class HUDManager {
             return w.frame
         }
 
-        // 2. Match by table name (osascript provides reliable table names)
-        if let matched = windows.first(where: { $0.tableName == table.tableName }) {
+        // 2. Match by window title (works if Screen Recording permission granted)
+        if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
+            print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
             return matched.frame
         }
 
-        // 3. Try partial match
-        if let matched = windows.first(where: {
-            $0.tableName.contains(table.tableName) || table.tableName.contains($0.tableName)
-        }) {
-            tableWindowBinding[table.id] = matched.windowID
-            print("[HUD] Bound '\(table.tableName)' by partial match to '\(matched.tableName)'")
-            return matched.frame
+        // 3. No window names available — bind by exclusion
+        //    Each table gets a unique window. Already-bound windows are excluded.
+        let boundIDs = Set(tableWindowBinding.values)
+        let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
+
+        if let window = unboundWindows.first {
+            tableWindowBinding[table.id] = window.windowID
+            print("[HUD] Bound '\(table.tableName)' to window \(window.windowID) (first unbound)")
+            return window.frame
         }
 
-        // 4. No match — window might not be open
-        print("[HUD] No window for '\(table.tableName)' (available: \(windows.map { $0.tableName }))")
+        // 4. All windows are bound — this table's window might have been closed and reopened
+        //    Clear stale binding and try the frontmost window
+        tableWindowBinding.removeValue(forKey: table.id)
+        if let front = windows.first {
+            tableWindowBinding[table.id] = front.windowID
+            return front.frame
+        }
 
         return nil
     }
@@ -207,16 +212,6 @@ class HUDManager {
     /// Get all currently bound window IDs
     func getAllBoundWindowIDs() -> [CGWindowID] {
         Array(tableWindowBinding.values)
-    }
-
-    /// Swap window bindings between two tables
-    func swapBindings(tableId1: UUID, tableId2: UUID) {
-        let wid1 = tableWindowBinding[tableId1]
-        let wid2 = tableWindowBinding[tableId2]
-        if let w1 = wid1 { tableWindowBinding[tableId2] = w1 }
-        if let w2 = wid2 { tableWindowBinding[tableId1] = w2 }
-        lastWindowFrames.removeAll()
-        print("[HUD] Swapped bindings: \(tableId1) <-> \(tableId2)")
     }
 
     private func findHeroSeat(in table: ActiveTable) -> Int {

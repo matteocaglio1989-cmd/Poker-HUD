@@ -40,8 +40,10 @@ class AppState: ObservableObject {
         self.hudManager = HUDManager()
         self.menuBarController = nil // Set after init since it needs self
 
-        // Pre-warm window detection cache
-        PokerStarsWindowDetector.refreshCache()
+        // Request Screen Recording permission (needed to read poker window titles for multi-table)
+        if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
+            PokerStarsWindowDetector.requestScreenRecordingPermission()
+        }
 
         // Restore saved hand history path and auto-start file watcher
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
@@ -202,27 +204,6 @@ class AppState: ObservableObject {
             if autoImportLog.count > 50 { autoImportLog.removeLast() }
             print("[AppState] File watcher import error: \(error)")
         }
-    }
-
-    /// Swap window bindings between visible tables (fixes labels on wrong table)
-    func swapTableWindows() {
-        let visibleTables = managedTables.filter { $0.isHUDVisible }
-        guard visibleTables.count >= 2 else { return }
-
-        // Hide all HUDs
-        for table in visibleTables {
-            hudManager?.hideHUD(for: table)
-        }
-
-        // Swap the window bindings between the first two visible tables
-        let ids = visibleTables.map { $0.id }
-        hudManager?.swapBindings(tableId1: ids[0], tableId2: ids[1])
-
-        // Re-show HUDs with swapped bindings
-        for table in visibleTables {
-            hudManager?.showHUD(for: table)
-        }
-        print("[AppState] Swapped window bindings between tables")
     }
 
     // MARK: - Auto Table Management

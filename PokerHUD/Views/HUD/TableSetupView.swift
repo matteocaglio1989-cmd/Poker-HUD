@@ -64,18 +64,6 @@ struct TableSetupView: View {
                     .environmentObject(appState)
                     .padding(.horizontal)
 
-                // Swap windows button (for when labels are on wrong tables)
-                if appState.managedTables.filter({ $0.isHUDVisible }).count >= 2 {
-                    Button(action: {
-                        appState.swapTableWindows()
-                    }) {
-                        Label("Swap Table Windows", systemImage: "arrow.triangle.swap")
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.horizontal)
-                    .help("If HUD labels are on the wrong table, click to swap window assignments")
-                }
-
                 // Table list
                 if appState.managedTables.isEmpty {
                     EmptyTableView()
