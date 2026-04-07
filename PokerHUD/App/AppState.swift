@@ -24,11 +24,14 @@ class AppState: ObservableObject {
     let databaseManager: DatabaseManager
     let importEngine: ImportEngine
     let statsCalculator: StatsCalculator
+    let authService: AuthService
     // TableManager used only for matching logic, not as source of truth
     var hudManager: HUDManager?
     var menuBarController: MenuBarController?
     var fileWatcher: FileWatcher?
     private var fileWatcherCancellable: AnyCancellable?
+    private var authCancellable: AnyCancellable?
+    private var didRunPostAuthSetup: Bool = false
 
     init() {
         self.databaseManager = DatabaseManager.shared
@@ -38,6 +41,7 @@ class AppState: ObservableObject {
             statsCalculator: statsCalculator
         )
         self.hudManager = HUDManager()
+        self.authService = AuthService()
         self.menuBarController = nil // Set after init since it needs self
 
         // Request Screen Recording permission (needed to read poker window titles for multi-table)
@@ -45,7 +49,42 @@ class AppState: ObservableObject {
             PokerStarsWindowDetector.requestScreenRecordingPermission()
         }
 
-        // Restore saved hand history path and auto-start file watcher
+        // Republish auth changes through AppState so SwiftUI views observing
+        // AppState re-render when the user signs in/out.
+        authCancellable = authService.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+                Task { @MainActor [weak self] in
+                    self?.handleAuthChange()
+                }
+            }
+
+        // Try to restore a persisted session from the Keychain.
+        Task { @MainActor in
+            await authService.restoreSession()
+        }
+    }
+
+    /// Called whenever the auth state may have changed. Runs post-login
+    /// setup exactly once per signed-in session, and tears down on sign-out.
+    private func handleAuthChange() {
+        if authService.isAuthenticated {
+            if !didRunPostAuthSetup {
+                didRunPostAuthSetup = true
+                onAuthenticated()
+            }
+        } else {
+            if didRunPostAuthSetup {
+                didRunPostAuthSetup = false
+                onSignedOut()
+            }
+        }
+    }
+
+    /// Setup that should only happen after the user is signed in: restore the
+    /// saved hand history path and start watching it.
+    private func onAuthenticated() {
         if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
             let url = URL(fileURLWithPath: savedPath)
             if FileManager.default.fileExists(atPath: savedPath) {
@@ -54,6 +93,15 @@ class AppState: ObservableObject {
                 handHistoryPath = savedPath
             }
         }
+    }
+
+    /// Tear down user-scoped state when the user signs out.
+    private func onSignedOut() {
+        stopFileWatcher()
+        hideAllHUDs()
+        managedTables.removeAll()
+        autoImportLog.removeAll()
+        handHistoryPath = nil
     }
 
     /// Initialize the menu bar icon (must be called after init since it needs `self`)

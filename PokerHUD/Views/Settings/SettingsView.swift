@@ -3,6 +3,7 @@ import AppKit
 import GRDB
 
 struct SettingsView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var sites: [Site] = []
     @State private var showingAddSite = false
     @State private var editingSite: Site? = nil
@@ -17,6 +18,21 @@ struct SettingsView: View {
                     .fontWeight(.bold)
                 Text("macOS Poker Tracker & HUD")
                     .foregroundColor(.secondary)
+            }
+
+            Section("Account") {
+                HStack {
+                    Text("Signed in as")
+                    Spacer()
+                    Text(appState.authService.currentEmail ?? "—")
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Button("Sign Out", role: .destructive) {
+                    Task { await appState.authService.signOut() }
+                }
             }
 
             Section("Poker Sites") {

@@ -6,12 +6,18 @@ struct PokerHUDApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainView()
-                .environmentObject(appState)
-                .frame(minWidth: 1200, minHeight: 800)
-                .onAppear {
-                    appState.setupMenuBar()
+            Group {
+                if appState.authService.isAuthenticated {
+                    MainView()
+                } else {
+                    AuthContainerView()
                 }
+            }
+            .environmentObject(appState)
+            .frame(minWidth: 1200, minHeight: 800)
+            .onAppear {
+                appState.setupMenuBar()
+            }
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
