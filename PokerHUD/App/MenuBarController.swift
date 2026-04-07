@@ -36,6 +36,19 @@ class MenuBarController {
         hudItem.state = (appState?.hudEnabled ?? false) ? .on : .off
         menu.addItem(hudItem)
 
+        // Manual recovery for multi-table swap caused by stale TCC
+        // permissions or ambiguous exclusion-fallback binds. Clears the
+        // cached table → window bindings; the next 500 ms reposition tick
+        // re-binds every tracked table from scratch via name match (or
+        // exclusion fallback if titles still unreadable).
+        let resetItem = NSMenuItem(
+            title: "Reset HUD Bindings",
+            action: #selector(resetBindings),
+            keyEquivalent: "r"
+        )
+        resetItem.target = self
+        menu.addItem(resetItem)
+
         menu.addItem(NSMenuItem.separator())
 
         // File watcher status
@@ -85,6 +98,10 @@ class MenuBarController {
             appState?.hideAllHUDs()
         }
         updateMenu()
+    }
+
+    @objc private func resetBindings() {
+        appState?.hudManager?.resetAllBindings()
     }
 
     @objc private func showMainWindow() {
