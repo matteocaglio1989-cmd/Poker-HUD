@@ -351,14 +351,15 @@ class AppState: ObservableObject {
                 //   a) Name match — works whenever Screen Recording OR
                 //      Accessibility permission is granted (the AX path
                 //      enriches CGWindowList titles when SR is denied).
-                //   b) Only-unbound exclusion — safe ONLY when there is
-                //      exactly one unbound PokerStars window. With multiple
-                //      unbound windows the choice is ambiguous and silently
-                //      swaps bindings — the long-standing multi-table launch
-                //      bug. When unsafe, we still create the DB table but
-                //      defer the bind; HUDManager.findWindowFrame will retry
-                //      on the next reposition tick (every 500 ms) and fix
-                //      itself the moment titles become readable.
+                //   b) First unbound — CGWindowList returns front-to-back,
+                //      so the frontmost unbound window is usually right
+                //      for a single-table session. With multiple unbound
+                //      windows this is inherently ambiguous (the multi-
+                //      table launch bug) but it's better to bind something
+                //      than to leave the HUD invisible. HUDManager.findWindowFrame's
+                //      cache validation auto-corrects any wrong initial
+                //      binding on the next reposition tick (every 500 ms)
+                //      once titles become readable.
                 let windows = PokerStarsWindowDetector.findTableWindows()
                 let boundIDs = Set(hudManager?.getAllBoundWindowIDs() ?? [])
                 let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
@@ -366,12 +367,13 @@ class AppState: ObservableObject {
                 if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
                     hudManager?.bindTable(table.id, toWindow: named.windowID)
                     print("[AppState] Bound new table '\(tableName)' to window \(named.windowID) by name")
-                } else if unboundWindows.count == 1 {
-                    let unbound = unboundWindows[0]
+                } else if let unbound = unboundWindows.first {
                     hudManager?.bindTable(table.id, toWindow: unbound.windowID)
-                    print("[AppState] Bound new table '\(tableName)' to only unbound window \(unbound.windowID)")
-                } else {
-                    print("[AppState] WARNING: deferring bind for '\(tableName)' — \(unboundWindows.count) unbound PokerStars windows, no readable titles. Grant Accessibility permission in System Settings → Privacy & Security to fix.")
+                    if unboundWindows.count > 1 {
+                        print("[AppState] WARNING: bound '\(tableName)' to window \(unbound.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable. Grant Accessibility permission in System Settings → Privacy & Security to enable reliable multi-table binding (wrong bindings auto-correct within 500ms once titles become readable).")
+                    } else {
+                        print("[AppState] Bound new table '\(tableName)' to only unbound window \(unbound.windowID)")
+                    }
                 }
 
                 hudManager?.showHUD(for: table)
