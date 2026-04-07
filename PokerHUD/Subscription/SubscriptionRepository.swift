@@ -4,7 +4,13 @@ import Supabase
 /// Thin wrapper around the Supabase client for subscription and trial-usage
 /// persistence. All methods assume the caller is already authenticated — if
 /// the JWT is missing/expired Supabase will return an error that propagates.
-@MainActor
+///
+/// Intentionally not `@MainActor`: every method is `async` and only touches
+/// the Supabase client, which is itself thread-safe. Keeping the repo
+/// nonisolated lets `SubscriptionManager` and `UsageTracker` use it as a
+/// default initializer parameter (Swift 6 evaluates default parameter
+/// expressions in a nonisolated context, so a `@MainActor` repo there
+/// failed to compile).
 struct SubscriptionRepository {
     private let client: SupabaseClient
 

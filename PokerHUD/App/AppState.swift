@@ -369,7 +369,6 @@ class AppState: ObservableObject {
     /// Adds new players, updates changed seats, and removes players who left.
     private func updateTableSeats(at index: Int, with seats: [TableSeatInfo]) {
         var changed = false
-        let newSeatNumbers = Set(seats.map { $0.seatNumber })
         let newPlayerNames = Set(seats.map { $0.playerName })
 
         // 1. Remove panels for players who are no longer at the table
