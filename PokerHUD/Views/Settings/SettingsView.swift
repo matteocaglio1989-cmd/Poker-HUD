@@ -481,7 +481,12 @@ struct AddSiteView: View {
     private func saveSite() {
         do {
             try DatabaseManager.shared.writer.write { db in
-                var site = Site(
+                // `let` because GRDB 7's `insert(_:)` is not a `mutating`
+                // method on MutablePersistableRecord — capturing the new
+                // rowID would require `insertAndFetch(_:)`, which we don't
+                // need here. The compiler warning that prompted this fix
+                // was correct: the local was never reassigned.
+                let site = Site(
                     id: nil,
                     name: siteName,
                     handHistoryPath: handHistoryPath.isEmpty ? nil : handHistoryPath,
