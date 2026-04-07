@@ -171,6 +171,12 @@ class HUDManager {
     /// Cached last window frames to detect when the poker window actually moved
     private var lastWindowFrames: [UUID: NSRect] = [:]
 
+    /// Per-table fingerprint of the last `findWindowFrame` call result, used
+    /// to rate-limit the diagnostic log so we only print on state changes
+    /// (a 500 ms reposition tick happens 120× per minute and would otherwise
+    /// flood the console).
+    private var lastFindWindowLog: [UUID: String] = [:]
+
     private func repositionAllPanels() {
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
@@ -205,7 +211,10 @@ class HUDManager {
 
     private func findWindowFrame(for table: ActiveTable) -> NSRect? {
         let windows = PokerStarsWindowDetector.findTableWindows()
-        guard !windows.isEmpty else { return nil }
+        guard !windows.isEmpty else {
+            logFindWindow(for: table, windows: [], step: "no-windows", boundID: nil)
+            return nil
+        }
 
         // 1. If we have a cached binding, use it — but if window titles are
         //    readable (Screen Recording or Accessibility granted) and the
@@ -219,10 +228,12 @@ class HUDManager {
            let bound = windows.first(where: { $0.windowID == boundID }) {
             if bound.windowName.isEmpty {
                 // No title to validate against — trust the cached binding.
+                logFindWindow(for: table, windows: windows, step: "1-cached-no-title", boundID: boundID)
                 return bound.frame
             }
             if bound.windowName.contains(table.tableName) {
                 // Cached binding is correct.
+                logFindWindow(for: table, windows: windows, step: "1-cached-validated", boundID: boundID)
                 return bound.frame
             }
             // Cached binding is wrong. Clear it and fall through to step 2.
@@ -236,6 +247,7 @@ class HUDManager {
         if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
             print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
+            logFindWindow(for: table, windows: windows, step: "2-name-match", boundID: matched.windowID)
             return matched.frame
         }
 
@@ -258,6 +270,7 @@ class HUDManager {
             } else {
                 print("[HUD] Bound '\(table.tableName)' to only unbound window \(window.windowID)")
             }
+            logFindWindow(for: table, windows: windows, step: "3-exclusion-fallback", boundID: window.windowID)
             return window.frame
         }
 
@@ -267,10 +280,35 @@ class HUDManager {
         tableWindowBinding.removeValue(forKey: table.id)
         if let front = windows.first {
             tableWindowBinding[table.id] = front.windowID
+            logFindWindow(for: table, windows: windows, step: "4-stale-cleared", boundID: front.windowID)
             return front.frame
         }
 
+        logFindWindow(for: table, windows: windows, step: "no-window", boundID: nil)
         return nil
+    }
+
+    /// Rate-limited diagnostic log for `findWindowFrame`. Only prints when
+    /// the (step, boundID, AX-permission, window-list-fingerprint) tuple
+    /// changes for this table — so a stable correct binding doesn't spam
+    /// the console at 2 Hz, but a flapping or stuck mis-binding gets a
+    /// fresh log line every time the situation changes. Designed so we can
+    /// ask the user to paste the console and immediately see what state
+    /// `findWindowFrame` is in.
+    private func logFindWindow(
+        for table: ActiveTable,
+        windows: [DetectedPokerWindow],
+        step: String,
+        boundID: CGWindowID?
+    ) {
+        let axGranted = AccessibilityPermission.isGranted
+        let windowFingerprint = windows
+            .map { "\($0.windowID):\($0.windowName.isEmpty ? "<no-title>" : String($0.windowName.prefix(40)))" }
+            .joined(separator: " | ")
+        let fingerprint = "\(step)|\(boundID.map { String($0) } ?? "nil")|ax=\(axGranted)|\(windowFingerprint)"
+        if lastFindWindowLog[table.id] == fingerprint { return }
+        lastFindWindowLog[table.id] = fingerprint
+        print("[HUD][diag] '\(table.tableName)' → step=\(step) bound=\(boundID.map { String($0) } ?? "nil") axGranted=\(axGranted) windows=[\(windowFingerprint)]")
     }
 
     /// Rebind a table to a specific window
@@ -281,6 +319,23 @@ class HUDManager {
     /// Get all currently bound window IDs
     func getAllBoundWindowIDs() -> [CGWindowID] {
         Array(tableWindowBinding.values)
+    }
+
+    /// Manual recovery action: clear every cached table → window binding so
+    /// the next reposition tick re-binds every tracked table from scratch.
+    /// Wired to the menu-bar "Reset HUD Bindings" item for users who hit a
+    /// stuck multi-table swap mid-session and don't want to relaunch the
+    /// app. Also clears `lastWindowFrames` so the next tick is treated as
+    /// "first observation" and forces a layout pass on every panel.
+    func resetAllBindings() {
+        let count = tableWindowBinding.count
+        tableWindowBinding.removeAll()
+        lastWindowFrames.removeAll()
+        // Drop the per-table diagnostic fingerprints too so the next
+        // re-bind cycle prints fresh state to the console — useful for
+        // diagnosing whether the manual reset actually fixed anything.
+        lastFindWindowLog.removeAll()
+        print("[HUD] Reset \(count) cached table-window binding(s); next reposition tick will re-bind from scratch")
     }
 
     private func findHeroSeat(in table: ActiveTable) -> Int {
