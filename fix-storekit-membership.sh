@@ -136,8 +136,13 @@ else
         exit 1
     fi
 
-    # Find ALL .xcscheme files under .swiftpm (covers any username)
-    mapfile -t SCHEMES < <( find "$SWIFTPM_DIR" -name "*.xcscheme" 2>/dev/null )
+    # Find ALL .xcscheme files under .swiftpm (covers any username).
+    # Using a while-read loop instead of `mapfile` because macOS still
+    # ships bash 3.2 (from 2007), where `mapfile` doesn't exist.
+    SCHEMES=()
+    while IFS= read -r line; do
+        SCHEMES+=("$line")
+    done < <( find "$SWIFTPM_DIR" -name "*.xcscheme" 2>/dev/null )
 
     if [[ ${#SCHEMES[@]} -eq 0 ]]; then
         echo "ERROR: No .xcscheme files found under $SWIFTPM_DIR"
