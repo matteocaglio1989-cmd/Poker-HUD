@@ -25,12 +25,15 @@ class AppState: ObservableObject {
     let importEngine: ImportEngine
     let statsCalculator: StatsCalculator
     let authService: AuthService
+    let subscriptionManager: SubscriptionManager
+    let usageTracker: UsageTracker
     // TableManager used only for matching logic, not as source of truth
     var hudManager: HUDManager?
     var menuBarController: MenuBarController?
     var fileWatcher: FileWatcher?
     private var fileWatcherCancellable: AnyCancellable?
     private var authCancellable: AnyCancellable?
+    private var subscriptionCancellable: AnyCancellable?
     private var didRunPostAuthSetup: Bool = false
 
     init() {
@@ -42,6 +45,8 @@ class AppState: ObservableObject {
         )
         self.hudManager = HUDManager()
         self.authService = AuthService()
+        self.subscriptionManager = SubscriptionManager()
+        self.usageTracker = UsageTracker(subscriptionManager: self.subscriptionManager)
         self.menuBarController = nil // Set after init since it needs self
 
         // Request Screen Recording permission (needed to read poker window titles for multi-table)
@@ -58,6 +63,14 @@ class AppState: ObservableObject {
                 Task { @MainActor [weak self] in
                     self?.handleAuthChange()
                 }
+            }
+
+        // Republish subscription changes so the root router re-renders when
+        // the entitlement flips (trial countdown, purchase, expiry).
+        subscriptionCancellable = subscriptionManager.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
             }
 
         // Try to restore a persisted session from the Keychain.
@@ -82,15 +95,29 @@ class AppState: ObservableObject {
         }
     }
 
-    /// Setup that should only happen after the user is signed in: restore the
-    /// saved hand history path and start watching it.
+    /// Setup that should only happen after the user is signed in: load the
+    /// subscription entitlement, start the trial usage tracker, and — only
+    /// when the entitlement grants access — restore the saved hand history
+    /// path and start watching it.
     private func onAuthenticated() {
-        if let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
-            let url = URL(fileURLWithPath: savedPath)
-            if FileManager.default.fileExists(atPath: savedPath) {
-                startFileWatcher(directory: url)
-            } else {
-                handHistoryPath = savedPath
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.subscriptionManager.loadProducts()
+            await self.subscriptionManager.refreshEntitlement()
+            self.usageTracker.start()
+
+            // Only auto-start the file watcher if the user actually has
+            // access (trial with time remaining or active subscription).
+            // Unsubscribed users will hit the paywall instead, and we don't
+            // want background imports happening behind it.
+            if self.subscriptionManager.entitlement.grantsAccess,
+               let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
+                let url = URL(fileURLWithPath: savedPath)
+                if FileManager.default.fileExists(atPath: savedPath) {
+                    self.startFileWatcher(directory: url)
+                } else {
+                    self.handHistoryPath = savedPath
+                }
             }
         }
     }
@@ -102,6 +129,8 @@ class AppState: ObservableObject {
         managedTables.removeAll()
         autoImportLog.removeAll()
         handHistoryPath = nil
+        usageTracker.stop()
+        subscriptionManager.reset()
     }
 
     /// Initialize the menu bar icon (must be called after init since it needs `self`)
