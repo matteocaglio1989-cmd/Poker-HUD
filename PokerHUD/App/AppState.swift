@@ -27,6 +27,10 @@ class AppState: ObservableObject {
     let authService: AuthService
     let subscriptionManager: SubscriptionManager
     let usageTracker: UsageTracker
+    /// Single shared Combine bus from `ImportEngine` to `HUDManager`.
+    /// Constructed here and injected into both so neither has to know
+    /// about the other. Do not construct a second instance.
+    let handImportPublisher: HandImportPublisher
     // TableManager used only for matching logic, not as source of truth
     var hudManager: HUDManager?
     var menuBarController: MenuBarController?
@@ -39,17 +43,32 @@ class AppState: ObservableObject {
     init() {
         self.databaseManager = DatabaseManager.shared
         self.statsCalculator = StatsCalculator(databaseManager: databaseManager)
+        self.handImportPublisher = HandImportPublisher()
         self.importEngine = ImportEngine(
             databaseManager: databaseManager,
-            statsCalculator: statsCalculator
+            statsCalculator: statsCalculator,
+            importPublisher: handImportPublisher
         )
-        self.hudManager = HUDManager()
+        let hud = HUDManager()
+        hud.subscribeToHandImports(handImportPublisher)
+        self.hudManager = hud
         self.authService = AuthService()
         self.subscriptionManager = SubscriptionManager()
         self.usageTracker = UsageTracker(subscriptionManager: self.subscriptionManager)
         self.menuBarController = nil // Set after init since it needs self
 
-        // Request Screen Recording permission (needed to read poker window titles for multi-table)
+        // Request Accessibility permission (preferred path — lets AX read
+        // PokerStars window titles regardless of Screen Recording status).
+        // `ensureGranted(prompt: true)` shows the standard macOS dialog at
+        // most once per process lifetime. The user has to act in System
+        // Settings, so this typically returns false on first launch; the
+        // permission flips to granted on the next relaunch.
+        AccessibilityPermission.ensureGranted(prompt: true)
+
+        // Request Screen Recording as a fallback path for window titles.
+        // When Accessibility is granted this is optional, but we still
+        // prompt because some users already have it on and removing the
+        // prompt would silently regress their binding path.
         if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
             PokerStarsWindowDetector.requestScreenRecordingPermission()
         }
@@ -260,12 +279,13 @@ class AppState: ObservableObject {
             if result.handsImported > 0 {
                 lastAutoImportTime = Date()
 
-                // Auto-create/update tables and show HUD
+                // Auto-create/update tables and show HUD. Stats for newly
+                // created panels are pre-fetched inside `HUDManager.showHUD`,
+                // and stats for panels on already-tracked tables are
+                // refreshed via the `HandImportPublisher` subscription that
+                // `HUDManager` installed in its init — no direct
+                // `handleNewHands` call is needed here.
                 autoManageTables(from: result)
-
-                // Refresh HUD panels for affected players
-                let visibleTables = managedTables.filter { $0.isHUDVisible }
-                hudManager?.handleNewHands(result: result, tables: visibleTables)
             }
         } catch {
             let event = AutoImportEvent(

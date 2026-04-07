@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 import GRDB
 
 /// Manages all HUD overlay panels — creates, positions, refreshes, and destroys them.
@@ -8,6 +9,12 @@ import GRDB
 @MainActor
 class HUDManager {
     private var panels: [PanelKey: HUDPanel] = [:]
+    /// Reactive state per panel. Mutating a state object here causes the
+    /// corresponding `HUDContentView` to re-render without us having to
+    /// swap out the underlying `NSHostingView`, which is what lets the
+    /// flash-border animation in `HUDContentView` actually run to
+    /// completion instead of being torn down on every stats refresh.
+    private var panelStates: [PanelKey: HUDPanelState] = [:]
     private var playerStats: [String: PlayerStats] = [:]
     private var configuration: HUDConfiguration
     private var positionTimer: Timer?
@@ -15,9 +22,32 @@ class HUDManager {
     private var tableWindowBinding: [UUID: CGWindowID] = [:]
     /// Maps PanelKey -> slot index (hero-relative position)
     private var panelSlots: [PanelKey: Int] = [:]
+    /// Combine subscription to `HandImportPublisher`. Stored so it lives
+    /// for the lifetime of the HUDManager and gets cancelled on deinit.
+    private var importSubscription: AnyCancellable?
 
     init(configuration: HUDConfiguration = .standard) {
         self.configuration = configuration
+    }
+
+    /// Subscribe this HUDManager to a `HandImportPublisher`. After this
+    /// call, every successful file-watcher import automatically refreshes
+    /// stats for affected players on currently-tracked tables — there is
+    /// no need for `AppState` to call `handleNewHands(...)` directly.
+    ///
+    /// Only one subscription is active at a time; calling this method
+    /// again replaces the previous one.
+    func subscribeToHandImports(_ publisher: HandImportPublisher) {
+        importSubscription?.cancel()
+        // `handleNewHands` is `@MainActor`-isolated, so the `Task { @MainActor }`
+        // is what actually delivers onto the main actor — no additional
+        // `.receive(on: DispatchQueue.main)` hop is needed.
+        importSubscription = publisher.handsImported
+            .sink { result in
+                Task { @MainActor [weak self] in
+                    self?.handleNewHands(result: result)
+                }
+            }
     }
 
     // MARK: - Panel Lifecycle
@@ -53,7 +83,7 @@ class HUDManager {
         let windowFrame = findWindowFrame(for: table)
         let heroSeat = findHeroSeat(in: table)
         let maxSeats = table.tableSize <= 6 ? 6 : 9
-        let defaults = table.tableSize <= 6 ? HUDSeatOffsets.default6Max : HUDSeatOffsets.default9Max
+        let tableSize = table.tableSize
 
         for seat in table.seatAssignments {
             guard let playerName = seat.playerName, !playerName.isEmpty else { continue }
@@ -67,8 +97,9 @@ class HUDManager {
             let slot = (seat.seatNumber - heroSeat + maxSeats) % maxSeats
             panelSlots[key] = slot
 
-            // Get position: user-saved offset, or default
-            let fractionalOffset = HUDSeatOffsets.shared.offset(forSlot: slot) ?? defaults[slot] ?? CGPoint(x: 0.5, y: 0.5)
+            // Get position: user-saved offset for this (tableSize, slot), or default
+            let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
+                ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
 
             let position: CGPoint
             if let wf = windowFrame {
@@ -82,8 +113,12 @@ class HUDManager {
             let panel = HUDPanel(contentRect: panelRect)
             panel.slotIndex = slot
 
-            // Set up drag callback to save position
+            // Set up drag callback to save position. Capture tableId and
+            // tableSize at creation time so the saved offset lands in the
+            // correct (tableSize, slot) bucket even if the table is later
+            // resized or rebound to a different window.
             let tableId = table.id
+            let capturedTableSize = tableSize
             panel.onDragEnd = { [weak self] newOrigin in
                 guard let self = self else { return }
                 // Find the window frame this table is bound to
@@ -100,15 +135,17 @@ class HUDManager {
 
                 if let wf = windowFrame {
                     let fraction = HUDSeatOffsets.shared.absoluteToFractional(newOrigin, windowFrame: wf)
-                    HUDSeatOffsets.shared.saveOffset(fraction, forSlot: slot)
-                    print("[HUD] Saved slot \(slot) at (\(String(format: "%.3f", fraction.x)), \(String(format: "%.3f", fraction.y)))")
+                    HUDSeatOffsets.shared.saveOffset(fraction, forTableSize: capturedTableSize, slot: slot)
+                    print("[HUD] Saved \(capturedTableSize)-max slot \(slot) at (\(String(format: "%.3f", fraction.x)), \(String(format: "%.3f", fraction.y)))")
                 } else {
-                    print("[HUD] WARNING: No window found to save slot \(slot)")
+                    print("[HUD] WARNING: No window found to save \(capturedTableSize)-max slot \(slot)")
                 }
             }
 
             let stats = playerStats[playerName]
-            let view = HUDContentView(playerName: playerName, stats: stats, configuration: configuration)
+            let state = HUDPanelState(stats: stats)
+            panelStates[key] = state
+            let view = HUDContentView(playerName: playerName, state: state, configuration: configuration)
             panel.setContent(view)
             panel.orderFront(nil)
             panels[key] = panel
@@ -148,14 +185,15 @@ class HUDManager {
             }
             lastWindowFrames[table.id] = windowFrame
 
-            let defaults = table.tableSize <= 6 ? HUDSeatOffsets.default6Max : HUDSeatOffsets.default9Max
+            let tableSize = table.tableSize
 
             for seat in table.seatAssignments {
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
                 guard let panel = panels[key],
                       let slot = panelSlots[key] else { continue }
 
-                let fractionalOffset = HUDSeatOffsets.shared.offset(forSlot: slot) ?? defaults[slot] ?? CGPoint(x: 0.5, y: 0.5)
+                let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
+                    ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
                 let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
 
                 panel.reposition(to: targetPos)
@@ -239,6 +277,7 @@ class HUDManager {
             panel.close()
         }
         panelSlots.removeValue(forKey: key)
+        panelStates.removeValue(forKey: key)
     }
 
     // MARK: - Hide
@@ -260,6 +299,7 @@ class HUDManager {
         }
         panels.removeAll()
         panelSlots.removeAll()
+        panelStates.removeAll()
         trackedTables.removeAll()
         tableWindowBinding.removeAll()
         stopPositionTracking()
@@ -281,16 +321,24 @@ class HUDManager {
         updatePanels(for: playerNames, tables: tables)
     }
 
+    /// Push the latest `playerStats` into the `HUDPanelState` objects for
+    /// any seat on `tables` whose player name is in `playerNames`. This is
+    /// the only path that should trigger the flash-border animation, so we
+    /// stamp `lastUpdated = Date()` on every mutated state.
+    ///
+    /// Does NOT call `HUDPanel.setContent` — the content view was installed
+    /// once in `createPanels` and observes its state object. That is what
+    /// keeps the flash animation alive across refreshes.
     private func updatePanels(for playerNames: [String], tables: [ActiveTable]) {
+        let now = Date()
         for table in tables {
             for seat in table.seatAssignments {
                 guard let playerName = seat.playerName, playerNames.contains(playerName) else { continue }
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-                guard let panel = panels[key] else { continue }
+                guard let state = panelStates[key] else { continue }
 
-                let stats = playerStats[playerName]
-                let view = HUDContentView(playerName: playerName, stats: stats, configuration: configuration)
-                panel.setContent(view)
+                state.stats = playerStats[playerName]
+                state.lastUpdated = now
             }
         }
     }
@@ -300,10 +348,13 @@ class HUDManager {
         refreshStats(for: Array(allPlayers), tables: tables)
     }
 
-    func handleNewHands(result: HUDImportResult, tables: [ActiveTable]) {
+    /// Refresh stats for players affected by an import. Uses `trackedTables`
+    /// as the scope, which is what the HUDManager itself has been told to
+    /// show — no need for the caller to pass a tables list.
+    func handleNewHands(result: HUDImportResult) {
         let affectedPlayers = Array(result.affectedPlayerNames)
         guard !affectedPlayers.isEmpty else { return }
-        refreshStats(for: affectedPlayers, tables: tables)
+        refreshStats(for: affectedPlayers, tables: trackedTables)
     }
 
     func updateConfiguration(_ config: HUDConfiguration, tables: [ActiveTable]) {

@@ -2,17 +2,15 @@
 
 A native macOS application for tracking and analyzing poker hands with real-time HUD overlay. Built with Swift/SwiftUI and GRDB.swift.
 
-## Current Status: Phase 1 - Foundation ✅
+## Current Status: Phase 2 - HUD Overlay ✅
 
-Phase 1 is complete with the following features:
-- ✅ SQLite database with GRDB.swift
-- ✅ Complete data models (Hands, Players, Tournaments, Sessions)
-- ✅ PokerStars hand history parser
-- ✅ Manual hand history import
-- ✅ Player statistics calculator (VPIP, PFR, 3-Bet, AF, C-Bet, WTSD, W$SD)
-- ✅ Dashboard with import functionality
-- ✅ Reports view with player statistics table
-- ✅ Settings panel
+Phase 2 is complete with the following features on top of the Phase 1 foundation:
+- ✅ Floating NSPanel HUD overlays with per-seat auto-positioning
+- ✅ Accessibility API window-title enrichment for reliable multi-table binding
+- ✅ Real-time stat updates with visual flash feedback on new hands
+- ✅ File watcher for auto-import (recursive)
+- ✅ Menu bar HUD-only mode
+- ✅ StoreKit 2 subscription gating with 3-hour cumulative free trial
 
 ## Features Roadmap
 
@@ -25,15 +23,15 @@ Phase 1 is complete with the following features:
 - [x] Reports UI
 - [x] Basic tests
 
-### Phase 2 - HUD Overlay (Next)
-- [ ] Table detection via Accessibility API
-- [ ] Floating HUD windows (NSPanel)
-- [ ] Real-time stat display
-- [ ] Auto-positioning per seat
-- [ ] File watcher for auto-import
-- [ ] Menu bar HUD-only mode
+### Phase 2 - HUD Overlay ✅ (COMPLETE)
+- [x] Table detection via Accessibility API
+- [x] Floating HUD windows (NSPanel)
+- [x] Real-time stat display
+- [x] Auto-positioning per seat
+- [x] File watcher for auto-import
+- [x] Menu bar HUD-only mode
 
-### Phase 3 - Advanced Reports
+### Phase 3 - Advanced Reports (Next)
 - [ ] Situational views (C-Bet, 3-Bet, River Play)
 - [ ] Filter engine with autocomplete
 - [ ] Hole card heat maps

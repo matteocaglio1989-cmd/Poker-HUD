@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var editingSite: Site? = nil
     @State private var totalHands = 0
     @State private var totalPlayers = 0
+    @State private var accessibilityGranted = AccessibilityPermission.isGranted
+    @State private var screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
 
     var body: some View {
         Form {
@@ -73,6 +75,35 @@ struct SettingsView: View {
 
                 Button(action: { showingAddSite = true }) {
                     Label("Add Site", systemImage: "plus.circle")
+                }
+            }
+
+            Section("Permissions") {
+                PermissionRow(
+                    title: "Accessibility",
+                    description: "Lets PokerHUD read PokerStars window titles so HUD panels bind to the correct table.",
+                    granted: accessibilityGranted,
+                    openAction: {
+                        AccessibilityPermission.openPrivacySettings()
+                    }
+                )
+
+                PermissionRow(
+                    title: "Screen Recording",
+                    description: "Optional. Provides a secondary path to read window titles. Not required when Accessibility is granted.",
+                    granted: screenRecordingGranted,
+                    openAction: {
+                        PokerStarsWindowDetector.requestScreenRecordingPermission()
+                        // Re-check after the system dialog — the user may
+                        // have granted inline. If they went to Settings we
+                        // will pick it up on the next appearance of this view.
+                        screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
+                    }
+                )
+
+                Button("Re-check Permissions") {
+                    accessibilityGranted = AccessibilityPermission.isGranted
+                    screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
                 }
             }
 
@@ -189,6 +220,41 @@ struct SettingsView: View {
         } catch {
             print("Error clearing data: \(error)")
         }
+    }
+}
+
+/// A single row in the Settings "Permissions" section. Shows the current
+/// grant state with a coloured icon and a button that routes the user to
+/// the right place to toggle it (System Settings pane for Accessibility,
+/// inline prompt for Screen Recording).
+struct PermissionRow: View {
+    let title: String
+    let description: String
+    let granted: Bool
+    let openAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Image(systemName: granted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .foregroundColor(granted ? .green : .orange)
+                Text(title)
+                    .fontWeight(.medium)
+                Spacer()
+                Text(granted ? "Granted" : "Not granted")
+                    .foregroundColor(.secondary)
+                    .font(.caption)
+                if !granted {
+                    Button("Open…", action: openAction)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+            }
+            Text(description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 2)
     }
 }
 
