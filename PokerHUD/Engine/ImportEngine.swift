@@ -7,12 +7,21 @@ class ImportEngine {
     private let statsCalculator: StatsCalculator
     private let handRepository: HandRepository
     private let playerRepository: PlayerRepository
+    /// Optional publisher that is notified after every successful
+    /// `importFileForHUD` call. Injected by `AppState` so the HUD layer
+    /// can refresh without the import engine knowing about it directly.
+    private let importPublisher: HandImportPublisher?
 
-    init(databaseManager: DatabaseManager = .shared, statsCalculator: StatsCalculator) {
+    init(
+        databaseManager: DatabaseManager = .shared,
+        statsCalculator: StatsCalculator,
+        importPublisher: HandImportPublisher? = nil
+    ) {
         self.databaseManager = databaseManager
         self.statsCalculator = statsCalculator
         self.handRepository = HandRepository(databaseManager: databaseManager)
         self.playerRepository = PlayerRepository(databaseManager: databaseManager)
+        self.importPublisher = importPublisher
     }
 
     /// Import hand history files
@@ -290,7 +299,7 @@ class ImportEngine {
             }
         }
 
-        return HUDImportResult(
+        let result = HUDImportResult(
             handsImported: handsImported,
             handsParsed: parsedHands.count,
             affectedTableNames: affectedTableNames,
@@ -298,6 +307,11 @@ class ImportEngine {
             errors: errors,
             tableSeats: tableSeats
         )
+        // Notify any subscribers (the HUD layer). `HandImportPublisher`
+        // internally no-ops when `handsImported == 0`, so this is cheap
+        // for files that turn out to be all duplicates.
+        importPublisher?.publish(result)
+        return result
     }
 }
 

@@ -3,7 +3,18 @@ import AppKit
 /// Detects PokerStars table windows and their positions using CGWindowList API
 struct PokerStarsWindowDetector {
 
-    /// Find all PokerStars table windows and return their frames
+    /// Find all PokerStars table windows and return their frames.
+    ///
+    /// Phase 2 enrichment: when CGWindowList cannot populate `windowName`
+    /// (because Screen Recording permission is not granted), this method
+    /// falls back to `AccessibilityWindowReader` — which reads titles via
+    /// the Accessibility API instead — and merges any matched titles into
+    /// the result. The merge is by frame match (the two APIs report the
+    /// same geometry for the same on-screen window). This is what makes
+    /// `HUDManager.findWindowFrame`'s name-based binding path reachable on
+    /// machines that only granted Accessibility, not Screen Recording, and
+    /// is the root fix for the brittle multi-table binding that has dogged
+    /// prior Phase 2 attempts (see commits `3534c8b`, `cf705c0`).
     static func findTableWindows() -> [DetectedPokerWindow] {
         var results: [DetectedPokerWindow] = []
 
@@ -50,7 +61,44 @@ struct PokerStarsWindowDetector {
             ))
         }
 
-        return results
+        return enrichWithAXTitles(results)
+    }
+
+    /// If any of the detected windows have an empty `windowName` — which
+    /// happens when Screen Recording is denied — ask AX for PokerStars
+    /// window titles and fill them in by frame match.
+    ///
+    /// Matching is by position/size with a 2-point tolerance to absorb
+    /// sub-pixel rounding between the two APIs. CGWindowList is still the
+    /// source of identity (`CGWindowID`), so nothing about the existing
+    /// binding map in `HUDManager` has to change.
+    private static func enrichWithAXTitles(_ cgWindows: [DetectedPokerWindow]) -> [DetectedPokerWindow] {
+        guard cgWindows.contains(where: { $0.windowName.isEmpty }) else { return cgWindows }
+        let axWindows = AccessibilityWindowReader.findPokerStarsWindows()
+        guard !axWindows.isEmpty else { return cgWindows }
+
+        return cgWindows.map { cgWindow in
+            guard cgWindow.windowName.isEmpty else { return cgWindow }
+            guard let match = axWindows.first(where: { framesMatch($0.frame, cgWindow.frame) }) else {
+                return cgWindow
+            }
+            return DetectedPokerWindow(
+                windowID: cgWindow.windowID,
+                windowName: match.title,
+                frame: cgWindow.frame,
+                ownerName: cgWindow.ownerName
+            )
+        }
+    }
+
+    /// Tolerant frame equality for matching AX windows to CGWindowList
+    /// windows. 2 points is comfortably below any real window move and
+    /// above any rounding difference between the two APIs.
+    private static func framesMatch(_ a: NSRect, _ b: NSRect) -> Bool {
+        abs(a.origin.x - b.origin.x) < 2
+            && abs(a.origin.y - b.origin.y) < 2
+            && abs(a.width - b.width) < 2
+            && abs(a.height - b.height) < 2
     }
 
     /// Calculate HUD panel positions relative to a PokerStars table window.
