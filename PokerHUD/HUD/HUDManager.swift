@@ -207,36 +207,56 @@ class HUDManager {
         let windows = PokerStarsWindowDetector.findTableWindows()
         guard !windows.isEmpty else { return nil }
 
-        // 1. Use existing binding if window still exists
+        // 1. If we have a cached binding, use it — but if window titles are
+        //    readable (Screen Recording or Accessibility granted) and the
+        //    cached window's title does NOT contain this table's name,
+        //    treat the cache as poisoned and re-match. This is what auto-
+        //    corrects the multi-table launch swap that happens when
+        //    `autoManageTables` had to bind by exclusion: as soon as titles
+        //    become readable on the next reposition tick (every 500 ms),
+        //    we notice the mismatch and fix it without an app relaunch.
         if let boundID = tableWindowBinding[table.id],
-           let w = windows.first(where: { $0.windowID == boundID }) {
-            return w.frame
+           let bound = windows.first(where: { $0.windowID == boundID }) {
+            if bound.windowName.isEmpty {
+                // No title to validate against — trust the cached binding.
+                return bound.frame
+            }
+            if bound.windowName.contains(table.tableName) {
+                // Cached binding is correct.
+                return bound.frame
+            }
+            // Cached binding is wrong. Clear it and fall through to step 2.
+            print("[HUD] Cached binding for '\(table.tableName)' points at window titled '\(bound.windowName)' — mismatch, re-binding")
+            tableWindowBinding.removeValue(forKey: table.id)
         }
 
-        // 2. Match by window title (works if Screen Recording permission granted)
+        // 2. Match by window title (works whenever Screen Recording OR
+        //    Accessibility permission is granted — see PokerStarsWindowDetector
+        //    .enrichWithAXTitles).
         if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
             print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
             return matched.frame
         }
 
-        // 3. No window names available — bind by exclusion
-        //    Each table gets a unique window. Already-bound windows are excluded.
+        // 3. Title-less fallback. Only safe to bind by exclusion when there
+        //    is EXACTLY ONE unbound window — otherwise we'd be guessing and
+        //    risk swapping bindings (the multi-table launch bug). When the
+        //    fallback is unsafe, return nil and let the next reposition
+        //    tick retry; the user should grant Accessibility permission so
+        //    the title-based path in step 2 starts working.
         let boundIDs = Set(tableWindowBinding.values)
         let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
 
-        if let window = unboundWindows.first {
+        if unboundWindows.count == 1 {
+            let window = unboundWindows[0]
             tableWindowBinding[table.id] = window.windowID
-            print("[HUD] Bound '\(table.tableName)' to window \(window.windowID) (first unbound)")
+            print("[HUD] Bound '\(table.tableName)' to only unbound window \(window.windowID)")
             return window.frame
         }
 
-        // 4. All windows are bound — this table's window might have been closed and reopened
-        //    Clear stale binding and try the frontmost window
-        tableWindowBinding.removeValue(forKey: table.id)
-        if let front = windows.first {
-            tableWindowBinding[table.id] = front.windowID
-            return front.frame
+        if unboundWindows.count > 1 {
+            print("[HUD] WARNING: cannot uniquely bind '\(table.tableName)' — \(unboundWindows.count) unbound PokerStars windows and no readable titles. Grant Accessibility permission in System Settings → Privacy & Security to enable title-based binding.")
         }
 
         return nil
