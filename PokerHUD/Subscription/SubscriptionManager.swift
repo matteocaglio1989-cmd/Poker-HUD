@@ -71,7 +71,9 @@ final class SubscriptionManager: ObservableObject {
             if let expires = tx.expirationDate, expires <= Date() { continue }
 
             // Upload the JWS so the server row catches up.
-            _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
+            // `jwsRepresentation` lives on `VerificationResult`, not on the
+            // unwrapped `Transaction` itself — we read it from `result`.
+            _ = try? await repo.verifyReceipt(jws: result.jwsRepresentation)
 
             // Re-read the now-updated row.
             if let record = try? await repo.fetchSubscription(), record.isActive,
@@ -119,7 +121,7 @@ final class SubscriptionManager: ObservableObject {
             case .success(let verification):
                 switch verification {
                 case .verified(let tx):
-                    _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
+                    _ = try? await repo.verifyReceipt(jws: verification.jwsRepresentation)
                     await tx.finish()
                     await refreshEntitlement()
                 case .unverified(_, let error):
@@ -170,7 +172,7 @@ final class SubscriptionManager: ObservableObject {
                 guard let self else { return }
                 if case .verified(let tx) = update,
                    SubscriptionProductIDs.all.contains(tx.productID) {
-                    _ = try? await self.repo.verifyReceipt(jws: tx.jwsRepresentation)
+                    _ = try? await self.repo.verifyReceipt(jws: update.jwsRepresentation)
                     await tx.finish()
                     await self.refreshEntitlement()
                 }
