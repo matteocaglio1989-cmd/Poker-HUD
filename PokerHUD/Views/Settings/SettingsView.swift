@@ -3,6 +3,7 @@ import AppKit
 import GRDB
 
 struct SettingsView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var sites: [Site] = []
     @State private var showingAddSite = false
     @State private var editingSite: Site? = nil
@@ -17,6 +18,45 @@ struct SettingsView: View {
                     .fontWeight(.bold)
                 Text("macOS Poker Tracker & HUD")
                     .foregroundColor(.secondary)
+            }
+
+            Section("Account") {
+                HStack {
+                    Text("Signed in as")
+                    Spacer()
+                    Text(appState.authService.currentEmail ?? "—")
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Button("Sign Out", role: .destructive) {
+                    Task { await appState.authService.signOut() }
+                }
+            }
+
+            Section("Subscription") {
+                HStack {
+                    Text("Plan")
+                    Spacer()
+                    Text(planLabel)
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text(renewalRowLabel)
+                    Spacer()
+                    Text(renewalRowValue)
+                        .foregroundColor(.secondary)
+                }
+
+                Button("Manage Subscription") {
+                    appState.subscriptionManager.openManageSubscriptions()
+                }
+
+                Button("Restore Purchases") {
+                    Task { await appState.subscriptionManager.restorePurchases() }
+                }
             }
 
             Section("Poker Sites") {
@@ -88,6 +128,41 @@ struct SettingsView: View {
             Task { await loadData() }
         }) { site in
             EditSiteView(site: site, onDismiss: { editingSite = nil })
+        }
+    }
+
+    // MARK: - Subscription row labels
+
+    private var planLabel: String {
+        switch appState.subscriptionManager.entitlement {
+        case .unknown:  return "—"
+        case .trial:    return "Free trial"
+        case .expired:  return "Expired"
+        case .active(let plan, _): return plan.displayName
+        }
+    }
+
+    private var renewalRowLabel: String {
+        switch appState.subscriptionManager.entitlement {
+        case .trial:  return "Trial ends in"
+        case .active: return "Renews on"
+        default:      return "Status"
+        }
+    }
+
+    private var renewalRowValue: String {
+        switch appState.subscriptionManager.entitlement {
+        case .unknown:
+            return "—"
+        case .trial(let remaining):
+            return TrialBannerView.format(remaining: remaining)
+        case .expired:
+            return "Please subscribe to continue"
+        case .active(_, let expiresAt):
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            return formatter.string(from: expiresAt)
         }
     }
 

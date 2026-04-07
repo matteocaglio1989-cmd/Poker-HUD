@@ -1,0 +1,70 @@
+{
+  "identifier" : "com.pokerhud.app.storekit",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "0000000000",
+    "_developerTeamID" : "TEAMIDXXXX",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "premium",
+      "localizations" : [],
+      "name" : "Poker HUD Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "2.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "monthly-0001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Full access to Poker HUD, billed monthly.",
+              "displayName" : "Poker HUD Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.pokerhud.app.subscription.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Poker HUD Monthly",
+          "subscriptionGroupID" : "premium",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "20.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "yearly-0001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Full access to Poker HUD, billed yearly. Save 17%.",
+              "displayName" : "Poker HUD Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.pokerhud.app.subscription.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Poker HUD Yearly",
+          "subscriptionGroupID" : "premium",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

@@ -1,0 +1,181 @@
+import Foundation
+import StoreKit
+import AppKit
+
+/// Drives StoreKit 2 purchases and resolves the user's current entitlement
+/// against both StoreKit and the Supabase `subscriptions` table.
+///
+/// Resolution priority inside `refreshEntitlement()`:
+///   1. Supabase row with `status == active` and unexpired period.
+///   2. StoreKit's local `Transaction.currentEntitlements` — if a valid
+///      transaction exists locally but the server hasn't caught up yet,
+///      upload its JWS to the `verify-receipt` edge function, then re-read.
+///   3. Cumulative trial seconds from the `user_usage` table.
+///
+/// This keeps Supabase as the source of truth (so gating survives on machines
+/// that haven't seen a StoreKit event yet, e.g. after a cold install), while
+/// still honouring fresh purchases before the server-to-server notification
+/// lands.
+@MainActor
+final class SubscriptionManager: ObservableObject {
+    @Published private(set) var entitlement: Entitlement = .unknown
+    @Published private(set) var products: [Product] = []
+    @Published private(set) var isPurchasing: Bool = false
+    @Published var purchaseError: String?
+
+    private let repo: SubscriptionRepository
+    private var transactionListener: Task<Void, Never>?
+
+    init(repo: SubscriptionRepository = SubscriptionRepository()) {
+        self.repo = repo
+        startTransactionListener()
+    }
+
+    deinit {
+        transactionListener?.cancel()
+    }
+
+    var monthlyProduct: Product? {
+        products.first { $0.id == SubscriptionProductIDs.monthly }
+    }
+
+    var yearlyProduct: Product? {
+        products.first { $0.id == SubscriptionProductIDs.yearly }
+    }
+
+    // MARK: - Lifecycle
+
+    /// Load StoreKit products into `products`. Safe to call repeatedly.
+    func loadProducts() async {
+        do {
+            let loaded = try await Product.products(for: SubscriptionProductIDs.all)
+            self.products = loaded.sorted { $0.price < $1.price }
+        } catch {
+            print("[SubscriptionManager] loadProducts failed: \(error)")
+        }
+    }
+
+    /// Recompute `entitlement` from Supabase + StoreKit + trial usage.
+    func refreshEntitlement() async {
+        // Step 1: Supabase source of truth.
+        if let record = try? await repo.fetchSubscription(), record.isActive,
+           let plan = SubscriptionProductIDs.plan(for: record.productId) {
+            self.entitlement = .active(plan: plan, expiresAt: record.currentPeriodEnd)
+            return
+        }
+
+        // Step 2: Reconcile with StoreKit's local entitlements.
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let tx) = result else { continue }
+            guard SubscriptionProductIDs.all.contains(tx.productID) else { continue }
+            if let expires = tx.expirationDate, expires <= Date() { continue }
+
+            // Upload the JWS so the server row catches up.
+            _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
+
+            // Re-read the now-updated row.
+            if let record = try? await repo.fetchSubscription(), record.isActive,
+               let plan = SubscriptionProductIDs.plan(for: record.productId) {
+                self.entitlement = .active(plan: plan, expiresAt: record.currentPeriodEnd)
+                return
+            }
+
+            // Fallback: trust the local transaction until the server catches up.
+            if let plan = SubscriptionProductIDs.plan(for: tx.productID) {
+                self.entitlement = .active(plan: plan, expiresAt: tx.expirationDate ?? Date().addingTimeInterval(60 * 60 * 24 * 30))
+                return
+            }
+        }
+
+        // Step 3: Fall back to the custom trial counter.
+        do {
+            let usage = try await repo.fetchUsage()
+            let remaining = TrialPolicy.totalSeconds - TimeInterval(usage.totalTrialSeconds)
+            self.entitlement = remaining > 0 ? .trial(remainingSeconds: remaining) : .expired
+        } catch {
+            print("[SubscriptionManager] fetchUsage failed: \(error)")
+            // Fail closed: don't silently grant access if we can't read usage.
+            self.entitlement = .expired
+        }
+    }
+
+    /// Reset in-memory state on sign-out so the next user starts clean.
+    func reset() {
+        entitlement = .unknown
+        purchaseError = nil
+        isPurchasing = false
+    }
+
+    // MARK: - Purchase
+
+    func purchase(_ product: Product) async {
+        purchaseError = nil
+        isPurchasing = true
+        defer { isPurchasing = false }
+
+        do {
+            let result = try await product.purchase()
+            switch result {
+            case .success(let verification):
+                switch verification {
+                case .verified(let tx):
+                    _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
+                    await tx.finish()
+                    await refreshEntitlement()
+                case .unverified(_, let error):
+                    self.purchaseError = "Could not verify purchase: \(error.localizedDescription)"
+                }
+            case .userCancelled:
+                break
+            case .pending:
+                self.purchaseError = "Purchase is pending approval."
+            @unknown default:
+                break
+            }
+        } catch {
+            self.purchaseError = error.localizedDescription
+        }
+    }
+
+    /// Restore purchases: syncs local StoreKit state with the App Store and
+    /// re-resolves entitlement.
+    func restorePurchases() async {
+        purchaseError = nil
+        do {
+            try await AppStore.sync()
+        } catch {
+            self.purchaseError = error.localizedDescription
+        }
+        await refreshEntitlement()
+    }
+
+    /// Open Apple's subscription management page. On macOS,
+    /// `AppStore.showManageSubscriptions(in:)` is iOS-only, so we open the
+    /// canonical URL in the user's default browser, which the system then
+    /// hands off to the App Store app.
+    func openManageSubscriptions() {
+        let url = URL(string: "https://apps.apple.com/account/subscriptions")!
+        NSWorkspace.shared.open(url)
+    }
+
+    // MARK: - Transaction listener
+
+    /// Listen for background transaction updates (renewals, refunds, upgrades
+    /// from other devices). Each verified update is pushed through the
+    /// verify-receipt edge function so Supabase stays in sync, then we
+    /// refresh the entitlement.
+    private func startTransactionListener() {
+        transactionListener = Task(priority: .background) { [weak self] in
+            for await update in Transaction.updates {
+                guard let self else { return }
+                if case .verified(let tx) = update,
+                   SubscriptionProductIDs.all.contains(tx.productID) {
+                    _ = try? await self.repo.verifyReceipt(jws: tx.jwsRepresentation)
+                    await tx.finish()
+                    await self.refreshEntitlement()
+                }
+            }
+        }
+    }
+}
+
