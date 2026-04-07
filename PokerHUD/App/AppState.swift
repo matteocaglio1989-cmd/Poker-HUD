@@ -40,6 +40,18 @@ class AppState: ObservableObject {
     private var subscriptionCancellable: AnyCancellable?
     private var didRunPostAuthSetup: Bool = false
 
+    /// IDs of tables added by `autoManageTables` (i.e. derived from imported
+    /// hand histories). These are eligible for automatic pruning when their
+    /// PokerStars window closes. Tables added manually via TableSetupView's
+    /// "Add Table" button are **not** in this set and are never auto-pruned.
+    private var autoCreatedTableIDs: Set<UUID> = []
+
+    /// Periodic sweep that calls `pruneClosedTables()` every 30s. Covers the
+    /// case where the user closes all tables and stops playing so no more
+    /// file-watcher events fire to piggyback on. Started in `onAuthenticated`
+    /// and stopped in `onSignedOut`.
+    private var pruneTimer: Timer?
+
     init() {
         self.databaseManager = DatabaseManager.shared
         self.statsCalculator = StatsCalculator(databaseManager: databaseManager)
@@ -124,6 +136,7 @@ class AppState: ObservableObject {
             await self.subscriptionManager.loadProducts()
             await self.subscriptionManager.refreshEntitlement()
             self.usageTracker.start()
+            self.startPruneTimer()
 
             // Only auto-start the file watcher if the user actually has
             // access (trial with time remaining or active subscription).
@@ -144,8 +157,10 @@ class AppState: ObservableObject {
     /// Tear down user-scoped state when the user signs out.
     private func onSignedOut() {
         stopFileWatcher()
+        stopPruneTimer()
         hideAllHUDs()
         managedTables.removeAll()
+        autoCreatedTableIDs.removeAll()
         autoImportLog.removeAll()
         handHistoryPath = nil
         usageTracker.stop()
@@ -196,6 +211,76 @@ class AppState: ObservableObject {
             hudManager?.hideHUD(for: table)
         }
         managedTables.removeAll { $0.id == id }
+        // Drop the auto-created marker too so a manual deletion doesn't
+        // leak into the prune set (and so re-adding a table with the same
+        // id after a manual delete starts fresh).
+        autoCreatedTableIDs.remove(id)
+    }
+
+    // MARK: - Auto-prune closed tables
+
+    /// Remove auto-created tables whose PokerStars window is no longer
+    /// open. The user doesn't want stale rows lingering in HUD Setup after
+    /// they close a table — this runs on every file-watcher event and on
+    /// a 30s periodic timer.
+    ///
+    /// "Closed" means neither of these signals fires for the table:
+    ///
+    ///   1. A current PokerStars window's title contains the table name
+    ///      (strong signal, requires Screen Recording or Accessibility)
+    ///   2. The cached binding's windowID is still in the live window list
+    ///      (title-less fallback; if no binding exists yet the table is
+    ///      treated as newborn-alive to avoid pruning before its first
+    ///      reposition tick)
+    ///
+    /// Manually-added tables (not in `autoCreatedTableIDs`) are skipped —
+    /// users expect those to persist until they explicitly delete them.
+    private func pruneClosedTables() {
+        guard hudEnabled else { return }
+        let windows = PokerStarsWindowDetector.findTableWindows()
+        let liveWindowIDs = Set(windows.map { $0.windowID })
+
+        let toRemove: [UUID] = managedTables.compactMap { table in
+            guard autoCreatedTableIDs.contains(table.id) else { return nil }
+
+            // Signal 1: a live window's title still matches this table.
+            if windows.contains(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
+                return nil
+            }
+
+            // Signal 2: cached binding points at a live windowID.
+            if let boundID = hudManager?.boundWindowID(for: table.id) {
+                if liveWindowIDs.contains(boundID) {
+                    return nil
+                }
+            } else {
+                // No binding yet — newborn, don't prune.
+                return nil
+            }
+
+            // Neither signal fired — table is closed.
+            return table.id
+        }
+
+        for id in toRemove {
+            let name = managedTables.first(where: { $0.id == id })?.tableName ?? "?"
+            print("[AppState] Auto-pruning closed table '\(name)' (id=\(id))")
+            removeTable(id: id)
+        }
+    }
+
+    private func startPruneTimer() {
+        pruneTimer?.invalidate()
+        pruneTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.pruneClosedTables()
+            }
+        }
+    }
+
+    private func stopPruneTimer() {
+        pruneTimer?.invalidate()
+        pruneTimer = nil
     }
 
     /// Show HUD panels for a table
@@ -262,6 +347,10 @@ class AppState: ObservableObject {
     /// Handle a file change event from the watcher
     private func handleFileWatcherEvent(url: URL) async {
         let filename = url.lastPathComponent
+        // Piggyback on every import to prune any auto-created tables whose
+        // PokerStars window has been closed. This keeps the HUD Setup UI
+        // clean during active play without waiting for the 30s timer.
+        pruneClosedTables()
         do {
             let result = try await importEngine.importFileForHUD(url)
 
@@ -344,6 +433,11 @@ class AppState: ObservableObject {
                 table.seatAssignments = seatAssignments
 
                 managedTables.append(table)
+                // Mark this table as auto-created so pruneClosedTables() is
+                // allowed to remove it when its PokerStars window closes.
+                // Manually-added tables (via TableSetupView "Add Table") are
+                // never in this set and are never auto-pruned.
+                autoCreatedTableIDs.insert(table.id)
 
                 // Try to bind this new table to the correct PokerStars window.
                 //

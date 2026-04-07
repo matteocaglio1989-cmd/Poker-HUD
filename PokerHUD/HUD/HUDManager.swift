@@ -321,6 +321,14 @@ class HUDManager {
         Array(tableWindowBinding.values)
     }
 
+    /// Returns the cached window binding for a specific table, or nil if
+    /// none. Used by `AppState.pruneClosedTables()` as the title-less
+    /// fallback check when a table's PokerStars window title can't be
+    /// matched (no Screen Recording / Accessibility permission).
+    func boundWindowID(for tableId: UUID) -> CGWindowID? {
+        tableWindowBinding[tableId]
+    }
+
     /// Manual recovery action: clear every cached table → window binding so
     /// the next reposition tick re-binds every tracked table from scratch.
     /// Wired to the menu-bar "Reset HUD Bindings" item for users who hit a
