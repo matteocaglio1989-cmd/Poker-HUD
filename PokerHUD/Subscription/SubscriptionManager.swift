@@ -68,7 +68,18 @@ final class SubscriptionManager: ObservableObject {
             }
         } catch {
             print("[SubscriptionManager] loadProducts failed: \(error)")
-            self.loadProductsError = error.localizedDescription
+            // The bare `error.localizedDescription` for StoreKit/ASD errors is
+            // almost always something useless like "Unable to Complete Request",
+            // which leaves us guessing at the actual root cause. Bridge to
+            // NSError and include the domain + code + full Swift description
+            // so the paywall card surfaces enough detail to pinpoint things
+            // like ASDErrorDomain 509 (team-id mismatch) vs 825 (no products).
+            let ns = error as NSError
+            self.loadProductsError = """
+                \(error.localizedDescription)
+
+                [\(ns.domain) \(ns.code)] \(String(describing: error))
+                """
         }
     }
 
