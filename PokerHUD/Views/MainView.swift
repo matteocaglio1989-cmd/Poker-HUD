@@ -16,6 +16,15 @@ struct MainView: View {
             }
             .navigationTitle("Poker HUD")
             .frame(minWidth: 200)
+            // Pin the trial banner (when on a free trial) to the bottom of
+            // the sidebar column instead of overlaying the whole window —
+            // safeAreaInset reserves vertical space inside the List so the
+            // banner never covers a nav item.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if case .trial(let remaining) = appState.subscriptionManager.entitlement {
+                    TrialBannerView(remainingSeconds: remaining)
+                }
+            }
         } detail: {
             // Main content
             Group {

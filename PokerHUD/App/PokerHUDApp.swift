@@ -16,12 +16,11 @@ struct RootRouterView: View {
                     ProgressView("Checking your subscription…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .active, .trial:
+                    // The trial banner (when on a free trial) is rendered
+                    // by MainView itself at the bottom of the sidebar
+                    // column via .safeAreaInset, so it never overlaps a
+                    // nav item or the detail pane.
                     MainView()
-                        .overlay(alignment: .top) {
-                            if case .trial(let remaining) = appState.subscriptionManager.entitlement {
-                                TrialBannerView(remainingSeconds: remaining)
-                            }
-                        }
                 case .expired:
                     PaywallView()
                 }
