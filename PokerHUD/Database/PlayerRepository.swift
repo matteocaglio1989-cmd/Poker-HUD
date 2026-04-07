@@ -113,7 +113,9 @@ class PlayerRepository {
 
     func delete(_ player: Player) throws {
         try dbManager.writer.write { db in
-            try player.delete(db)
+            // Discard the Bool "did delete" flag — see HandRepository.delete
+            // for why this is `_ =` rather than a bare `try`.
+            _ = try player.delete(db)
         }
     }
 

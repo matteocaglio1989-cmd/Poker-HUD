@@ -190,15 +190,19 @@ extension PokerStarsWindowDetector {
         }
     }
 
-    /// Prompt user to grant Screen Recording permission
+    /// Prompt the user to grant Screen Recording permission. Returns true
+    /// if permission is already granted (no prompt is shown). On the first
+    /// call when not yet granted, macOS shows the standard "Allow Screen
+    /// Recording" dialog and returns false; the user then has to act in
+    /// System Settings, so a relaunch is required to pick up the change.
+    ///
+    /// Replaces the previous `CGWindowListCreateImage(1×1)` side-effect
+    /// trick, which was deprecated in macOS 14. `CGRequestScreenCaptureAccess`
+    /// is the canonical modern API for triggering this prompt and is
+    /// available since macOS 11 — well below our deployment target.
     @discardableResult
-    static func requestScreenRecordingPermission() -> CGImage? {
-        CGWindowListCreateImage(
-            CGRect(x: 0, y: 0, width: 1, height: 1),
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .bestResolution
-        )
+    static func requestScreenRecordingPermission() -> Bool {
+        CGRequestScreenCaptureAccess()
     }
 }
 

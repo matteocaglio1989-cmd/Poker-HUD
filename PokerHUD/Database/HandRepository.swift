@@ -117,13 +117,18 @@ class HandRepository {
 
     func delete(_ hand: Hand) throws {
         try dbManager.writer.write { db in
-            try hand.delete(db)
+            // Discard the Bool "did delete" flag — callers don't need it,
+            // and letting it bubble out of `write` makes the generic return
+            // non-Void and triggers a "result unused" warning at the call site.
+            _ = try hand.delete(db)
         }
     }
 
     func deleteAll() throws {
         try dbManager.writer.write { db in
-            try Hand.deleteAll(db)
+            // Same reason as above — `deleteAll` returns the deleted-row count
+            // which we don't use here.
+            _ = try Hand.deleteAll(db)
         }
     }
 
