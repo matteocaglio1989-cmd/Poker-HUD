@@ -22,6 +22,13 @@ final class SubscriptionManager: ObservableObject {
     @Published private(set) var products: [Product] = []
     @Published private(set) var isPurchasing: Bool = false
     @Published var purchaseError: String?
+    /// Set whenever `loadProducts()` fails (or returns no products), so the
+    /// paywall can show an error + Retry instead of spinning forever. Cleared
+    /// at the start of every `loadProducts()` call. This was added because
+    /// silently swallowing the error to a `print` left the paywall stuck on
+    /// two `ProgressView`s when the StoreKit configuration file wasn't
+    /// selected in the active Xcode scheme — exactly the dev trap we hit.
+    @Published var loadProductsError: String?
 
     private let repo: SubscriptionRepository
     private var transactionListener: Task<Void, Never>?
@@ -45,13 +52,23 @@ final class SubscriptionManager: ObservableObject {
 
     // MARK: - Lifecycle
 
-    /// Load StoreKit products into `products`. Safe to call repeatedly.
+    /// Load StoreKit products into `products`. Safe to call repeatedly —
+    /// the paywall's Retry button calls this directly.
     func loadProducts() async {
+        loadProductsError = nil
         do {
             let loaded = try await Product.products(for: SubscriptionProductIDs.all)
             self.products = loaded.sorted { $0.price < $1.price }
+            if loaded.isEmpty {
+                // StoreKit returned an empty result without throwing — most
+                // commonly because the Xcode scheme isn't pointing at the
+                // .storekit configuration file and there's no sandbox tester
+                // signed in either.
+                self.loadProductsError = "No subscription plans returned by StoreKit."
+            }
         } catch {
             print("[SubscriptionManager] loadProducts failed: \(error)")
+            self.loadProductsError = error.localizedDescription
         }
     }
 
