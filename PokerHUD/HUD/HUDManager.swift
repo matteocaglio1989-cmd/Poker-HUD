@@ -239,24 +239,35 @@ class HUDManager {
             return matched.frame
         }
 
-        // 3. Title-less fallback. Only safe to bind by exclusion when there
-        //    is EXACTLY ONE unbound window — otherwise we'd be guessing and
-        //    risk swapping bindings (the multi-table launch bug). When the
-        //    fallback is unsafe, return nil and let the next reposition
-        //    tick retry; the user should grant Accessibility permission so
-        //    the title-based path in step 2 starts working.
+        // 3. Title-less fallback: bind by exclusion to the first unbound
+        //    window. CGWindowList returns windows front-to-back, so the
+        //    frontmost unbound window is usually the right one for a
+        //    single-table session. With multiple unbound windows this is
+        //    inherently ambiguous (the long-standing multi-table launch
+        //    bug), but it's better to bind *something* than to leave the
+        //    HUD invisible — and step 1's cache validation will auto-
+        //    correct on the next tick if the user grants Accessibility
+        //    permission and titles become readable.
         let boundIDs = Set(tableWindowBinding.values)
         let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
 
-        if unboundWindows.count == 1 {
-            let window = unboundWindows[0]
+        if let window = unboundWindows.first {
             tableWindowBinding[table.id] = window.windowID
-            print("[HUD] Bound '\(table.tableName)' to only unbound window \(window.windowID)")
+            if unboundWindows.count > 1 {
+                print("[HUD] WARNING: bound '\(table.tableName)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Accessibility permission in System Settings → Privacy & Security to enable reliable multi-table binding. Wrong bindings auto-correct on the next reposition tick once titles become readable.")
+            } else {
+                print("[HUD] Bound '\(table.tableName)' to only unbound window \(window.windowID)")
+            }
             return window.frame
         }
 
-        if unboundWindows.count > 1 {
-            print("[HUD] WARNING: cannot uniquely bind '\(table.tableName)' — \(unboundWindows.count) unbound PokerStars windows and no readable titles. Grant Accessibility permission in System Settings → Privacy & Security to enable title-based binding.")
+        // 4. All windows are bound. Our binding's CGWindowID no longer
+        //    exists (window was closed and reopened, etc.). Clear the
+        //    stale binding so the next call falls through to step 2 or 3.
+        tableWindowBinding.removeValue(forKey: table.id)
+        if let front = windows.first {
+            tableWindowBinding[table.id] = front.windowID
+            return front.frame
         }
 
         return nil
