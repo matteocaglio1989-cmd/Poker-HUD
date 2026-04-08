@@ -187,19 +187,6 @@ class HUDManager {
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
 
-            // On-demand panel creation: if this table has no panels yet
-            // (because `createPanels` refused to build them when no
-            // matching PokerStars window existed), build them now that a
-            // window has appeared. This is what lets the HUD "come back"
-            // if the user launches PokerStars after PokerHUD has already
-            // imported hands for a table.
-            let hasAnyPanel = table.seatAssignments.contains { seat in
-                panels[PanelKey(tableId: table.id, seatNumber: seat.seatNumber)] != nil
-            }
-            if !hasAnyPanel {
-                createPanels(for: table)
-            }
-
             // Only reposition if the poker window itself moved (not the user dragging HUD panels)
             if let lastFrame = lastWindowFrames[table.id] {
                 let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
