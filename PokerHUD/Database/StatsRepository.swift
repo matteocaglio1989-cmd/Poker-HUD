@@ -146,6 +146,30 @@ class StatsRepository {
                     sql += " AND h.gameType = ?"
                     arguments.append(gameType)
                 }
+                if let minStakes = filters.minStakes {
+                    sql += " AND h.bigBlind >= ?"
+                    arguments.append(minStakes)
+                }
+                if let maxStakes = filters.maxStakes {
+                    sql += " AND h.bigBlind <= ?"
+                    arguments.append(maxStakes)
+                }
+                if let heroName = filters.heroPlayerName, !heroName.isEmpty {
+                    // Restrict to hands in which the hero participated.
+                    // Subquery: hand IDs where some hand_player has isHero=1
+                    // and the player's username matches. This both keeps
+                    // the hero himself in the result (he'll match his own
+                    // hand IDs) and limits opponents to those who actually
+                    // sat with him.
+                    sql += """
+                         AND hp.handId IN (
+                             SELECT hp2.handId FROM hand_players hp2
+                             INNER JOIN players p2 ON p2.id = hp2.playerId
+                             WHERE hp2.isHero = 1 AND p2.username = ?
+                         )
+                        """
+                    arguments.append(heroName)
+                }
             }
 
             sql += " GROUP BY p.id, p.username HAVING COUNT(DISTINCT hp.handId) >= ? ORDER BY handsPlayed DESC"
@@ -185,12 +209,25 @@ class StatsRepository {
 
 // MARK: - Stat Filters
 
+/// Filter set for player stats queries.
+///
+/// Phase 3 PR1 wires the previously dormant `position`/`gameType` SQL paths
+/// to the UI and adds `minStakes`/`maxStakes` (filtering on `h.bigBlind`)
+/// plus `heroPlayerName` — when set, the bulk player-stats query restricts
+/// the result to **opponents who played in at least one hand with this
+/// hero**, plus the hero himself. The same join-style restriction is what
+/// the user expected when they first added the hero picker but the SQL
+/// never honoured it.
 struct StatFilters {
     var fromDate: Date?
     var toDate: Date?
     var position: String?
     var gameType: String?
-    var minStakes: Double?
-    var maxStakes: Double?
+    var minStakes: Double?   // big blind lower bound, inclusive
+    var maxStakes: Double?   // big blind upper bound, inclusive
     var siteId: Int64?
+    /// When non-nil, fetchAllPlayerStats filters its result to players who
+    /// shared at least one hand with this hero. Single-player fetches
+    /// (`fetchPlayerStats(playerId:filters:)`) ignore this field.
+    var heroPlayerName: String?
 }
