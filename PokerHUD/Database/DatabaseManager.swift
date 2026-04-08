@@ -16,9 +16,18 @@ class DatabaseManager {
     /// this property before mounting the normal app UI and shows a
     /// one-page error view (with the underlying message) if it's set.
     ///
-    /// Kept nonisolated and set exactly once during `init` so no locking
-    /// is needed for the one-read-at-launch consumer.
-    let initializationError: Error?
+    /// Declared `private(set) var` rather than `let` so Swift's definite-
+    /// initialization analysis allows `init()` to call `self.migrator`
+    /// (which is a computed property that accesses `self`) before the
+    /// property is assigned. `var` + `Optional` auto-initializes to
+    /// `nil` at the start of `init` so `self` is considered fully
+    /// initialized from the first line of the body, which is what
+    /// makes the `migrator.migrate(queue)` call type-check.
+    ///
+    /// The `private(set)` keeps it set-exactly-once in practice — the
+    /// only writer is `init()`, the compiler rejects any external
+    /// mutation.
+    private(set) var initializationError: Error?
 
     private init() {
         do {
@@ -43,7 +52,6 @@ class DatabaseManager {
             let queue = try DatabaseQueue(path: dbPath, configuration: config)
             try migrator.migrate(queue)
             self.dbQueue = queue
-            self.initializationError = nil
         } catch {
             // Don't crash the process — App Store reviewers treat first-
             // launch crashes as an automatic rejection. Instead, capture
@@ -51,7 +59,6 @@ class DatabaseManager {
             // open the local database" page with the underlying message,
             // and let the user quit cleanly.
             Log.app.error("Database initialization failed: \(error.localizedDescription, privacy: .public)")
-            self.dbQueue = nil
             self.initializationError = error
         }
     }
