@@ -150,12 +150,22 @@ final class ReplayerEngine: ObservableObject {
             case .check:
                 break
             case .call, .bet, .raise, .allIn:
-                // The parser captures the chip-delta for bets / calls,
-                // and the raise-increment for raises (a known limitation
-                // we don't try to compensate for here — see file header).
+                // `action.amount` is the actual chip delta the player
+                // committed on this action (parser-side commitment
+                // tracker resolves raise-to totals and street-entry
+                // deltas before emitting — see PokerStarsParser).
                 stacks[action.playerId, default: 0] -= amount
                 bets[action.playerId, default: 0] += amount
                 pot += amount
+            case .uncalledRefund:
+                // PokerStars returned `amount` of an overbet back to
+                // the raiser after an all-in was only partially
+                // called. Reverse the chip movement: refund the
+                // stack, subtract from the raiser's street bet, and
+                // drop the pot accordingly.
+                stacks[action.playerId, default: 0] += amount
+                bets[action.playerId, default: 0] -= amount
+                pot -= amount
             }
 
             steps.append(ReplayerStep(
@@ -216,12 +226,13 @@ final class ReplayerEngine: ObservableObject {
     private static func actionDescriptor(_ action: Action) -> String {
         let type = ActionType(rawValue: action.actionType) ?? .check
         switch type {
-        case .fold:  return "folds"
-        case .check: return "checks"
-        case .call:  return String(format: "calls %.2f", action.amount)
-        case .bet:   return String(format: "bets %.2f", action.amount)
-        case .raise: return String(format: "raises %.2f", action.amount)
-        case .allIn: return String(format: "all-in %.2f", action.amount)
+        case .fold:            return "folds"
+        case .check:           return "checks"
+        case .call:            return String(format: "calls %.2f", action.amount)
+        case .bet:             return String(format: "bets %.2f", action.amount)
+        case .raise:           return String(format: "raises %.2f", action.amount)
+        case .allIn:           return String(format: "all-in %.2f", action.amount)
+        case .uncalledRefund:  return String(format: "uncalled %.2f returned", action.amount)
         }
     }
 }

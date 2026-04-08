@@ -58,6 +58,13 @@ enum ActionType: String, CaseIterable {
     case bet = "BET"
     case raise = "RAISE"
     case allIn = "ALL_IN"
+    /// Virtual action emitted by the parser when PokerStars refunds an
+    /// uncalled bet (`Uncalled bet (€3.04) returned to USER`) after an
+    /// all-in raise is only partially called. Carries the refunded
+    /// chip amount; the replayer subtracts it from the pot + the
+    /// raiser's street bet and adds it back to their stack so the
+    /// animation matches PokerStars' actual chip movement.
+    case uncalledRefund = "UNCALLED_REFUND"
 
     var displayName: String {
         switch self {
@@ -67,6 +74,7 @@ enum ActionType: String, CaseIterable {
         case .bet: return "Bet"
         case .raise: return "Raise"
         case .allIn: return "All-In"
+        case .uncalledRefund: return "Uncalled Refund"
         }
     }
 

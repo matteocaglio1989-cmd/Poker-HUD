@@ -79,16 +79,76 @@ class PokerStarsParser: HandHistoryParser {
         // Parse actions by street
         let streets = parseStreets(from: lines)
 
-        // Build action list
+        // Build action list and track each player's running total commitment
+        // (in chips actually put into the pot, post-refund). This replaces
+        // the old "sum action.amount" shortcut, which was broken for three
+        // reasons stacked on top of each other: raise lines captured the
+        // raise-increment instead of the raise-to total, blind posts
+        // weren't counted, and "Uncalled bet returned" lines were ignored
+        // entirely. Fixing this one loop corrects every downstream value
+        // (totalBet / netResult / replayer pot / replayer stacks).
         var actions: [ActionData] = []
         var actionOrder = 0
+        var totalCommitments: [String: Double] = [:]
+        for username in playerSeats.values {
+            totalCommitments[username] = 0.0
+        }
 
-        for (street, streetLines) in streets {
+        // Streets dict isn't ordered, so walk them in poker order so the
+        // per-street commitment reset happens in the right sequence and
+        // `actionOrder` is monotonic across the whole hand.
+        for street in ["PREFLOP", "FLOP", "TURN", "RIVER"] {
+            guard let streetLines = streets[street] else { continue }
+
+            // Per-street commitment tracker. Reset to 0 at every street
+            // boundary — then seeded with blind/ante posts on PREFLOP
+            // only, since those are the "chips already in front of the
+            // player" before any voluntary preflop action happens.
+            var commitmentsThisStreet: [String: Double] = [:]
+            for username in playerSeats.values {
+                commitmentsThisStreet[username] = 0.0
+            }
+            if street == "PREFLOP" {
+                seedBlindAndAnteCommitments(
+                    from: lines,
+                    into: &commitmentsThisStreet
+                )
+            }
+
             for line in streetLines {
-                if let action = parseAction(from: line, street: street, order: actionOrder) {
-                    actions.append(action)
+                // Uncalled bet refund: emit a virtual UNCALLED_REFUND
+                // action so the replayer reverses the chip movement
+                // visibly, and subtract the amount from the raiser's
+                // street commitment so totalBet ends up correct.
+                if let refund = parseUncalledBet(from: line) {
+                    commitmentsThisStreet[refund.username, default: 0] -= refund.amount
+                    actions.append(ActionData(
+                        username: refund.username,
+                        street: street,
+                        actionOrder: actionOrder,
+                        actionType: ActionType.uncalledRefund.rawValue,
+                        amount: refund.amount,
+                        potBefore: nil,
+                        potAfter: nil
+                    ))
                     actionOrder += 1
+                    continue
                 }
+
+                guard let action = parseAction(
+                    from: line,
+                    street: street,
+                    order: actionOrder,
+                    commitmentsThisStreet: &commitmentsThisStreet
+                ) else { continue }
+
+                actions.append(action)
+                actionOrder += 1
+            }
+
+            // Flush this street's net commitments into the grand total.
+            for (username, committed) in commitmentsThisStreet {
+                totalCommitments[username, default: 0] += committed
             }
         }
 
@@ -121,17 +181,14 @@ class PokerStarsParser: HandHistoryParser {
             }
         }
 
-        // Calculate player results
+        // Calculate player results. `totalCommitments` was populated by
+        // the per-street commitment tracker above, which correctly
+        // accounts for blinds, antes, raise-to totals (not the increment
+        // PokerStars prints first), and uncalled bet refunds. `totalWon`
+        // is filled in from the `collected` lines parsed below.
         var playerResults: [String: (bet: Double, won: Double)] = [:]
         for username in playerSeats.values {
-            playerResults[username] = (bet: 0.0, won: 0.0)
-        }
-
-        // Sum bets from actions
-        for action in actions {
-            if let current = playerResults[action.username] {
-                playerResults[action.username] = (bet: current.bet + action.amount, won: current.won)
-            }
+            playerResults[username] = (bet: totalCommitments[username] ?? 0.0, won: 0.0)
         }
 
         // Parse pot and rake from summary
@@ -447,13 +504,27 @@ class PokerStarsParser: HandHistoryParser {
         return streets
     }
 
-    private func parseAction(from line: String, street: String, order: Int) -> ActionData? {
-        let actionPatterns = [
-            ("folds", "FOLD", 0.0),
-            ("checks", "CHECK", 0.0)
-        ]
-
-        for (keyword, actionType, defaultAmount) in actionPatterns {
+    /// Parse one voluntary action line. The returned `ActionData.amount`
+    /// is the chip delta this action adds to the pot, **not** the raw
+    /// number printed by PokerStars — this distinction matters for
+    /// raises, where PokerStars prints `raises INCREMENT to TOTAL` and
+    /// we need to subtract the player's previous street commitment from
+    /// `TOTAL` to get the actual chips they added.
+    ///
+    /// Mutates `commitmentsThisStreet` in place so the next action's
+    /// delta computation sees the updated running total.
+    ///
+    /// Returns `nil` for non-action lines (blinds, antes, uncalled bet
+    /// returns, shows, collected, etc.) — those are handled elsewhere.
+    private func parseAction(
+        from line: String,
+        street: String,
+        order: Int,
+        commitmentsThisStreet: inout [String: Double]
+    ) -> ActionData? {
+        // Folds and checks don't move chips; emit with amount = 0 and
+        // leave commitments untouched.
+        for (keyword, actionType) in [("folds", "FOLD"), ("checks", "CHECK")] {
             if line.contains(": \(keyword)") {
                 let username = line.components(separatedBy: ": \(keyword)").first ?? ""
                 return ActionData(
@@ -461,29 +532,84 @@ class PokerStarsParser: HandHistoryParser {
                     street: street,
                     actionOrder: order,
                     actionType: actionType,
-                    amount: defaultAmount,
+                    amount: 0.0,
                     potBefore: nil,
                     potAfter: nil
                 )
             }
         }
 
-        // Parse call/bet/raise with amount (handles $, €, £)
-        let amountPattern = #": (calls|bets|raises) [\$€£]?([\d.]+)"#
-        if let regex = try? NSRegularExpression(pattern: amountPattern),
+        // "raises X to Y" — Y is the new street commitment for the
+        // raiser; delta = Y - their previous street commitment. This
+        // is the critical fix: the old regex captured X (the raise
+        // increment above the previous bet level) which systematically
+        // under-counted whenever a player raised on top of any prior
+        // action, and became catastrophically wrong when the raise
+        // was an overbet later partially uncalled.
+        let raiseToPattern = #"^([^:]+): raises [\$€£]?[\d.]+ to [\$€£]?([\d.]+)"#
+        if let regex = try? NSRegularExpression(pattern: raiseToPattern),
            let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
-           let actionRange = Range(match.range(at: 1), in: line),
+           let userRange = Range(match.range(at: 1), in: line),
+           let totalRange = Range(match.range(at: 2), in: line),
+           let raiseToTotal = Double(line[totalRange]) {
+
+            let username = String(line[userRange]).trimmingCharacters(in: .whitespaces)
+            let previous = commitmentsThisStreet[username] ?? 0.0
+            let delta = max(0.0, raiseToTotal - previous)
+            commitmentsThisStreet[username] = raiseToTotal
+            return ActionData(
+                username: username,
+                street: street,
+                actionOrder: order,
+                actionType: "RAISE",
+                amount: delta,
+                potBefore: nil,
+                potAfter: nil
+            )
+        }
+
+        // "bets X" — X is the chips the player is adding on top of
+        // their current street commitment. For a post-flop bet this is
+        // usually the player's entire street commitment (they had 0 in
+        // before betting), so the delta and the printed amount are the
+        // same.
+        let betPattern = #"^([^:]+): bets [\$€£]?([\d.]+)"#
+        if let regex = try? NSRegularExpression(pattern: betPattern),
+           let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+           let userRange = Range(match.range(at: 1), in: line),
            let amountRange = Range(match.range(at: 2), in: line),
            let amount = Double(line[amountRange]) {
 
-            let actionType = String(line[actionRange]).uppercased()
-            let username = line.components(separatedBy: ": ").first ?? ""
-
+            let username = String(line[userRange]).trimmingCharacters(in: .whitespaces)
+            commitmentsThisStreet[username, default: 0] += amount
             return ActionData(
-                username: username.trimmingCharacters(in: .whitespaces),
+                username: username,
                 street: street,
                 actionOrder: order,
-                actionType: actionType == "RAISES" ? "RAISE" : actionType == "BETS" ? "BET" : "CALL",
+                actionType: "BET",
+                amount: amount,
+                potBefore: nil,
+                potAfter: nil
+            )
+        }
+
+        // "calls X" — X is the delta chips the player puts in to match
+        // the current bet, so we add it straight to their street
+        // commitment.
+        let callPattern = #"^([^:]+): calls [\$€£]?([\d.]+)"#
+        if let regex = try? NSRegularExpression(pattern: callPattern),
+           let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+           let userRange = Range(match.range(at: 1), in: line),
+           let amountRange = Range(match.range(at: 2), in: line),
+           let amount = Double(line[amountRange]) {
+
+            let username = String(line[userRange]).trimmingCharacters(in: .whitespaces)
+            commitmentsThisStreet[username, default: 0] += amount
+            return ActionData(
+                username: username,
+                street: street,
+                actionOrder: order,
+                actionType: "CALL",
                 amount: amount,
                 potBefore: nil,
                 potAfter: nil
@@ -491,6 +617,52 @@ class PokerStarsParser: HandHistoryParser {
         }
 
         return nil
+    }
+
+    /// Seed the preflop street's commitment tracker with any blinds
+    /// and antes that were posted before voluntary action started.
+    /// Without this, the SB poster's `totalBet` would be short by the
+    /// SB amount whenever they limp-fold, the BB by the BB amount, and
+    /// so on — visible as a wrong `netResult` on the Dashboard session
+    /// summary and the Hand Detail footer.
+    private func seedBlindAndAnteCommitments(
+        from lines: [String],
+        into commitments: inout [String: Double]
+    ) {
+        // `posts small blind €0.01`, `posts big blind €0.02`, `posts
+        // the ante €0.001`, `posts small & big blinds €0.03` (dead
+        // blind when a new player sits out and returns).
+        let postPattern = #"^([^:]+): posts (?:small blind|big blind|the ante|small & big blinds) [\$€£]?([\d.]+)"#
+        guard let regex = try? NSRegularExpression(pattern: postPattern) else { return }
+
+        for line in lines {
+            guard let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                  let userRange = Range(match.range(at: 1), in: line),
+                  let amountRange = Range(match.range(at: 2), in: line),
+                  let amount = Double(line[amountRange]) else { continue }
+
+            let username = String(line[userRange]).trimmingCharacters(in: .whitespaces)
+            commitments[username, default: 0] += amount
+        }
+    }
+
+    /// Parse an `Uncalled bet (€3.04) returned to logitech6942` line.
+    /// Emitted by PokerStars when an all-in raise is only partially
+    /// called; the surplus is refunded to the raiser. The parser
+    /// treats this as a virtual `UNCALLED_REFUND` action (see
+    /// `ActionType.uncalledRefund` in Models/Action.swift) so the
+    /// replayer can reverse the chip movement in its animation.
+    private func parseUncalledBet(from line: String) -> (username: String, amount: Double)? {
+        let pattern = #"^Uncalled bet \([\$€£]?([\d.]+)\) returned to (.+)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+              let amountRange = Range(match.range(at: 1), in: line),
+              let userRange = Range(match.range(at: 2), in: line),
+              let amount = Double(line[amountRange]) else {
+            return nil
+        }
+        let username = String(line[userRange]).trimmingCharacters(in: .whitespaces)
+        return (username: username, amount: amount)
     }
 
     private func parseHoleCards(from line: String) -> (username: String, cards: String) {
