@@ -1,21 +1,18 @@
 import SwiftUI
 
-/// Phase 4 PR1: modal sheet that shows everything we know about a single
+/// Phase 4 PR2: modal sheet that shows everything we know about a single
 /// hand. Loads the hand bundle (hand row, seats, actions, players) lazily
-/// on appear and renders five sections:
+/// on appear and renders three sections:
 ///
 ///   1. Header — table, stakes, time, hero outcome
-///   2. Players strip — every seat with name, starting stack, hole cards,
-///      hero highlighted
-///   3. Board cards — flop / turn / river textual line
-///   4. Action stream — street-by-street vertical list of every `Action`
-///      in the hand. **This panel is the placeholder that PR2 replaces
-///      with the visual top-down poker table.**
-///   5. Footer metrics — pot total + hero net + hero preflop flags
+///   2. **Visual replayer** — top-down `PokerTableView` driven by a
+///      `ReplayerEngine`, with `ReplayerControlsView` step-through bar
+///      and a theme picker. Replaces PR1's textual action-stream
+///      placeholder.
+///   3. Footer metrics — pot total + hero net + hero preflop flags
 ///
-/// The view is intentionally non-interactive (no tagging, no notes) so PR1
-/// can ship as a pure read-only navigation skeleton. PR3 grafts the tag
-/// chips and bookmark star into the toolbar.
+/// The view is intentionally non-interactive for tagging / notes — PR3
+/// grafts the tag chips and bookmark star into the toolbar.
 struct HandDetailView: View {
     let handId: Int64
 
@@ -75,10 +72,8 @@ struct HandDetailView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    playersStrip(for: bundle)
-                    boardSection(for: bundle)
-                    actionStream(for: bundle)
+                VStack(alignment: .leading, spacing: 20) {
+                    ReplayerPanel(bundle: bundle)
                     footerMetrics(for: bundle)
                 }
                 .padding()
@@ -117,217 +112,6 @@ struct HandDetailView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Players strip
-
-    private func playersStrip(for bundle: HandDetailBundle) -> some View {
-        let playersById = bundle.playersById
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("Seats (\(bundle.handPlayers.count))")
-                .font(.headline)
-
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 180), spacing: 12)],
-                spacing: 12
-            ) {
-                ForEach(bundle.handPlayers) { hp in
-                    seatTile(handPlayer: hp, player: playersById[hp.playerId])
-                }
-            }
-        }
-    }
-
-    private func seatTile(handPlayer hp: HandPlayer, player: Player?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Text("Seat \(hp.seat)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                if let pos = hp.position, !pos.isEmpty {
-                    Text(pos)
-                        .font(.caption2)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.15))
-                        .cornerRadius(3)
-                }
-                Spacer()
-                if hp.isHero {
-                    Text("HERO")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(Color.blue)
-                        .cornerRadius(3)
-                }
-            }
-            Text(player?.username ?? "Player #\(hp.playerId)")
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .lineLimit(1)
-            HStack(spacing: 6) {
-                Text(String(format: "Stack %.2f", hp.startingStack))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                Spacer()
-                if !hp.cards.isEmpty {
-                    Text(hp.cards.joined(separator: " "))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundColor(.primary)
-                }
-            }
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(hp.isHero ? Color.blue.opacity(0.08) : Color.secondary.opacity(0.06))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(hp.isHero ? Color.blue.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 1)
-        )
-    }
-
-    // MARK: - Board
-
-    private func boardSection(for bundle: HandDetailBundle) -> some View {
-        let cards = bundle.hand.boardCards
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("Board")
-                .font(.headline)
-            if cards.isEmpty {
-                Text("Hand ended preflop — no board dealt.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                HStack(spacing: 12) {
-                    boardGroup(label: "Flop", cards: Array(cards.prefix(3)))
-                    if cards.count >= 4 {
-                        boardGroup(label: "Turn", cards: [cards[3]])
-                    }
-                    if cards.count >= 5 {
-                        boardGroup(label: "River", cards: [cards[4]])
-                    }
-                    Spacer()
-                }
-            }
-        }
-    }
-
-    private func boardGroup(label: String, cards: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-            HStack(spacing: 4) {
-                ForEach(cards, id: \.self) { card in
-                    Text(card)
-                        .font(.system(.body, design: .monospaced))
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.white)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
-                        .foregroundColor(cardColor(for: card))
-                }
-            }
-        }
-    }
-
-    private func cardColor(for card: String) -> Color {
-        // Last char is the suit. h/d are red, s/c are black.
-        guard let suit = card.last else { return .primary }
-        switch suit {
-        case "h", "d", "H", "D": return .red
-        default: return .black
-        }
-    }
-
-    // MARK: - Action stream
-
-    private func actionStream(for bundle: HandDetailBundle) -> some View {
-        let playersById = bundle.playersById
-        let grouped = Dictionary(grouping: bundle.actions, by: { $0.street })
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Action stream")
-                .font(.headline)
-            if bundle.actions.isEmpty {
-                Text("No actions recorded for this hand.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(Street.allCases, id: \.self) { street in
-                    if let streetActions = grouped[street.rawValue], !streetActions.isEmpty {
-                        streetSection(
-                            street: street,
-                            actions: streetActions.sorted(by: { $0.actionOrder < $1.actionOrder }),
-                            playersById: playersById
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private func streetSection(street: Street, actions: [Action], playersById: [Int64: Player]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(street.displayName.uppercased())
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(actions) { action in
-                    HStack(spacing: 8) {
-                        Text("#\(action.actionOrder)")
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundColor(.secondary)
-                            .frame(width: 32, alignment: .leading)
-                        Text(playersById[action.playerId]?.username ?? "Player #\(action.playerId)")
-                            .font(.caption)
-                            .frame(width: 140, alignment: .leading)
-                            .lineLimit(1)
-                        Text(actionVerb(for: action))
-                            .font(.caption)
-                            .foregroundColor(actionColor(for: action))
-                        Spacer()
-                    }
-                    .padding(.vertical, 2)
-                    .padding(.horizontal, 6)
-                }
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.secondary.opacity(0.05))
-            )
-        }
-    }
-
-    private func actionVerb(for action: Action) -> String {
-        let type = ActionType(rawValue: action.actionType) ?? .check
-        switch type {
-        case .fold:  return "folds"
-        case .check: return "checks"
-        case .call:  return String(format: "calls %.2f", action.amount)
-        case .bet:   return String(format: "bets %.2f", action.amount)
-        case .raise: return String(format: "raises to %.2f", action.amount)
-        case .allIn: return String(format: "all-in %.2f", action.amount)
-        }
-    }
-
-    private func actionColor(for action: Action) -> Color {
-        let type = ActionType(rawValue: action.actionType) ?? .check
-        if type.isAggressive { return .orange }
-        if type == .fold { return .secondary }
-        return .primary
     }
 
     // MARK: - Footer metrics
@@ -397,5 +181,76 @@ struct HandDetailView: View {
                 .frame(maxWidth: 480)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Replayer panel
+
+/// The visual replayer block: top-down `PokerTableView`, the
+/// `ReplayerControlsView` step-through bar, and a theme picker. Lives in a
+/// dedicated sub-view so the `@StateObject ReplayerEngine` can be created
+/// once per hand-load (the parent only knows the bundle after an async
+/// fetch, so it can't own the engine directly).
+private struct ReplayerPanel: View {
+    let bundle: HandDetailBundle
+
+    @StateObject private var engine: ReplayerEngine
+    @State private var theme: TableTheme
+
+    init(bundle: HandDetailBundle) {
+        self.bundle = bundle
+        _engine = StateObject(wrappedValue: ReplayerEngine(bundle: bundle))
+        _theme = State(initialValue: TableThemeStorage.load())
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Replayer")
+                    .font(.headline)
+                Spacer()
+                themePicker
+            }
+
+            PokerTableView(
+                step: engine.currentStep,
+                bundle: bundle,
+                theme: theme
+            )
+            .frame(height: 380)
+
+            ReplayerControlsView(engine: engine)
+        }
+    }
+
+    private var themePicker: some View {
+        Menu {
+            ForEach(TableTheme.allCases) { option in
+                Button {
+                    theme = option
+                    TableThemeStorage.save(option)
+                } label: {
+                    HStack {
+                        Text(option.displayName)
+                        if option == theme {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "paintpalette")
+                Text(theme.displayName)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule().fill(Color.secondary.opacity(0.15))
+            )
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
     }
 }
