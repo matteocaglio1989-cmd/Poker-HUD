@@ -205,6 +205,122 @@ class StatsRepository {
             }
         }
     }
+
+    // MARK: - Situational Stats (Phase 3 PR2)
+
+    /// Fetch situational breakdown for a single player, split by pre-flop
+    /// pot type (single-raised vs 3-bet+). Runtime computation — no
+    /// schema changes required: a CTE counts `actions` rows with
+    /// `street='PREFLOP'` and `actionType IN ('RAISE','BET')` per hand,
+    /// then the main query conditionally sums the already-stored
+    /// `cbetFlop` / `foldToCbetFlop` / etc. booleans by the CTE's raise
+    /// count.
+    ///
+    /// "Single-raised pot" = exactly 1 preflop raise. "3-bet+ pot" = 2 or
+    /// more. Turn and river c-bet stats are not split by pot type because
+    /// the sample sizes get too small to be interesting at the
+    /// per-session level.
+    ///
+    /// Returns nil when the player has no hands matching the filter.
+    func fetchSituationalStats(playerName: String, filters: StatFilters? = nil) throws -> SituationalStats? {
+        guard !playerName.isEmpty else { return nil }
+        return try dbManager.reader.read { db in
+            var sql = """
+                WITH hand_preflop_raises AS (
+                    SELECT handId, COUNT(*) AS raiseCount
+                    FROM actions
+                    WHERE street = 'PREFLOP' AND actionType IN ('RAISE', 'BET')
+                    GROUP BY handId
+                )
+                SELECT
+                    p.id AS playerId,
+                    p.username AS playerName,
+                    COUNT(DISTINCT hp.handId) AS handsPlayed,
+                    -- C-bet flop split by pot type
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) = 1 AND hp.cbetFlop = 1 THEN 1 ELSE 0 END) AS cbetFlopSRPHits,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) = 1 AND hp.cbetFlop IS NOT NULL THEN 1 ELSE 0 END) AS cbetFlopSRPOpps,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) >= 2 AND hp.cbetFlop = 1 THEN 1 ELSE 0 END) AS cbetFlop3BPHits,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) >= 2 AND hp.cbetFlop IS NOT NULL THEN 1 ELSE 0 END) AS cbetFlop3BPOpps,
+                    -- Fold to c-bet flop split by pot type
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) = 1 AND hp.foldToCbetFlop = 1 THEN 1 ELSE 0 END) AS foldCbetFlopSRPHits,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) = 1 AND hp.foldToCbetFlop IS NOT NULL THEN 1 ELSE 0 END) AS foldCbetFlopSRPOpps,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) >= 2 AND hp.foldToCbetFlop = 1 THEN 1 ELSE 0 END) AS foldCbetFlop3BPHits,
+                    SUM(CASE WHEN COALESCE(hpr.raiseCount, 0) >= 2 AND hp.foldToCbetFlop IS NOT NULL THEN 1 ELSE 0 END) AS foldCbetFlop3BPOpps,
+                    -- Turn / River (not split)
+                    SUM(CASE WHEN hp.cbetTurn = 1 THEN 1 ELSE 0 END) AS cbetTurnHits,
+                    SUM(CASE WHEN hp.cbetTurn IS NOT NULL THEN 1 ELSE 0 END) AS cbetTurnOpps,
+                    SUM(CASE WHEN hp.cbetRiver = 1 THEN 1 ELSE 0 END) AS cbetRiverHits,
+                    SUM(CASE WHEN hp.cbetRiver IS NOT NULL THEN 1 ELSE 0 END) AS cbetRiverOpps,
+                    SUM(CASE WHEN hp.foldToCbetTurn = 1 THEN 1 ELSE 0 END) AS foldCbetTurnHits,
+                    SUM(CASE WHEN hp.foldToCbetTurn IS NOT NULL THEN 1 ELSE 0 END) AS foldCbetTurnOpps,
+                    SUM(CASE WHEN hp.foldToCbetRiver = 1 THEN 1 ELSE 0 END) AS foldCbetRiverHits,
+                    SUM(CASE WHEN hp.foldToCbetRiver IS NOT NULL THEN 1 ELSE 0 END) AS foldCbetRiverOpps
+                FROM players p
+                INNER JOIN hand_players hp ON hp.playerId = p.id
+                INNER JOIN hands h ON h.id = hp.handId
+                LEFT JOIN hand_preflop_raises hpr ON hpr.handId = hp.handId
+                WHERE p.username = ?
+                """
+            var arguments: [DatabaseValueConvertible] = [playerName]
+
+            if let filters = filters {
+                if let fromDate = filters.fromDate {
+                    sql += " AND h.playedAt >= ?"
+                    arguments.append(fromDate)
+                }
+                if let toDate = filters.toDate {
+                    sql += " AND h.playedAt <= ?"
+                    arguments.append(toDate)
+                }
+                if let position = filters.position {
+                    sql += " AND hp.position = ?"
+                    arguments.append(position)
+                }
+                if let gameType = filters.gameType {
+                    sql += " AND h.gameType = ?"
+                    arguments.append(gameType)
+                }
+                if let minStakes = filters.minStakes {
+                    sql += " AND h.bigBlind >= ?"
+                    arguments.append(minStakes)
+                }
+                if let maxStakes = filters.maxStakes {
+                    sql += " AND h.bigBlind <= ?"
+                    arguments.append(maxStakes)
+                }
+            }
+
+            sql += " GROUP BY p.id, p.username"
+
+            guard let row = try Row.fetchOne(db, sql: sql, arguments: StatementArguments(arguments)) else {
+                return nil
+            }
+            let handsPlayed: Int = row["handsPlayed"] ?? 0
+            guard handsPlayed > 0 else { return nil }
+
+            return SituationalStats(
+                playerId: row["playerId"] ?? 0,
+                playerName: row["playerName"] ?? playerName,
+                handsPlayed: handsPlayed,
+                cbetFlopSRPHits: row["cbetFlopSRPHits"] ?? 0,
+                cbetFlopSRPOpps: row["cbetFlopSRPOpps"] ?? 0,
+                cbetFlop3BPHits: row["cbetFlop3BPHits"] ?? 0,
+                cbetFlop3BPOpps: row["cbetFlop3BPOpps"] ?? 0,
+                foldCbetFlopSRPHits: row["foldCbetFlopSRPHits"] ?? 0,
+                foldCbetFlopSRPOpps: row["foldCbetFlopSRPOpps"] ?? 0,
+                foldCbetFlop3BPHits: row["foldCbetFlop3BPHits"] ?? 0,
+                foldCbetFlop3BPOpps: row["foldCbetFlop3BPOpps"] ?? 0,
+                cbetTurnHits: row["cbetTurnHits"] ?? 0,
+                cbetTurnOpps: row["cbetTurnOpps"] ?? 0,
+                cbetRiverHits: row["cbetRiverHits"] ?? 0,
+                cbetRiverOpps: row["cbetRiverOpps"] ?? 0,
+                foldCbetTurnHits: row["foldCbetTurnHits"] ?? 0,
+                foldCbetTurnOpps: row["foldCbetTurnOpps"] ?? 0,
+                foldCbetRiverHits: row["foldCbetRiverHits"] ?? 0,
+                foldCbetRiverOpps: row["foldCbetRiverOpps"] ?? 0
+            )
+        }
+    }
 }
 
 // MARK: - Stat Filters

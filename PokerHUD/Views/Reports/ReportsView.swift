@@ -20,6 +20,10 @@ struct ReportsView: View {
     @State private var sortColumn: SortColumn? = nil
     @State private var sortAscending: Bool = false
 
+    // Phase 3 PR2: sub-tab + situational stats state
+    @State private var selectedSubTab: ReportsSubTab = .playerStats
+    @State private var situationalStats: SituationalStats? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -104,11 +108,24 @@ struct ReportsView: View {
                     .padding(.horizontal)
                 }
 
-                // Hero summary card
+                // Hero summary card (visible on both sub-tabs so the
+                // hero's headline numbers stay anchored while the user
+                // flips between "Player Stats" and "Situational").
                 if !heroPlayerName.isEmpty, let heroStats = playerStats.first(where: { $0.playerName == heroPlayerName }) {
                     HeroSummaryCard(stats: heroStats)
                         .padding(.horizontal)
                 }
+
+                // Phase 3 PR2: segmented sub-tab picker. macOS-native feel
+                // and cheaper to wire than a real TabView.
+                Picker("", selection: $selectedSubTab) {
+                    ForEach(ReportsSubTab.allCases) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 360)
+                .padding(.horizontal)
 
                 // Loading State
                 if isLoading {
@@ -117,25 +134,34 @@ struct ReportsView: View {
                         .padding()
                 }
 
-                // Stats Table
-                if !playerStats.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Player Statistics (\(playerStats.count) players)")
-                                .font(.headline)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
+                // Sub-tab body
+                switch selectedSubTab {
+                case .playerStats:
+                    if !playerStats.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("Player Statistics (\(playerStats.count) players)")
+                                    .font(.headline)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
 
-                        PlayerStatsTable(
-                            stats: sortedStats,
-                            heroName: heroPlayerName,
-                            sortColumn: $sortColumn,
-                            sortAscending: $sortAscending
-                        )
+                            PlayerStatsTable(
+                                stats: sortedStats,
+                                heroName: heroPlayerName,
+                                sortColumn: $sortColumn,
+                                sortAscending: $sortAscending
+                            )
+                        }
+                    } else if !isLoading {
+                        EmptyReportView()
                     }
-                } else if !isLoading {
-                    EmptyReportView()
+
+                case .situational:
+                    SituationalStatsView(
+                        stats: situationalStats,
+                        heroName: heroPlayerName
+                    )
                 }
             }
         }
@@ -197,6 +223,18 @@ struct ReportsView: View {
             playerStats = allStats
             if allStats.isEmpty {
                 errorMessage = "No players found with \(minHands)+ hands matching the current filters. Try widening the filter or lowering Min Hands."
+            }
+
+            // Phase 3 PR2: also fetch situational stats for the hero on
+            // every load so flipping to the Situational sub-tab is
+            // instant. Cheap because it's one aggregated row.
+            if !heroPlayerName.isEmpty {
+                situationalStats = try StatsRepository().fetchSituationalStats(
+                    playerName: heroPlayerName,
+                    filters: filters
+                )
+            } else {
+                situationalStats = nil
             }
         } catch {
             errorMessage = "Error: \(error.localizedDescription)"
@@ -345,6 +383,21 @@ enum StakesFilter: String, CaseIterable, Identifiable, Hashable {
 enum SortColumn: String, Hashable {
     case player, hands, vpip, pfr, threeBet, af, wtsd, wsd, bb100
     case cbetFlop, foldCbetFlop, squeeze, fourBet, foldThreeBet
+}
+
+// MARK: - Phase 3 PR2 sub-tab enum
+
+enum ReportsSubTab: String, CaseIterable, Identifiable, Hashable {
+    case playerStats
+    case situational
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .playerStats: return "Player Stats"
+        case .situational: return "Situational"
+        }
+    }
 }
 
 // MARK: - Hero Summary Card
