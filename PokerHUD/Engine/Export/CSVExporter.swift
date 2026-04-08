@@ -60,8 +60,8 @@ enum CSVExporter {
         return encode(rows: rows)
     }
 
-    /// Render `[Session]` as a CSV string.
-    static func sessionsCSV(_ sessions: [Session]) -> String {
+    /// Render `[PlayedSession]` as a CSV string.
+    static func sessionsCSV(_ sessions: [PlayedSession]) -> String {
         let dateFormatter = ISO8601DateFormatter()
         var rows: [[String]] = [[
             "StartTime",

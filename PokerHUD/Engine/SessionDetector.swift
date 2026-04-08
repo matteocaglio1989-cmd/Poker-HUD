@@ -1,17 +1,19 @@
 import Foundation
 import GRDB
 
-/// Session model used by both the Dashboard "Active Session" card and the
-/// new Phase 3 PR3 Sessions tab. A session is a contiguous run of the
-/// hero's hands where consecutive timestamps are no more than 30 minutes
-/// apart — the standard "tracker session" definition.
+/// Played-session model used by the Phase 3 PR3 Sessions tab and the
+/// new opponent detail view. A played session is a contiguous run of
+/// the hero's hands where consecutive timestamps are no more than 30
+/// minutes apart — the standard "tracker session" definition.
 ///
-/// Same struct shape as the older `SessionSummary` from
-/// `DashboardView.swift`, lifted up to a top-level type so the new
-/// `SessionsView` and `SessionDetailView` don't have to import the
-/// dashboard. Once the dashboard is updated to consume `Session` instead
-/// of its own private `SessionSummary`, the duplicate can be deleted.
-struct Session: Identifiable, Hashable {
+/// Named `PlayedSession` rather than `Session` to avoid colliding with
+/// the existing `Models/Session.swift` GRDB record that maps to the
+/// `sessions` SQLite table. The GRDB `Session` is a persisted row; this
+/// type is an ephemeral grouping computed from `hand_players` hand
+/// timestamps on the fly. Same shape as the older `SessionSummary`
+/// inlined in `DashboardView.swift`, lifted to a top-level type so the
+/// new views don't have to import the dashboard.
+struct PlayedSession: Identifiable, Hashable {
     let id: UUID = UUID()
     let tableName: String
     let stakes: String
@@ -85,7 +87,7 @@ struct SessionDetector {
     /// Return every historical session for the hero, newest first. Limit
     /// caps the underlying hand window — 5000 hands is plenty for the
     /// current dataset and bounds the worst-case runtime.
-    func allSessions(heroPlayerName: String? = nil, limit: Int = 5000) throws -> [Session] {
+    func allSessions(heroPlayerName: String? = nil, limit: Int = 5000) throws -> [PlayedSession] {
         let rows = try fetchHeroHands(playerName: heroPlayerName, limit: limit)
         guard !rows.isEmpty else { return [] }
         return groupIntoSessions(rows: rows)
@@ -93,9 +95,9 @@ struct SessionDetector {
 
     /// Find the single most-recent session containing the given hand
     /// timestamp. Used by `SessionDetailView` when the caller has a
-    /// `Session` from the list view but needs the per-hand point series
-    /// for charting.
-    func detail(for session: Session, heroPlayerName: String? = nil) throws -> Session {
+    /// `PlayedSession` from the list view but needs the per-hand point
+    /// series for charting.
+    func detail(for session: PlayedSession, heroPlayerName: String? = nil) throws -> PlayedSession {
         let rows = try fetchHeroHands(
             playerName: heroPlayerName,
             from: session.startTime,
@@ -169,8 +171,8 @@ struct SessionDetector {
     /// whenever consecutive timestamps are more than `sessionGap` apart.
     /// Returns sessions newest-first (matching the visual ordering of the
     /// Sessions tab list).
-    private func groupIntoSessions(rows: [Row]) -> [Session] {
-        var sessions: [Session] = []
+    private func groupIntoSessions(rows: [Row]) -> [PlayedSession] {
+        var sessions: [PlayedSession] = []
         var currentBucket: [Row] = []
 
         func flushCurrent() {
@@ -199,7 +201,7 @@ struct SessionDetector {
         return sessions
     }
 
-    private func makeSession(from rows: [Row]) -> Session? {
+    private func makeSession(from rows: [Row]) -> PlayedSession? {
         guard !rows.isEmpty else { return nil }
 
         // Rows are DESC: rows.first = newest = endTime, rows.last = oldest = startTime
@@ -241,7 +243,7 @@ struct SessionDetector {
         let bigBlind: Double = rows.first?["bigBlind"] ?? 0
         let stakes = "\(smallBlind)/\(bigBlind)"
 
-        return Session(
+        return PlayedSession(
             tableName: tableName,
             stakes: stakes,
             startTime: startTime,

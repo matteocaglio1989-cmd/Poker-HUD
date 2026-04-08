@@ -34,7 +34,7 @@ enum JSONExporter {
         return try encoder().encode(payload)
     }
 
-    static func sessionsJSON(_ sessions: [Session]) throws -> Data {
+    static func sessionsJSON(_ sessions: [PlayedSession]) throws -> Data {
         let payload = sessions.map { s in
             JSONSession(
                 startTime: s.startTime,

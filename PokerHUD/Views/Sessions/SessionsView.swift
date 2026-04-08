@@ -9,12 +9,12 @@ import SwiftUI
 /// Session" card has been using all along — just exposed for the entire
 /// hand history instead of only the most recent run.
 struct SessionsView: View {
-    @State private var sessions: [Session] = []
+    @State private var sessions: [PlayedSession] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedHero: String = ""
     @State private var availableHeroes: [String] = []
-    @State private var selectedSession: Session?
+    @State private var selectedSession: PlayedSession?
 
     private let detector = SessionDetector()
 
@@ -170,7 +170,7 @@ struct SessionsView: View {
 // MARK: - Row
 
 private struct SessionRow: View {
-    let session: Session
+    let session: PlayedSession
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {

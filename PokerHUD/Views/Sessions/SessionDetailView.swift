@@ -13,7 +13,7 @@ import Charts
 /// `allSessions(...)` query doesn't include them because the chart data
 /// is only needed when you actually open one session.
 struct SessionDetailView: View {
-    let session: Session
+    let session: PlayedSession
     let heroPlayerName: String
 
     @Environment(\.dismiss) private var dismiss
