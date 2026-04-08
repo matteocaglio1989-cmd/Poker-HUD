@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		95CEE2EB2F86ED3A00A92972 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 95CEE2E92F86ED3A00A92972 /* PrivacyInfo.xcprivacy */; };
+		95CEE2F02F86F00000A92972 /* PokerHUD in Frameworks */ = {isa = PBXBuildFile; productRef = 95CEE2EF2F86F00000A92972 /* PokerHUD */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,9 +31,6 @@
 		95CEE2B52F86E7F800A92972 /* PokerHUDApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PokerHUDApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		95CEE2C42F86E7F900A92972 /* PokerHUDAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PokerHUDAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		95CEE2CE2F86E7F900A92972 /* PokerHUDAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PokerHUDAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		95CEE2E72F86ED3A00A92972 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = "/Users/matteo/Desktop/Claude Code/MacOS Poker HUD/Poker-HUD/AppBundle/Info.plist"; sourceTree = "<absolute>"; };
-		95CEE2E82F86ED3A00A92972 /* PokerHUD.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = PokerHUD.entitlements; path = "/Users/matteo/Desktop/Claude Code/MacOS Poker HUD/Poker-HUD/AppBundle/PokerHUD.entitlements"; sourceTree = "<absolute>"; };
-		95CEE2E92F86ED3A00A92972 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = "/Users/matteo/Desktop/Claude Code/MacOS Poker HUD/Poker-HUD/AppBundle/PrivacyInfo.xcprivacy"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -59,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				95CEE2F02F86F00000A92972 /* PokerHUD in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,9 +80,6 @@
 		95CEE2AC2F86E7F800A92972 = {
 			isa = PBXGroup;
 			children = (
-				95CEE2E72F86ED3A00A92972 /* Info.plist */,
-				95CEE2E82F86ED3A00A92972 /* PokerHUD.entitlements */,
-				95CEE2E92F86ED3A00A92972 /* PrivacyInfo.xcprivacy */,
 				95CEE2B72F86E7F800A92972 /* PokerHUDApp */,
 				95CEE2C72F86E7F900A92972 /* PokerHUDAppTests */,
 				95CEE2D12F86E7F900A92972 /* PokerHUDAppUITests */,
@@ -122,6 +117,7 @@
 			);
 			name = PokerHUDApp;
 			packageProductDependencies = (
+				95CEE2EF2F86F00000A92972 /* PokerHUD */,
 			);
 			productName = PokerHUDApp;
 			productReference = 95CEE2B52F86E7F800A92972 /* PokerHUDApp.app */;
@@ -206,7 +202,7 @@
 			mainGroup = 95CEE2AC2F86E7F800A92972;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				95CEE2EC2F86EDCB00A92972 /* XCLocalSwiftPackageReference "../../../Poker-HUD" */,
+				95CEE2EC2F86EDCB00A92972 /* XCLocalSwiftPackageReference "../../.." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 95CEE2B62F86E7F800A92972 /* Products */;
@@ -225,7 +221,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95CEE2EB2F86ED3A00A92972 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,7 +331,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -393,7 +388,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -406,7 +401,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ./AppBundle/PokerHUD.entitlements;
+				CODE_SIGN_ENTITLEMENTS = PokerHUD.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -415,13 +410,13 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ../AppBundle/Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokerhud.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -440,7 +435,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = ./AppBundle/PokerHUD.entitlements;
+				CODE_SIGN_ENTITLEMENTS = PokerHUD.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -449,13 +444,13 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ../AppBundle/Info.plist;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokerhud.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -476,7 +471,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokerhud.app.PokerHUDAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -496,7 +491,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 26.3;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pokerhud.app.PokerHUDAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -587,11 +582,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		95CEE2EC2F86EDCB00A92972 /* XCLocalSwiftPackageReference "../../../Poker-HUD" */ = {
+		95CEE2EC2F86EDCB00A92972 /* XCLocalSwiftPackageReference "../../.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../Poker-HUD";
+			relativePath = "../../..";
 		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		95CEE2EF2F86F00000A92972 /* PokerHUD */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PokerHUD;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 95CEE2AD2F86E7F800A92972 /* Project object */;
 }

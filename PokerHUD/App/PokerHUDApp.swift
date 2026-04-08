@@ -112,12 +112,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main
-struct PokerHUDApp: App {
+/// Root SwiftUI App. Public so the Xcode App-target wrapper
+/// (`PokerHUDApp/PokerHUDApp/PokerHUDApp.xcodeproj`) can `import PokerHUD`
+/// and call `PokerHUDApp.main()` from a thin `@main` entry-point file.
+///
+/// The `@main` attribute lives in the Xcode App target (not here) because
+/// SwiftUI Previews + Xcode's runtime routing expect the top-level entry
+/// point to be inside the App target where the Info.plist, entitlements,
+/// and sandbox capabilities are applied. This file is still the single
+/// source of truth for the app's scene graph — the Xcode-side entry
+/// point is a one-line wrapper that calls `PokerHUDApp.main()`.
+///
+/// Note on opaque return types: the `public var body: some Scene`
+/// signature hides every internal view type (`RootRouterView`,
+/// `SettingsView`, etc.), so no other file in the module needs to be
+/// made `public` to satisfy the consumer's visibility rules.
+public struct PokerHUDApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
 
-    var body: some Scene {
+    public init() {}
+
+    public var body: some Scene {
         WindowGroup {
             RootRouterView()
                 .environmentObject(appState)
