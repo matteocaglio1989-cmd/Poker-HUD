@@ -27,6 +27,9 @@ struct ReportsView: View {
     // Phase 3 PR3: opponent detail sheet
     @State private var selectedOpponent: PlayerStats? = nil
 
+    // Phase 3 PR4: hole-card heat map state
+    @State private var holeCardMatrix: HoleCardMatrix? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -41,6 +44,27 @@ struct ReportsView: View {
                     }
 
                     Spacer()
+
+                    // Phase 3 PR4: export menu — CSV / JSON / PDF of the
+                    // currently filtered player stats. PDF snapshots the
+                    // sortedStats table view as it appears on screen.
+                    ExportMenu(
+                        stats: sortedStats,
+                        pdfSnapshotView: {
+                            AnyView(
+                                PlayerStatsTable(
+                                    stats: sortedStats,
+                                    heroName: heroPlayerName,
+                                    sortColumn: .constant(sortColumn),
+                                    sortAscending: .constant(sortAscending)
+                                )
+                                .padding()
+                                .frame(width: 1200)
+                            )
+                        },
+                        suggestedFilenameRoot: filenameRoot()
+                    )
+                    .frame(width: 110)
 
                     // Filters
                     VStack(alignment: .trailing, spacing: 8) {
@@ -168,6 +192,12 @@ struct ReportsView: View {
                         stats: situationalStats,
                         heroName: heroPlayerName
                     )
+
+                case .holdings:
+                    HoleCardHeatMapView(
+                        matrix: holeCardMatrix,
+                        heroName: heroPlayerName
+                    )
                 }
             }
         }
@@ -245,18 +275,36 @@ struct ReportsView: View {
             // Phase 3 PR2: also fetch situational stats for the hero on
             // every load so flipping to the Situational sub-tab is
             // instant. Cheap because it's one aggregated row.
+            // Phase 3 PR4: same for the hole-card matrix on the Holdings
+            // sub-tab. The matrix has at most ~1326 distinct rank+suit
+            // pairs to fold so this is also a cheap query.
             if !heroPlayerName.isEmpty {
-                situationalStats = try StatsRepository().fetchSituationalStats(
+                let repo = StatsRepository()
+                situationalStats = try repo.fetchSituationalStats(
+                    playerName: heroPlayerName,
+                    filters: filters
+                )
+                holeCardMatrix = try repo.fetchHoleCardMatrix(
                     playerName: heroPlayerName,
                     filters: filters
                 )
             } else {
                 situationalStats = nil
+                holeCardMatrix = nil
             }
         } catch {
             errorMessage = "Error: \(error.localizedDescription)"
             print("Error loading stats: \(error)")
         }
+    }
+
+    /// Phase 3 PR4: filename hint for the export menu. Combines the
+    /// hero (or "all") with the current time-range tag so the user
+    /// gets a sensible default in the save panel without typing.
+    private func filenameRoot() -> String {
+        let hero = heroPlayerName.isEmpty ? "all" : heroPlayerName
+        let range = selectedTimeRange.rawValue.lowercased().replacingOccurrences(of: " ", with: "-")
+        return "pokerhud-\(hero)-\(range)"
     }
 
     /// Phase 3 PR1: client-side sort applied on top of the repository's
@@ -407,12 +455,14 @@ enum SortColumn: String, Hashable {
 enum ReportsSubTab: String, CaseIterable, Identifiable, Hashable {
     case playerStats
     case situational
+    case holdings
 
     var id: String { rawValue }
     var title: String {
         switch self {
         case .playerStats: return "Player Stats"
         case .situational: return "Situational"
+        case .holdings:    return "Holdings"
         }
     }
 }
