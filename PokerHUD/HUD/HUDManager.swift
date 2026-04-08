@@ -80,7 +80,19 @@ class HUDManager {
     }
 
     private func createPanels(for table: ActiveTable) {
-        let windowFrame = findWindowFrame(for: table)
+        // If there's no PokerStars window to overlay, don't create panels
+        // at all. The old behaviour fell back to stacking panels at the
+        // screen center — which produced a useless row of floating labels
+        // whenever the file watcher imported hands from a leftover file
+        // with no PokerStars running. The table is still added to
+        // `trackedTables` by the caller (`showHUD`) and
+        // `repositionAllPanels` will create panels on the next tick if a
+        // matching window shows up.
+        guard let windowFrame = findWindowFrame(for: table) else {
+            print("[HUD] Skipping panel creation for '\(table.tableName)' — no matching PokerStars window")
+            return
+        }
+
         let heroSeat = findHeroSeat(in: table)
         let maxSeats = table.tableSize <= 6 ? 6 : 9
         let tableSize = table.tableSize
@@ -101,13 +113,7 @@ class HUDManager {
             let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
                 ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
 
-            let position: CGPoint
-            if let wf = windowFrame {
-                position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: wf)
-            } else {
-                let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-                position = CGPoint(x: screen.midX - 90 + CGFloat(slot) * 40, y: screen.midY)
-            }
+            let position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
 
             let panelRect = NSRect(x: position.x, y: position.y, width: 180, height: 90)
             let panel = HUDPanel(contentRect: panelRect)
@@ -180,6 +186,19 @@ class HUDManager {
     private func repositionAllPanels() {
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
+
+            // On-demand panel creation: if this table has no panels yet
+            // (because `createPanels` refused to build them when no
+            // matching PokerStars window existed), build them now that a
+            // window has appeared. This is what lets the HUD "come back"
+            // if the user launches PokerStars after PokerHUD has already
+            // imported hands for a table.
+            let hasAnyPanel = table.seatAssignments.contains { seat in
+                panels[PanelKey(tableId: table.id, seatNumber: seat.seatNumber)] != nil
+            }
+            if !hasAnyPanel {
+                createPanels(for: table)
+            }
 
             // Only reposition if the poker window itself moved (not the user dragging HUD panels)
             if let lastFrame = lastWindowFrames[table.id] {

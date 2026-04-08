@@ -239,6 +239,14 @@ class AppState: ObservableObject {
         guard hudEnabled else { return }
         let windows = PokerStarsWindowDetector.findTableWindows()
         let liveWindowIDs = Set(windows.map { $0.windowID })
+        // When there's no PokerStars running at all, every auto-created
+        // table is stale (possibly imported from a leftover hand history
+        // file with no live table) and should be pruned regardless of
+        // the binding cache state. The "no binding → newborn, don't
+        // prune" escape below is only sensible when SOME PokerStars
+        // windows exist — otherwise there's nothing to be newborn
+        // against.
+        let noWindowsAtAll = windows.isEmpty
 
         let toRemove: [UUID] = managedTables.compactMap { table in
             guard autoCreatedTableIDs.contains(table.id) else { return nil }
@@ -253,12 +261,14 @@ class AppState: ObservableObject {
                 if liveWindowIDs.contains(boundID) {
                     return nil
                 }
-            } else {
-                // No binding yet — newborn, don't prune.
+            } else if !noWindowsAtAll {
+                // Some PokerStars windows exist but this table hasn't
+                // been bound yet — newborn, give it a chance.
                 return nil
             }
 
-            // Neither signal fired — table is closed.
+            // Neither signal fired (or there's nothing running at all) —
+            // table is closed.
             return table.id
         }
 
