@@ -1,4 +1,5 @@
 import PokerHUD
+import SwiftUI
 
 /// Thin `@main` entry point for the Xcode App target wrapper.
 ///
