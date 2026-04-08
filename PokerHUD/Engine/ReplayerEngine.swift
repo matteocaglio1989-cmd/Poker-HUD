@@ -181,6 +181,51 @@ final class ReplayerEngine: ObservableObject {
             ))
         }
 
+        // Catch up any "deal" steps for streets the hand reached (board
+        // cards were dealt) but which had no voluntary actions to
+        // trigger a street transition inside the main loop above. This
+        // fires whenever the remaining players are already all-in on
+        // an earlier street and the rest of the board runs out without
+        // any action — the user still wants to see the turn and river
+        // cards appear in the animation, not jump straight from the
+        // flop to showdown with the full board appearing out of
+        // nowhere.
+        //
+        // Walks FLOP → TURN → RIVER in order and emits a `dealX` step
+        // for each one whose board-card threshold is met and which
+        // the main loop didn't already emit. Advances `currentStreet`
+        // as it goes so the next iteration sees the updated state.
+        let streetOrder = ["PREFLOP", "FLOP", "TURN", "RIVER"]
+        let progression: [(name: String, threshold: Int, kind: ReplayerStepKind)] = [
+            ("FLOP",  3, .dealFlop),
+            ("TURN",  4, .dealTurn),
+            ("RIVER", 5, .dealRiver)
+        ]
+        var currentIdx = streetOrder.firstIndex(of: currentStreet) ?? 0
+        for (name, threshold, kind) in progression {
+            let targetIdx = streetOrder.firstIndex(of: name) ?? 0
+            guard targetIdx > currentIdx else { continue }
+            // Stop as soon as the board ran out — e.g. hand ended on
+            // the turn (4 cards), skip the river step.
+            guard board.count >= threshold else { break }
+
+            bets = [:]
+            let revealed = Array(board.prefix(threshold))
+            steps.append(ReplayerStep(
+                index: steps.count,
+                kind: kind,
+                pot: pot,
+                stacks: stacks,
+                bets: bets,
+                revealedBoard: revealed,
+                activePlayerId: nil,
+                foldedPlayers: folded,
+                descriptor: dealDescriptor(for: kind, cards: revealed)
+            ))
+            currentStreet = name
+            currentIdx = targetIdx
+        }
+
         // If the hand reached showdown (board complete) emit a final
         // showdown step so the user can see the full board + every
         // remaining player's hole cards in one resting view.
