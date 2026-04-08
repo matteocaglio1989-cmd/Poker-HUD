@@ -2,6 +2,15 @@
 #
 # fix-storekit-membership.sh
 #
+# NOTE (2026-04-08): the primary fix for this class of bug is now a
+# SHARED SPM scheme committed at
+# .swiftpm/xcode/xcshareddata/xcschemes/PokerHUD.xcscheme, which Xcode
+# picks up automatically on every open without needing this script. This
+# script is kept as a belt-and-braces second line of defence for the
+# (rare) case where Xcode refuses to honour the shared scheme and
+# silently falls back to its own regenerated xcuserdata copy. In that
+# scenario, run this script once after each fresh Xcode open.
+#
 # One-shot fix for the "Couldn't load subscription plans /
 # StoreKitError.unknown / nw_connection flood" symptom.
 #

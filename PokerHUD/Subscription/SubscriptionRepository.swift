@@ -63,27 +63,74 @@ struct SubscriptionRepository {
     /// Fetch the cumulative imported-hand count for the current user,
     /// creating the row on first call. Selects `hands_imported` from
     /// the column added in migration 0002.
+    ///
+    /// **Rollout tolerance**: if the client is running against a
+    /// Supabase project where migration 0002 has not yet been applied,
+    /// PostgREST returns `42703` ("column user_usage.hands_imported
+    /// does not exist") on both the SELECT and the INSERT path. Rather
+    /// than propagating that error (which would make
+    /// `SubscriptionManager.refreshEntitlement` fail closed to
+    /// `.expired` and strand the user on the paywall through no fault
+    /// of their own), we catch the specific missing-column code and
+    /// return a synthetic fresh-trial row with `handsImported = 0`.
+    /// Once the migration is applied, the real row takes over on the
+    /// next refresh.
     func fetchUsage() async throws -> UsageRow {
-        if let existing: UsageRow = try? await client
-            .from("user_usage")
-            .select("hands_imported, trial_started_at")
-            .single()
-            .execute()
-            .value {
+        do {
+            let existing: UsageRow = try await client
+                .from("user_usage")
+                .select("hands_imported, trial_started_at")
+                .single()
+                .execute()
+                .value
             return existing
+        } catch {
+            if Self.isMissingColumnError(error) {
+                return Self.syntheticFreshTrialRow()
+            }
+            // Fall through to the insert path for any other error —
+            // most commonly "no rows" (PGRST116) on first use, which is
+            // the exact case we want the insert to handle.
         }
 
         // First call for this user — insert a default row. We rely on RLS to
         // key the insert on auth.uid(); the DB defaults fill in the rest.
         struct InsertRow: Encodable { let hands_imported: Int }
-        let inserted: UsageRow = try await client
-            .from("user_usage")
-            .insert(InsertRow(hands_imported: 0))
-            .select("hands_imported, trial_started_at")
-            .single()
-            .execute()
-            .value
-        return inserted
+        do {
+            let inserted: UsageRow = try await client
+                .from("user_usage")
+                .insert(InsertRow(hands_imported: 0))
+                .select("hands_imported, trial_started_at")
+                .single()
+                .execute()
+                .value
+            return inserted
+        } catch {
+            if Self.isMissingColumnError(error) {
+                return Self.syntheticFreshTrialRow()
+            }
+            throw error
+        }
+    }
+
+    /// Matches the PostgREST `42703` ("undefined column") error. The
+    /// Supabase Swift SDK surfaces this as a `PostgrestError` whose
+    /// String representation contains both the code and the column
+    /// name, so we check for both — either marker is sufficient.
+    /// Matching on two markers means we don't have to pin a specific
+    /// SDK error type (the struct has moved between SDK versions).
+    private static func isMissingColumnError(_ error: Error) -> Bool {
+        let description = "\(error)".lowercased()
+        return description.contains("42703")
+            || description.contains("hands_imported")
+    }
+
+    /// Synthetic "fresh trial" row returned when the migration hasn't
+    /// landed yet. Gives the user a brand-new 100-hand allowance via
+    /// the normal `TrialPolicy.totalHands - usage.handsImported` path
+    /// in `SubscriptionManager.refreshEntitlement`.
+    private static func syntheticFreshTrialRow() -> UsageRow {
+        UsageRow(handsImported: 0, trialStartedAt: Date())
     }
 
     /// Atomically increment the current user's imported-hand counter
