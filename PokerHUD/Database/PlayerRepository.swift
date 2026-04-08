@@ -52,6 +52,18 @@ class PlayerRepository {
         }
     }
 
+    /// Bulk fetch by primary key. Used by `HandDetailView` so it can resolve
+    /// every seat's `playerId` to a username in a single round-trip instead
+    /// of N separate `fetchById` calls.
+    func fetchByIds(_ ids: [Int64]) throws -> [Player] {
+        guard !ids.isEmpty else { return [] }
+        return try dbManager.reader.read { db in
+            try Player
+                .filter(ids.contains(Player.Columns.id))
+                .fetchAll(db)
+        }
+    }
+
     func fetchByUsername(_ username: String, siteId: Int64? = nil) throws -> Player? {
         try dbManager.reader.read { db in
             if let siteId = siteId {

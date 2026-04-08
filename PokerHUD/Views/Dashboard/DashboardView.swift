@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var importAlertTitle = ""
     @State private var importAlertMessage = ""
     @State private var activeSession: SessionSummary? = nil
+    @State private var selectedHand: HandSelection?
 
     var body: some View {
         ScrollView {
@@ -80,6 +81,12 @@ struct DashboardView: View {
                     } else {
                         ForEach(recentHands) { hand in
                             RecentHandRow(hand: hand)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if let id = hand.id {
+                                        selectedHand = HandSelection(handId: id)
+                                    }
+                                }
                         }
                     }
                 }
@@ -97,6 +104,10 @@ struct DashboardView: View {
             Button("OK") {}
         } message: {
             Text(importAlertMessage)
+        }
+        .sheet(item: $selectedHand) { selection in
+            HandDetailView(handId: selection.handId)
+                .frame(minWidth: 720, minHeight: 600)
         }
         .task {
             await loadData()

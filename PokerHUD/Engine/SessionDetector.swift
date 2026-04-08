@@ -57,8 +57,12 @@ struct PlayedSession: Identifiable, Hashable {
 /// One hand inside a session. The `cumulativeNet` field carries the
 /// running profit/loss in real money so the chart can plot a profit
 /// curve without re-summing on every redraw.
+///
+/// `handId` (added in Phase 4 PR1) lets `SessionDetailView` open the
+/// per-hand `HandDetailView` sheet on tap.
 struct SessionHandPoint: Identifiable, Hashable {
     let id = UUID()
+    let handId: Int64
     let playedAt: Date
     let netResult: Double
     let cumulativeNet: Double
@@ -112,10 +116,12 @@ struct SessionDetector {
         var cumulative: Double = 0
         var points: [SessionHandPoint] = []
         for (idx, row) in chronological.enumerated() {
+            let handId: Int64 = row["id"]
             let netResult: Double = row["netResult"]
             let playedAt: Date = row["playedAt"]
             cumulative += netResult
             points.append(SessionHandPoint(
+                handId: handId,
                 playedAt: playedAt,
                 netResult: netResult,
                 cumulativeNet: cumulative,

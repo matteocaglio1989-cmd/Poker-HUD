@@ -38,7 +38,7 @@ struct MainView: View {
                 case .hud:
                     TableSetupView()
                 case .replayer:
-                    ReplayerPlaceholderView()
+                    HandReplayerView()
                 case .settings:
                     SettingsView()
                 }
@@ -81,20 +81,5 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     }
 }
 
-// Placeholder views
-struct ReplayerPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "play.circle")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-            Text("Hand Replayer")
-                .font(.title)
-            Text("Coming in Phase 4")
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 // OpponentListView moved to Phase 3
+// HandReplayerView lives in Views/Replayer/HandReplayerView.swift (Phase 4 PR1)

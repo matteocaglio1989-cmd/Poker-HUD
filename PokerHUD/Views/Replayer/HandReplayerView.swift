@@ -1,0 +1,215 @@
+import SwiftUI
+
+/// Phase 4 PR1: top-level Hand Replayer tab. Replaces the
+/// `ReplayerPlaceholderView` stub from earlier phases. Loads the most
+/// recent hands and lets the user tap any row to open `HandDetailView`
+/// in a sheet.
+///
+/// PR1 ships with the textual action-stream detail view. PR2 will replace
+/// the action-stream panel inside `HandDetailView` with the visual top-down
+/// table render. PR3 will add the tag/bookmark filter pills above the list.
+struct HandReplayerView: View {
+    @State private var hands: [Hand] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var selectedHand: HandSelection?
+    @State private var handLimit = 200
+
+    private let handRepo = HandRepository()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            header
+                .padding(.horizontal)
+                .padding(.top)
+
+            if isLoading {
+                ProgressView("Loading hands…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = errorMessage {
+                errorState(error)
+            } else if hands.isEmpty {
+                emptyState
+            } else {
+                handsList
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .task {
+            await load()
+        }
+        .sheet(item: $selectedHand) { selection in
+            HandDetailView(handId: selection.handId)
+                .frame(minWidth: 720, minHeight: 600)
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading) {
+                Text("Hand Replayer")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                Text("Browse and review every hand in your history")
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button {
+                Task { await load() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    // MARK: - Hands list
+
+    private var handsList: some View {
+        ScrollView {
+            LazyVStack(spacing: 8) {
+                ForEach(hands) { hand in
+                    HandRow(hand: hand)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if let id = hand.id {
+                                selectedHand = HandSelection(handId: id)
+                            }
+                        }
+                }
+                if hands.count >= handLimit {
+                    Button("Load more") {
+                        handLimit += 200
+                        Task { await load() }
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.top, 8)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "play.rectangle")
+                .font(.system(size: 44))
+                .foregroundColor(.secondary)
+            Text("No hands imported yet")
+                .font(.headline)
+            Text("Import hand histories from the Dashboard to start reviewing.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 400)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorState(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 44))
+                .foregroundColor(.orange)
+            Text("Couldn't load hands")
+                .font(.headline)
+            Text(message)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 480)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Loading
+
+    private func load() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            hands = try handRepo.fetchRecent(limit: handLimit)
+        } catch {
+            errorMessage = error.localizedDescription
+            hands = []
+        }
+    }
+}
+
+// MARK: - Row
+
+private struct HandRow: View {
+    let hand: Hand
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 16) {
+            // Date column
+            VStack(alignment: .leading, spacing: 2) {
+                Text(hand.playedAt, format: .dateTime.day().month(.abbreviated))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text(hand.playedAt, format: .dateTime.hour().minute())
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 90, alignment: .leading)
+
+            // Table + game type
+            VStack(alignment: .leading, spacing: 2) {
+                Text(hand.tableName ?? "Unknown table")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                Text("\(hand.gameType) \(hand.limitType) · \(hand.stakes)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Board summary
+            if !hand.boardCards.isEmpty {
+                Text(hand.boardCards.joined(separator: " "))
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .frame(width: 130, alignment: .trailing)
+            }
+
+            // Pot
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("Pot").font(.caption2).foregroundColor(.secondary)
+                Text(String(format: "%.2f", hand.potTotal))
+                    .font(.system(.callout, design: .monospaced))
+                    .fontWeight(.semibold)
+            }
+            .frame(width: 80)
+
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+                .font(.caption)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.secondary.opacity(0.05))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - Sheet identifier helper
+
+/// Tiny wrapper that makes `Int64` `Identifiable` for use with
+/// `.sheet(item:)`. Avoids a retroactive conformance on the global `Int64`
+/// type. Shared by `HandReplayerView`, `DashboardView`, and
+/// `SessionDetailView` to drive the same `HandDetailView` sheet.
+struct HandSelection: Identifiable, Hashable {
+    let handId: Int64
+    var id: Int64 { handId }
+}

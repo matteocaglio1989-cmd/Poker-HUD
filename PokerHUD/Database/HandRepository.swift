@@ -105,6 +105,27 @@ class HandRepository {
         }
     }
 
+    /// Phase 4 PR1: one-shot fetch that hydrates everything `HandDetailView`
+    /// needs. Composes the existing `fetchById` / `fetchHandPlayers` /
+    /// `fetchActions` calls plus a bulk player lookup so the detail sheet
+    /// can present synchronously after a single repository call.
+    func fetchHandWithPlayersAndActions(
+        handId: Int64,
+        playerRepository: PlayerRepository = PlayerRepository()
+    ) throws -> HandDetailBundle? {
+        guard let hand = try fetchById(handId) else { return nil }
+        let handPlayers = try fetchHandPlayers(forHandId: handId)
+        let actions = try fetchActions(forHandId: handId)
+        let playerIds = Array(Set(handPlayers.map { $0.playerId }))
+        let players = try playerRepository.fetchByIds(playerIds)
+        return HandDetailBundle(
+            hand: hand,
+            handPlayers: handPlayers,
+            actions: actions,
+            players: players
+        )
+    }
+
     // MARK: - Update
 
     func update(_ hand: Hand) throws {
@@ -146,5 +167,25 @@ class HandRepository {
                 .filter(HandPlayer.Columns.playerId == playerId)
                 .fetchCount(db)
         }
+    }
+}
+
+/// Phase 4 PR1: bundle returned by `HandRepository.fetchHandWithPlayersAndActions`.
+/// Carries everything `HandDetailView` (and the future Phase 4 PR2 visual
+/// replayer engine) needs to render a single hand: the hand row itself, the
+/// per-seat `HandPlayer` rows ordered by seat, the action stream ordered by
+/// `actionOrder`, and the resolved `Player` records keyed by id for username
+/// lookup.
+struct HandDetailBundle {
+    let hand: Hand
+    let handPlayers: [HandPlayer]
+    let actions: [Action]
+    let players: [Player]
+
+    /// Quick lookup so views don't have to scan `players` for every seat.
+    var playersById: [Int64: Player] {
+        Dictionary(uniqueKeysWithValues: players.compactMap { p in
+            p.id.map { ($0, p) }
+        })
     }
 }

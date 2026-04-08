@@ -17,6 +17,7 @@ struct SessionDetailView: View {
     let heroPlayerName: String
 
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedHand: HandSelection?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -38,6 +39,10 @@ struct SessionDetailView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
             }
+        }
+        .sheet(item: $selectedHand) { selection in
+            HandDetailView(handId: selection.handId)
+                .frame(minWidth: 720, minHeight: 600)
         }
     }
 
@@ -202,9 +207,16 @@ struct SessionDetailView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(point.cumulativeNet >= 0 ? .green : .red)
                                 .frame(width: 90, alignment: .trailing)
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                                .font(.caption2)
                         }
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedHand = HandSelection(handId: point.handId)
+                        }
                         Divider()
                     }
                 }
