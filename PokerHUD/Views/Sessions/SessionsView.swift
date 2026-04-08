@@ -1,4 +1,5 @@
 import SwiftUI
+import GRDB
 
 /// Phase 3 PR3: top-level Sessions tab. Lists every historical session
 /// for the hero (newest first). Click a row to drill into a session
