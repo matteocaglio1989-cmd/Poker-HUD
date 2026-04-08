@@ -255,7 +255,7 @@ struct ReportsView: View {
                 heroPlayerName = first
             }
         } catch {
-            print("Error loading heroes: \(error)")
+            Log.app.error("Error loading heroes: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -294,7 +294,7 @@ struct ReportsView: View {
             }
         } catch {
             errorMessage = "Error: \(error.localizedDescription)"
-            print("Error loading stats: \(error)")
+            Log.app.error("Error loading stats: \(error.localizedDescription, privacy: .public)")
         }
     }
 

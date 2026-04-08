@@ -157,7 +157,7 @@ struct PlayerNoteEditorSheet: View {
             // Surface the error to the console — the parent view's own
             // error state isn't accessible from this sheet, and a popover
             // alert here would block the editor.
-            print("[PlayerNoteEditorSheet] save failed: \(error)")
+            Log.app.error("[PlayerNoteEditorSheet] save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

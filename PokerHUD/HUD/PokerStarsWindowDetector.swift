@@ -94,7 +94,8 @@ struct PokerStarsWindowDetector {
     private static func isLobbyLikeWindow(_ window: DetectedPokerWindow) -> Bool {
         guard !window.windowName.isEmpty else { return false }
         if window.windowName.localizedCaseInsensitiveContains("Lobby") {
-            print("[HUD] Excluding lobby window \(window.windowID): '\(window.windowName.prefix(60))'")
+            let namePrefix = String(window.windowName.prefix(60))
+            Log.ax.debug("Excluding lobby window \(window.windowID): '\(namePrefix, privacy: .public)'")
             return true
         }
         return false

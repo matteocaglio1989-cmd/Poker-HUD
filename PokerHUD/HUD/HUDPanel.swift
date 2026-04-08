@@ -49,7 +49,9 @@ class HUDPanel: NSPanel {
             let dy = abs(currentOrigin.y - self.lastSavedOrigin.y)
             if dx > 5 || dy > 5 {
                 self.lastSavedOrigin = currentOrigin
-                print("[HUDPanel] Slot \(self.slotIndex) moved to (\(Int(currentOrigin.x)), \(Int(currentOrigin.y)))")
+                let x = Int(currentOrigin.x)
+                let y = Int(currentOrigin.y)
+                Log.hud.debug("Slot \(self.slotIndex) moved to (\(x), \(y))")
                 self.onDragEnd?(currentOrigin)
             }
         }

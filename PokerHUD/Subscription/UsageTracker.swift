@@ -51,7 +51,7 @@ final class UsageTracker {
             do {
                 _ = try await self.repo.addImportedHands(count)
             } catch {
-                print("[UsageTracker] addImportedHands failed: \(error)")
+                Log.subscription.error("addImportedHands failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
             await self.subscriptionManager?.refreshEntitlement()

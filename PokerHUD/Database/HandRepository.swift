@@ -20,16 +20,22 @@ class HandRepository {
         try dbManager.writer.write { db in
             try hand.insert(db)
             hand.id = db.lastInsertedRowID
+            // `lastInsertedRowID` is non-optional and always populated after
+            // a successful insert; the guard is belt-and-braces against a
+            // future GRDB schema regression.
+            guard let handId = hand.id else {
+                throw HandRepositoryError.missingPersistedID("Hand")
+            }
 
             for i in 0..<players.count {
                 var player = players[i]
-                player.handId = hand.id!
+                player.handId = handId
                 try player.insert(db)
                 players[i] = player
             }
 
             for var action in actions {
-                action.handId = hand.id!
+                action.handId = handId
                 try action.insert(db)
             }
         }
@@ -242,6 +248,20 @@ class HandRepository {
             }
         }
         return result
+    }
+}
+
+/// Errors thrown by `HandRepository` when GRDB insert post-conditions aren't
+/// met. Separate from `ImportEngineError` so the repository stays decoupled
+/// from the import pipeline.
+enum HandRepositoryError: LocalizedError {
+    case missingPersistedID(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingPersistedID(let entity):
+            return "Database did not return a row id for \(entity) after insert"
+        }
     }
 }
 

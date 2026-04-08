@@ -127,7 +127,7 @@ struct DashboardView: View {
             recentHands = try handRepo.fetchRecent(limit: 3)
             activeSession = try computeActiveSession()
         } catch {
-            print("Error loading dashboard data: \(error)")
+            Log.app.error("Error loading dashboard data: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -178,7 +178,9 @@ struct DashboardView: View {
                 continue
             }
 
-            let prevDate = sessionHands.last!.date
+            // `sessionHands` is guaranteed non-empty here because the `index == 0`
+            // branch above always appends before we reach this line.
+            guard let prevDate = sessionHands.last?.date else { break }
             if prevDate.timeIntervalSince(playedAt) > sessionGap {
                 break // Previous hand was > 30min ago = end of session
             }
@@ -202,8 +204,11 @@ struct DashboardView: View {
         let wtsdPct = handsPlayed > 0 ? Double(wtsdCount) / Double(handsPlayed) * 100 : 0
         let wsdPct = wtsdCount > 0 ? Double(wsdCount) / Double(wtsdCount) * 100 : 0
 
-        let startTime = sessionHands.last!.date   // oldest hand
-        let endTime = sessionHands.first!.date     // newest hand
+        // Both guards are guaranteed by the `!sessionHands.isEmpty` check
+        // above, but we guard rather than force-unwrap so a future refactor
+        // of the loop can't crash the dashboard view.
+        guard let startTime = sessionHands.last?.date,
+              let endTime = sessionHands.first?.date else { return nil }
         let duration = endTime.timeIntervalSince(startTime)
 
         // Is session still active? (last hand < 30 min ago)

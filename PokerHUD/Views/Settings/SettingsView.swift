@@ -209,7 +209,7 @@ struct SettingsView: View {
             totalHands = hands
             totalPlayers = players
         } catch {
-            print("Error loading settings data: \(error)")
+            Log.app.error("Error loading settings data: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -218,7 +218,7 @@ struct SettingsView: View {
             try HandRepository().deleteAll()
             Task { await loadData() }
         } catch {
-            print("Error clearing data: \(error)")
+            Log.app.error("Error clearing data: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
@@ -396,7 +396,7 @@ struct EditSiteView: View {
                 try updatedSite.update(db)
             }
         } catch {
-            print("Error updating site: \(error)")
+            Log.app.error("Error updating site: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
@@ -495,7 +495,7 @@ struct AddSiteView: View {
                 try site.insert(db)
             }
         } catch {
-            print("Error saving site: \(error)")
+            Log.app.error("Error saving site: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

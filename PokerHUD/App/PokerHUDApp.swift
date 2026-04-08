@@ -1,14 +1,26 @@
 import SwiftUI
 import AppKit
 
-/// Top-level router that swaps between the auth screen, the paywall, a
-/// loading spinner while the entitlement resolves, and the main app UI.
+/// Top-level router that swaps between the database-error screen, the
+/// auth screen, the paywall, a loading spinner while the entitlement
+/// resolves, and the main app UI.
+///
+/// The database-error screen is the first gate: if
+/// `DatabaseManager.shared.initializationError` is non-nil the local
+/// SQLite store could not be opened (disk full, permissions, corrupt
+/// file), every downstream view would crash on its first repository
+/// call, so we short-circuit with a one-page message and invite the
+/// user to quit cleanly. This replaces the previous
+/// `fatalError("Failed to initialize database: ...")` which would have
+/// been an automatic App Store rejection on first-launch.
 struct RootRouterView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
         Group {
-            if !appState.authService.isAuthenticated {
+            if let dbError = DatabaseManager.shared.initializationError {
+                DatabaseErrorView(error: dbError)
+            } else if !appState.authService.isAuthenticated {
                 AuthContainerView()
             } else {
                 switch appState.subscriptionManager.entitlement {
@@ -26,6 +38,59 @@ struct RootRouterView: View {
                 }
             }
         }
+    }
+}
+
+/// One-page error view shown when `DatabaseManager` could not open the
+/// local SQLite store. Displays the underlying error message plus a
+/// "Quit" button. No recovery actions (reset / delete / migrate) —
+/// keeping the scope narrow so the view itself can't introduce a
+/// second failure mode.
+struct DatabaseErrorView: View {
+    let error: Error
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "externaldrive.badge.exclamationmark")
+                .font(.system(size: 52))
+                .foregroundStyle(.orange)
+            Text("Couldn't open the local database")
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text("Poker HUD needs a local SQLite store in your Application Support folder. macOS refused to create or open it. Please quit and try again, or restart your Mac.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 520)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Error details")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                Text(error.localizedDescription)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .padding(10)
+                    .frame(maxWidth: 520, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.secondary.opacity(0.1))
+                    )
+            }
+
+            Button("Quit Poker HUD") {
+                NSApp.terminate(nil)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .keyboardShortcut(.defaultAction)
+        }
+        .padding(40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.windowBackgroundColor))
     }
 }
 

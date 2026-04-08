@@ -67,7 +67,7 @@ class HUDManager {
                     playerStats[playerName] = stats
                 }
             } catch {
-                print("[HUD] Error loading \(playerName): \(error)")
+                Log.hud.error("Error loading \(playerName, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
 
@@ -89,7 +89,7 @@ class HUDManager {
         // `repositionAllPanels` will create panels on the next tick if a
         // matching window shows up.
         guard let windowFrame = findWindowFrame(for: table) else {
-            print("[HUD] Skipping panel creation for '\(table.tableName)' — no matching PokerStars window")
+            Log.hud.debug("Skipping panel creation for '\(table.tableName, privacy: .public)' — no matching PokerStars window")
             return
         }
 
@@ -142,9 +142,11 @@ class HUDManager {
                 if let wf = windowFrame {
                     let fraction = HUDSeatOffsets.shared.absoluteToFractional(newOrigin, windowFrame: wf)
                     HUDSeatOffsets.shared.saveOffset(fraction, forTableSize: capturedTableSize, slot: slot)
-                    print("[HUD] Saved \(capturedTableSize)-max slot \(slot) at (\(String(format: "%.3f", fraction.x)), \(String(format: "%.3f", fraction.y)))")
+                    let fx = String(format: "%.3f", fraction.x)
+                    let fy = String(format: "%.3f", fraction.y)
+                    Log.hud.debug("Saved \(capturedTableSize)-max slot \(slot) at (\(fx, privacy: .public), \(fy, privacy: .public))")
                 } else {
-                    print("[HUD] WARNING: No window found to save \(capturedTableSize)-max slot \(slot)")
+                    Log.hud.warning("No window found to save \(capturedTableSize)-max slot \(slot)")
                 }
             }
 
@@ -243,7 +245,7 @@ class HUDManager {
                 return bound.frame
             }
             // Cached binding is wrong. Clear it and fall through to step 2.
-            print("[HUD] Cached binding for '\(table.tableName)' points at window titled '\(bound.windowName)' — mismatch, re-binding")
+            Log.hud.debug("Cached binding for '\(table.tableName, privacy: .public)' points at window titled '\(bound.windowName, privacy: .public)' — mismatch, re-binding")
             tableWindowBinding.removeValue(forKey: table.id)
         }
 
@@ -252,7 +254,7 @@ class HUDManager {
         //    .enrichWithAXTitles).
         if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
-            print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
+            Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to window \(matched.windowID) by name match")
             logFindWindow(for: table, windows: windows, step: "2-name-match", boundID: matched.windowID)
             return matched.frame
         }
@@ -272,9 +274,9 @@ class HUDManager {
         if let window = unboundWindows.first {
             tableWindowBinding[table.id] = window.windowID
             if unboundWindows.count > 1 {
-                print("[HUD] WARNING: bound '\(table.tableName)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Accessibility permission in System Settings → Privacy & Security to enable reliable multi-table binding. Wrong bindings auto-correct on the next reposition tick once titles become readable.")
+                Log.hud.warning("Bound '\(table.tableName, privacy: .public)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Accessibility permission in System Settings → Privacy & Security for reliable multi-table binding.")
             } else {
-                print("[HUD] Bound '\(table.tableName)' to only unbound window \(window.windowID)")
+                Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to only unbound window \(window.windowID)")
             }
             logFindWindow(for: table, windows: windows, step: "3-exclusion-fallback", boundID: window.windowID)
             return window.frame
@@ -314,7 +316,8 @@ class HUDManager {
         let fingerprint = "\(step)|\(boundID.map { String($0) } ?? "nil")|ax=\(axGranted)|\(windowFingerprint)"
         if lastFindWindowLog[table.id] == fingerprint { return }
         lastFindWindowLog[table.id] = fingerprint
-        print("[HUD][diag] '\(table.tableName)' → step=\(step) bound=\(boundID.map { String($0) } ?? "nil") axGranted=\(axGranted) windows=[\(windowFingerprint)]")
+        let boundStr = boundID.map { String($0) } ?? "nil"
+        Log.hud.debug("[diag] '\(table.tableName, privacy: .public)' → step=\(step, privacy: .public) bound=\(boundStr, privacy: .public) axGranted=\(axGranted) windows=[\(windowFingerprint, privacy: .public)]")
     }
 
     /// Rebind a table to a specific window
@@ -346,10 +349,10 @@ class HUDManager {
         tableWindowBinding.removeAll()
         lastWindowFrames.removeAll()
         // Drop the per-table diagnostic fingerprints too so the next
-        // re-bind cycle prints fresh state to the console — useful for
+        // re-bind cycle logs fresh state to Console.app — useful for
         // diagnosing whether the manual reset actually fixed anything.
         lastFindWindowLog.removeAll()
-        print("[HUD] Reset \(count) cached table-window binding(s); next reposition tick will re-bind from scratch")
+        Log.hud.debug("Reset \(count) cached table-window binding(s); next reposition tick will re-bind from scratch")
     }
 
     private func findHeroSeat(in table: ActiveTable) -> Int {

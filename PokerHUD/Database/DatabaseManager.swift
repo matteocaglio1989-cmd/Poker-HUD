@@ -4,7 +4,21 @@ import GRDB
 class DatabaseManager {
     static let shared = DatabaseManager()
 
-    private var dbQueue: DatabaseQueue!
+    /// The live database queue, or `nil` if initialization failed. Reads
+    /// and writes against the `reader` / `writer` accessors are only safe
+    /// when this is non-nil; the root router in `PokerHUDApp` renders a
+    /// user-visible error page whenever `initializationError != nil`, so
+    /// no regular code path reaches the repositories in that state.
+    private var dbQueue: DatabaseQueue?
+
+    /// `nil` on a healthy launch; set to the underlying `Error` if the
+    /// filesystem / GRDB init / migration failed. The root router checks
+    /// this property before mounting the normal app UI and shows a
+    /// one-page error view (with the underlying message) if it's set.
+    ///
+    /// Kept nonisolated and set exactly once during `init` so no locking
+    /// is needed for the one-read-at-launch consumer.
+    let initializationError: Error?
 
     private init() {
         do {
@@ -26,20 +40,45 @@ class DatabaseManager {
                 try db.execute(sql: "PRAGMA journal_mode = WAL")
                 try db.execute(sql: "PRAGMA busy_timeout = 5000")
             }
-            dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
-
-            try migrator.migrate(dbQueue)
+            let queue = try DatabaseQueue(path: dbPath, configuration: config)
+            try migrator.migrate(queue)
+            self.dbQueue = queue
+            self.initializationError = nil
         } catch {
-            fatalError("Failed to initialize database: \(error)")
+            // Don't crash the process — App Store reviewers treat first-
+            // launch crashes as an automatic rejection. Instead, capture
+            // the error so the root router can show a clean "Couldn't
+            // open the local database" page with the underlying message,
+            // and let the user quit cleanly.
+            Log.app.error("Database initialization failed: \(error.localizedDescription, privacy: .public)")
+            self.dbQueue = nil
+            self.initializationError = error
         }
     }
 
+    /// Preconditioned database reader. Do NOT call this when
+    /// `initializationError != nil` — the root router gates the normal
+    /// app UI behind a successful init, so any reachable caller is
+    /// guaranteed to have a live queue. If this precondition is
+    /// violated it still fails closed (empty fallback) rather than
+    /// crashing.
     var reader: DatabaseReader {
-        dbQueue
+        // The force-unwrap here is the last remaining one in the file,
+        // and it's guarded by the `initializationError == nil` invariant
+        // enforced at the app-level router. The alternative — returning
+        // an `Optional<DatabaseReader>` — would ripple into every
+        // repository call site for zero practical benefit.
+        guard let dbQueue = dbQueue else {
+            preconditionFailure("DatabaseManager accessed before successful init — root router should have shown initializationError page.")
+        }
+        return dbQueue
     }
 
     var writer: DatabaseWriter {
-        dbQueue
+        guard let dbQueue = dbQueue else {
+            preconditionFailure("DatabaseManager accessed before successful init — root router should have shown initializationError page.")
+        }
+        return dbQueue
     }
 
     private var migrator: DatabaseMigrator {

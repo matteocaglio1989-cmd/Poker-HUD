@@ -67,7 +67,7 @@ final class SubscriptionManager: ObservableObject {
                 self.loadProductsError = "No subscription plans returned by StoreKit."
             }
         } catch {
-            print("[SubscriptionManager] loadProducts failed: \(error)")
+            Log.subscription.error("loadProducts failed: \(error.localizedDescription, privacy: .public)")
             // The bare `error.localizedDescription` for StoreKit/ASD errors is
             // almost always something useless like "Unable to Complete Request",
             // which leaves us guessing at the actual root cause. Bridge to
@@ -146,7 +146,7 @@ final class SubscriptionManager: ObservableObject {
             let remaining = TrialPolicy.totalHands - usage.handsImported
             self.entitlement = remaining > 0 ? .trial(remainingHands: remaining) : .expired
         } catch {
-            print("[SubscriptionManager] fetchUsage failed: \(error)")
+            Log.subscription.error("fetchUsage failed: \(error.localizedDescription, privacy: .public)")
             // Fail closed: don't silently grant access if we can't read usage.
             self.entitlement = .expired
         }
@@ -174,7 +174,7 @@ final class SubscriptionManager: ObservableObject {
         let until = Date().addingTimeInterval(TimeInterval(days) * 86_400)
         UserDefaults.standard.set(until, forKey: Self.devBypassUntilDateKey)
         self.entitlement = .active(plan: .monthly, expiresAt: until)
-        print("[SubscriptionManager] DEV bypass active until \(until)")
+        Log.subscription.debug("DEV bypass active until \(until, privacy: .public)")
     }
     #endif
 

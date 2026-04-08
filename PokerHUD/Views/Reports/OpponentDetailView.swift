@@ -243,7 +243,7 @@ struct OpponentDetailView: View {
                     resolvedPlayerId = id
                 }
             } catch {
-                print("[OpponentDetailView] resolve player id failed: \(error)")
+                Log.app.error("[OpponentDetailView] resolve player id failed: \(error.localizedDescription, privacy: .public)")
             }
         }
         guard let pid = resolvedPlayerId else {
@@ -253,7 +253,7 @@ struct OpponentDetailView: View {
         do {
             notes = try playerRepo.fetchNotes(forPlayerId: pid)
         } catch {
-            print("[OpponentDetailView] fetch notes failed: \(error)")
+            Log.app.error("[OpponentDetailView] fetch notes failed: \(error.localizedDescription, privacy: .public)")
             notes = []
         }
     }
@@ -276,7 +276,7 @@ struct OpponentDetailView: View {
                 try playerRepo.deleteNote(id: id)
                 notes.removeAll { $0.id == id }
             } catch {
-                print("[OpponentDetailView] delete note failed: \(error)")
+                Log.app.error("[OpponentDetailView] delete note failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -290,7 +290,7 @@ struct OpponentDetailView: View {
                 filters: filters
             )
         } catch {
-            print("[OpponentDetailView] failed to load situational stats: \(error)")
+            Log.app.error("[OpponentDetailView] failed to load situational stats: \(error.localizedDescription, privacy: .public)")
             situational = nil
         }
     }

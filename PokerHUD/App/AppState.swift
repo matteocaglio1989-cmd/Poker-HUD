@@ -46,6 +46,35 @@ class AppState: ObservableObject {
     /// "Add Table" button are **not** in this set and are never auto-pruned.
     private var autoCreatedTableIDs: Set<UUID> = []
 
+    /// URL of the hand-history directory currently being accessed via a
+    /// security-scoped bookmark, or `nil` if the file watcher isn't
+    /// running. Retained so `stopFileWatcher()` can call
+    /// `stopAccessingSecurityScopedResource()` on the same URL that
+    /// `startAccessingSecurityScopedResource()` was called on — calling
+    /// stop on a different URL is a no-op.
+    private var activeScopedHandHistoryURL: URL?
+
+    /// UserDefaults key holding the security-scoped bookmark `Data` for
+    /// the hand-history directory. Under App Sandbox the raw path stored
+    /// in `handHistoryPath` is not re-openable across launches; the
+    /// bookmark is the only way to restore access.
+    private static let handHistoryBookmarkKey = "handHistoryBookmark"
+
+    /// Legacy key that used to hold a plain path string. Still written
+    /// for display purposes (the Dashboard's auto-import strip shows the
+    /// folder path), and consumed as a fallback on first launch after
+    /// the App Sandbox migration so users with a pre-sandbox install
+    /// get a single "please re-pick your folder" prompt instead of a
+    /// silent permission denial.
+    private static let handHistoryPathKey = "handHistoryPath"
+
+    /// Set to `true` after `onAuthenticated` detects a legacy
+    /// `handHistoryPath` without a matching bookmark. Consumed by
+    /// `SettingsView` / `TableSetupView` to show a "please re-pick
+    /// your folder" banner. Resets to `false` once the user completes
+    /// a fresh `pickHandHistoryDirectory()`.
+    @Published var needsHandHistoryDirectoryReselection: Bool = false
+
     /// Periodic sweep that calls `pruneClosedTables()` every 30s. Covers the
     /// case where the user closes all tables and stops playing so no more
     /// file-watcher events fire to piggyback on. Started in `onAuthenticated`
@@ -140,17 +169,65 @@ class AppState: ObservableObject {
 
             // Only auto-start the file watcher if the user actually has
             // access (trial with time remaining or active subscription).
-            // Unsubscribed users will hit the paywall instead, and we don't
-            // want background imports happening behind it.
-            if self.subscriptionManager.entitlement.grantsAccess,
-               let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
-                let url = URL(fileURLWithPath: savedPath)
-                if FileManager.default.fileExists(atPath: savedPath) {
-                    self.startFileWatcher(directory: url)
-                } else {
-                    self.handHistoryPath = savedPath
+            // Unsubscribed users will hit the paywall instead, and we
+            // don't want background imports happening behind it.
+            guard self.subscriptionManager.entitlement.grantsAccess else { return }
+            self.restoreHandHistoryDirectoryFromBookmark()
+        }
+    }
+
+    /// Try to resolve the saved security-scoped bookmark and restart the
+    /// file watcher against it. Called from `onAuthenticated` on every
+    /// launch. If the bookmark is missing or stale, falls back to either
+    /// the legacy raw-path UserDefaults key (sets
+    /// `needsHandHistoryDirectoryReselection` so the UI can prompt) or a
+    /// clean "no folder picked yet" state.
+    private func restoreHandHistoryDirectoryFromBookmark() {
+        let defaults = UserDefaults.standard
+
+        if let bookmark = defaults.data(forKey: Self.handHistoryBookmarkKey) {
+            var isStale = false
+            do {
+                let url = try URL(
+                    resolvingBookmarkData: bookmark,
+                    options: .withSecurityScope,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                )
+                if isStale {
+                    // macOS asks us to refresh the bookmark — easiest
+                    // path is to re-pick. Flag the UI and bail out.
+                    Log.app.warning("Hand-history bookmark is stale; prompting for re-pick")
+                    defaults.removeObject(forKey: Self.handHistoryBookmarkKey)
+                    needsHandHistoryDirectoryReselection = true
+                    return
                 }
+                guard url.startAccessingSecurityScopedResource() else {
+                    Log.app.error("startAccessingSecurityScopedResource() returned false for saved bookmark")
+                    needsHandHistoryDirectoryReselection = true
+                    return
+                }
+                // Hold the access open for the lifetime of the watcher;
+                // `stopFileWatcher` calls stopAccessing on this URL.
+                activeScopedHandHistoryURL = url
+                handHistoryPath = url.path
+                startFileWatcherInternal(directory: url)
+                return
+            } catch {
+                Log.app.error("Failed to resolve hand-history bookmark: \(error.localizedDescription, privacy: .public)")
+                defaults.removeObject(forKey: Self.handHistoryBookmarkKey)
+                needsHandHistoryDirectoryReselection = true
+                return
             }
+        }
+
+        // No bookmark — check for the legacy raw-path key and prompt
+        // the user to re-pick if it exists. Under App Sandbox the raw
+        // path is non-accessible without a fresh NSOpenPanel grant.
+        if let legacyPath = defaults.string(forKey: Self.handHistoryPathKey), !legacyPath.isEmpty {
+            handHistoryPath = legacyPath
+            needsHandHistoryDirectoryReselection = true
+            Log.app.debug("Legacy handHistoryPath present but no bookmark — asking user to re-pick")
         }
     }
 
@@ -277,7 +354,7 @@ class AppState: ObservableObject {
 
         for id in toRemove {
             let name = managedTables.first(where: { $0.id == id })?.tableName ?? "?"
-            print("[AppState] Auto-pruning closed table '\(name)' (id=\(id))")
+            Log.app.debug("Auto-pruning closed table '\(name, privacy: .public)' (id=\(id, privacy: .public))")
             removeTable(id: id)
         }
     }
@@ -318,8 +395,47 @@ class AppState: ObservableObject {
 
     // MARK: - File Watcher
 
-    /// Start watching a directory for new hand history files
+    /// Public entry point for starting the file watcher on a freshly-
+    /// picked URL (typically from `NSOpenPanel`). Captures a security-
+    /// scoped bookmark and persists it to UserDefaults so the directory
+    /// survives across app relaunches under App Sandbox.
+    ///
+    /// Under sandbox, the URL returned by NSOpenPanel already has
+    /// security scope active for the current session, so we do NOT
+    /// call `startAccessingSecurityScopedResource()` here — we just
+    /// capture the bookmark and hand off to the internal starter. On
+    /// subsequent launches, `restoreHandHistoryDirectoryFromBookmark`
+    /// calls `startAccessingSecurityScopedResource()` before restarting
+    /// the watcher.
     func startFileWatcher(directory: URL) {
+        // Capture the security-scoped bookmark for future launches.
+        // `.withSecurityScope` makes the bookmark usable across app
+        // restarts under App Sandbox.
+        do {
+            let bookmark = try directory.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            UserDefaults.standard.set(bookmark, forKey: Self.handHistoryBookmarkKey)
+            activeScopedHandHistoryURL = directory
+        } catch {
+            // If bookmark capture fails (e.g. outside sandbox, or some
+            // filesystem oddity), continue without it — the watcher
+            // still works for the current session, it just won't
+            // survive a relaunch. Log loudly so we can diagnose.
+            Log.app.error("Failed to capture security-scoped bookmark for hand history dir: \(error.localizedDescription, privacy: .public)")
+        }
+
+        needsHandHistoryDirectoryReselection = false
+        startFileWatcherInternal(directory: directory)
+    }
+
+    /// Internal watcher starter, shared between the fresh-pick path
+    /// (`startFileWatcher(directory:)`) and the cold-launch restore
+    /// path (`restoreHandHistoryDirectoryFromBookmark`). Does not
+    /// touch the security scope — callers are responsible for that.
+    private func startFileWatcherInternal(directory: URL) {
         fileWatcher = FileWatcher()
 
         fileWatcherCancellable = fileWatcher?.fileChanged
@@ -333,15 +449,27 @@ class AppState: ObservableObject {
         fileWatcher?.startWatching(directory: directory)
         isFileWatcherActive = true
         handHistoryPath = directory.path
-        UserDefaults.standard.set(directory.path, forKey: "handHistoryPath")
+        // Keep the legacy raw-path key in sync for display purposes
+        // (the Dashboard's auto-import strip reads it). Bookmarks are
+        // the source of truth for sandbox access; the raw path is
+        // cosmetic.
+        UserDefaults.standard.set(directory.path, forKey: Self.handHistoryPathKey)
     }
 
-    /// Stop the file watcher
+    /// Stop the file watcher and release the security-scoped access.
     func stopFileWatcher() {
         fileWatcherCancellable?.cancel()
         fileWatcher?.stopWatching()
         fileWatcher = nil
         isFileWatcherActive = false
+
+        // Release the security-scoped access so the sandbox doesn't
+        // leak an open file handle. Safe to call on a URL that never
+        // had startAccessing called — it's a no-op in that case.
+        if let url = activeScopedHandHistoryURL {
+            url.stopAccessingSecurityScopedResource()
+            activeScopedHandHistoryURL = nil
+        }
     }
 
     /// Pick a hand history directory via open panel
@@ -353,6 +481,10 @@ class AppState: ObservableObject {
         panel.message = "Select your PokerStars hand history folder"
 
         if panel.runModal() == .OK, let url = panel.url {
+            // Release any previous scope before replacing with the new
+            // one — prevents a double-scoped-access leak if the user
+            // re-picks mid-session.
+            stopFileWatcher()
             startFileWatcher(directory: url)
         }
     }
@@ -406,7 +538,7 @@ class AppState: ObservableObject {
             )
             autoImportLog.insert(event, at: 0)
             if autoImportLog.count > 50 { autoImportLog.removeLast() }
-            print("[AppState] File watcher import error: \(error)")
+            Log.app.error("File watcher import error: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -478,18 +610,18 @@ class AppState: ObservableObject {
 
                 if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
                     hudManager?.bindTable(table.id, toWindow: named.windowID)
-                    print("[AppState] Bound new table '\(tableName)' to window \(named.windowID) by name")
+                    Log.app.debug("Bound new table '\(tableName, privacy: .public)' to window \(named.windowID) by name")
                 } else if let unbound = unboundWindows.first {
                     hudManager?.bindTable(table.id, toWindow: unbound.windowID)
                     if unboundWindows.count > 1 {
-                        print("[AppState] WARNING: bound '\(tableName)' to window \(unbound.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable. Grant Accessibility permission in System Settings → Privacy & Security to enable reliable multi-table binding (wrong bindings auto-correct within 500ms once titles become readable).")
+                        Log.app.warning("Bound '\(tableName, privacy: .public)' to window \(unbound.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable. Grant Accessibility permission in System Settings → Privacy & Security for reliable multi-table binding.")
                     } else {
-                        print("[AppState] Bound new table '\(tableName)' to only unbound window \(unbound.windowID)")
+                        Log.app.debug("Bound new table '\(tableName, privacy: .public)' to only unbound window \(unbound.windowID)")
                     }
                 }
 
                 hudManager?.showHUD(for: table)
-                print("[AppState] Auto-created table: \(tableName) with \(seats.count) players")
+                Log.app.debug("Auto-created table: \(tableName, privacy: .public) with \(seats.count) players")
             }
         }
     }
@@ -510,7 +642,7 @@ class AppState: ObservableObject {
                 let key = PanelKey(tableId: managedTables[index].id, seatNumber: seat.seatNumber)
                 hudManager?.removeSinglePanel(key: key)
                 managedTables[index].seatAssignments[seatIdx].playerName = nil
-                print("[AppState] Player left: \(oldPlayer) from seat \(seat.seatNumber)")
+                Log.app.debug("Player left: \(oldPlayer, privacy: .public) from seat \(seat.seatNumber)")
                 changed = true
             }
         }
@@ -527,7 +659,7 @@ class AppState: ObservableObject {
                         hudManager?.removeSinglePanel(key: key)
                     }
                     managedTables[index].seatAssignments[seatIdx].playerName = seatInfo.playerName
-                    print("[AppState] Seat \(seatInfo.seatNumber): \(oldPlayer ?? "empty") -> \(seatInfo.playerName)")
+                    Log.app.debug("Seat \(seatInfo.seatNumber): \(oldPlayer ?? "empty", privacy: .public) -> \(seatInfo.playerName, privacy: .public)")
                     changed = true
                 }
             }
