@@ -2,9 +2,18 @@
 
 A native macOS application for tracking and analyzing poker hands with real-time HUD overlay. Built with Swift/SwiftUI and GRDB.swift.
 
-## Current Status: Phase 2 - HUD Overlay ✅
+## Current Status: Phase 3 - Advanced Reports ✅
 
-Phase 2 is complete with the following features on top of the Phase 1 foundation:
+Phase 3 is complete with the following features on top of the Phase 1 + Phase 2 foundation:
+- ✅ Filter engine: hero / position / game type / stakes / date range / min hands
+- ✅ Sortable player stats table with situational columns (C-Bet, Squeeze, 4-Bet, F3B…)
+- ✅ Situational sub-tab: C-Bet by pot type (single-raised vs 3-bet+)
+- ✅ Sessions tab with historical session list + Swift Charts profit curve
+- ✅ Opponent detail drilldown sheet with embedded situational view
+- ✅ 13×13 hole-card heat map with frequency / win% / net-per-hand color modes
+- ✅ CSV / JSON / PDF export of player stats from the Reports header
+
+Earlier shipped:
 - ✅ Floating NSPanel HUD overlays with per-seat auto-positioning
 - ✅ Accessibility API window-title enrichment for reliable multi-table binding
 - ✅ Real-time stat updates with visual flash feedback on new hands
@@ -31,15 +40,15 @@ Phase 2 is complete with the following features on top of the Phase 1 foundation
 - [x] File watcher for auto-import
 - [x] Menu bar HUD-only mode
 
-### Phase 3 - Advanced Reports (Next)
-- [ ] Situational views (C-Bet, 3-Bet, River Play)
-- [ ] Filter engine with autocomplete
-- [ ] Hole card heat maps
-- [ ] Opponent analysis
-- [ ] Session tracking and reports
-- [ ] Export functionality
+### Phase 3 - Advanced Reports ✅ (COMPLETE)
+- [x] Situational views (C-Bet, 3-Bet, River Play)
+- [x] Filter engine with autocomplete
+- [x] Hole card heat maps
+- [x] Opponent analysis
+- [x] Session tracking and reports
+- [x] Export functionality
 
-### Phase 4 - Hand Replayer
+### Phase 4 - Hand Replayer (Next)
 - [ ] Visual poker table
 - [ ] Step-through hand replay
 - [ ] Hand tagging and bookmarking
