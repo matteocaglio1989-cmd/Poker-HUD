@@ -148,6 +148,23 @@ class PlayerRepository {
         }
     }
 
+    /// Phase 4 PR3: persist edits to an existing note. Bumps `updatedAt`
+    /// to "now" so the editor sheet can show "edited just now" if needed.
+    func updateNote(_ note: PlayerNote) throws {
+        var copy = note
+        copy.updatedAt = Date()
+        try dbManager.writer.write { db in
+            try copy.update(db)
+        }
+    }
+
+    /// Phase 4 PR3: delete a single note row by id.
+    func deleteNote(id: Int64) throws {
+        try dbManager.writer.write { db in
+            _ = try PlayerNote.deleteOne(db, key: id)
+        }
+    }
+
     // MARK: - Statistics
 
     func count() throws -> Int {

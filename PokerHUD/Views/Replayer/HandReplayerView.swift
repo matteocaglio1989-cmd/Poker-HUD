@@ -1,19 +1,17 @@
 import SwiftUI
 
-/// Phase 4 PR1: top-level Hand Replayer tab. Replaces the
-/// `ReplayerPlaceholderView` stub from earlier phases. Loads the most
-/// recent hands and lets the user tap any row to open `HandDetailView`
-/// in a sheet.
-///
-/// PR1 ships with the textual action-stream detail view. PR2 will replace
-/// the action-stream panel inside `HandDetailView` with the visual top-down
-/// table render. PR3 will add the tag/bookmark filter pills above the list.
+/// Phase 4 PR1 + PR3: top-level Hand Replayer tab. Replaces the
+/// `ReplayerPlaceholderView` stub from earlier phases. Loads recent
+/// hands and lets the user tap any row to open `HandDetailView` in a
+/// sheet, with a PR3 filter pill across the top to switch between all
+/// hands, bookmarked hands, and any-tagged hands.
 struct HandReplayerView: View {
     @State private var hands: [Hand] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedHand: HandSelection?
     @State private var handLimit = 200
+    @State private var filter: HandReplayerFilter = .all
 
     private let handRepo = HandRepository()
 
@@ -22,6 +20,9 @@ struct HandReplayerView: View {
             header
                 .padding(.horizontal)
                 .padding(.top)
+
+            filterPills
+                .padding(.horizontal)
 
             if isLoading {
                 ProgressView("Loading hands…")
@@ -38,9 +39,43 @@ struct HandReplayerView: View {
         .task {
             await load()
         }
+        .onChange(of: filter) { _, _ in
+            Task { await load() }
+        }
         .sheet(item: $selectedHand) { selection in
             HandDetailView(handId: selection.handId)
                 .frame(minWidth: 720, minHeight: 600)
+        }
+    }
+
+    // MARK: - Filter pills (PR3)
+
+    private var filterPills: some View {
+        HStack(spacing: 8) {
+            ForEach(HandReplayerFilter.allCases) { option in
+                Button {
+                    filter = option
+                } label: {
+                    HStack(spacing: 4) {
+                        if let icon = option.icon {
+                            Image(systemName: icon)
+                                .font(.caption)
+                        }
+                        Text(option.label)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(filter == option ? Color.accentColor : Color.secondary.opacity(0.15))
+                    )
+                    .foregroundColor(filter == option ? .white : .primary)
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
         }
     }
 
@@ -132,10 +167,45 @@ struct HandReplayerView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            hands = try handRepo.fetchRecent(limit: handLimit)
+            switch filter {
+            case .all:
+                hands = try handRepo.fetchRecent(limit: handLimit)
+            case .bookmarked:
+                hands = try handRepo.fetchBookmarkedHands(limit: handLimit)
+            case .tagged:
+                hands = try handRepo.fetchTaggedHands(limit: handLimit)
+            }
         } catch {
             errorMessage = error.localizedDescription
             hands = []
+        }
+    }
+}
+
+// MARK: - Filter
+
+/// Phase 4 PR3: filter pill options. Drives `HandRepository.fetchRecent`
+/// (default), `fetchBookmarkedHands`, and `fetchTaggedHands` respectively.
+enum HandReplayerFilter: String, CaseIterable, Identifiable, Hashable {
+    case all
+    case bookmarked
+    case tagged
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all:        return "All"
+        case .bookmarked: return "Bookmarked"
+        case .tagged:     return "Tagged"
+        }
+    }
+
+    var icon: String? {
+        switch self {
+        case .all:        return "tray.full"
+        case .bookmarked: return "star.fill"
+        case .tagged:     return "tag.fill"
         }
     }
 }

@@ -1,18 +1,19 @@
 import SwiftUI
 
-/// Phase 4 PR2: modal sheet that shows everything we know about a single
-/// hand. Loads the hand bundle (hand row, seats, actions, players) lazily
-/// on appear and renders three sections:
+/// Phase 4 PR2 + PR3: modal sheet that shows everything we know about a
+/// single hand. Loads the hand bundle (hand row, seats, actions, players)
+/// lazily on appear and renders four sections:
 ///
 ///   1. Header — table, stakes, time, hero outcome
-///   2. **Visual replayer** — top-down `PokerTableView` driven by a
+///   2. **Tags strip** (PR3) — chips for every `HandTag` attached to the
+///      hand, with an "+ Add tag" button that opens `AddTagPopover`.
+///   3. **Visual replayer** (PR2) — top-down `PokerTableView` driven by a
 ///      `ReplayerEngine`, with `ReplayerControlsView` step-through bar
-///      and a theme picker. Replaces PR1's textual action-stream
-///      placeholder.
-///   3. Footer metrics — pot total + hero net + hero preflop flags
+///      and a theme picker.
+///   4. Footer metrics — pot total + hero net + hero preflop flags
 ///
-/// The view is intentionally non-interactive for tagging / notes — PR3
-/// grafts the tag chips and bookmark star into the toolbar.
+/// The toolbar carries a bookmark star (PR3) that toggles a tag with the
+/// `CommonHandTag.bookmark` rawValue, and the close button.
 struct HandDetailView: View {
     let handId: Int64
 
@@ -20,8 +21,14 @@ struct HandDetailView: View {
     @State private var bundle: HandDetailBundle?
     @State private var isLoading = true
     @State private var errorMessage: String?
+    @State private var tags: [HandTag] = []
+    @State private var showAddTagPopover = false
 
     private let handRepo = HandRepository()
+
+    private var isBookmarked: Bool {
+        tags.contains(where: { $0.tag == CommonHandTag.bookmark.rawValue })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,6 +44,16 @@ struct HandDetailView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    toggleBookmark()
+                } label: {
+                    Image(systemName: isBookmarked ? "star.fill" : "star")
+                        .foregroundColor(isBookmarked ? .yellow : .secondary)
+                }
+                .help(isBookmarked ? "Remove bookmark" : "Bookmark this hand")
+                .disabled(bundle == nil)
+            }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
             }
@@ -56,7 +73,70 @@ struct HandDetailView: View {
             bundle = try handRepo.fetchHandWithPlayersAndActions(handId: handId)
             if bundle == nil {
                 errorMessage = "Hand not found in the local database."
+            } else {
+                tags = (try? handRepo.fetchTags(forHandId: handId)) ?? []
             }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Tag actions (PR3)
+
+    private func toggleBookmark() {
+        guard bundle != nil else { return }
+        if let existing = tags.first(where: { $0.tag == CommonHandTag.bookmark.rawValue }),
+           let id = existing.id {
+            do {
+                try handRepo.removeTag(id: id)
+                tags.removeAll { $0.id == id }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        } else {
+            do {
+                var tag = HandTag(
+                    id: nil,
+                    handId: handId,
+                    tag: CommonHandTag.bookmark.rawValue,
+                    note: nil,
+                    createdAt: Date()
+                )
+                try handRepo.addTag(&tag)
+                tags.insert(tag, at: 0)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func addTag(_ tagString: String) {
+        let trimmed = tagString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        // Avoid duplicates of the exact same tag string.
+        if tags.contains(where: { $0.tag.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            return
+        }
+        do {
+            var tag = HandTag(
+                id: nil,
+                handId: handId,
+                tag: trimmed,
+                note: nil,
+                createdAt: Date()
+            )
+            try handRepo.addTag(&tag)
+            tags.insert(tag, at: 0)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func removeTag(_ tag: HandTag) {
+        guard let id = tag.id else { return }
+        do {
+            try handRepo.removeTag(id: id)
+            tags.removeAll { $0.id == id }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -73,12 +153,81 @@ struct HandDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
+                    tagsStrip
                     ReplayerPanel(bundle: bundle)
                     footerMetrics(for: bundle)
                 }
                 .padding()
             }
         }
+    }
+
+    // MARK: - Tags strip (PR3)
+
+    private var tagsStrip: some View {
+        // Bookmark is shown via the toolbar star, not as a chip in this
+        // strip — keeps the chip area for review labels.
+        let chipTags = tags.filter { $0.tag != CommonHandTag.bookmark.rawValue }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text("Tags")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    showAddTagPopover = true
+                } label: {
+                    Label("Add tag", systemImage: "plus.circle")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .popover(isPresented: $showAddTagPopover) {
+                    AddTagPopover { tag in
+                        addTag(tag)
+                    }
+                }
+            }
+            if chipTags.isEmpty {
+                Text("No tags yet — use the star above to bookmark, or tap “Add tag”.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 110), spacing: 6)],
+                    alignment: .leading,
+                    spacing: 6
+                ) {
+                    ForEach(chipTags) { tag in
+                        tagChip(tag)
+                    }
+                }
+            }
+        }
+    }
+
+    private func tagChip(_ tag: HandTag) -> some View {
+        Button {
+            removeTag(tag)
+        } label: {
+            HStack(spacing: 4) {
+                Text(tag.tag)
+                    .font(.caption)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule().fill(Color.accentColor.opacity(0.18))
+            )
+            .overlay(
+                Capsule().stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
+            )
+            .foregroundColor(.primary)
+        }
+        .buttonStyle(.plain)
+        .help("Remove tag")
     }
 
     // MARK: - Header

@@ -1,16 +1,19 @@
 import SwiftUI
 
-/// Phase 3 PR3: opponent deep-dive sheet, presented from a player row tap
-/// in `ReportsView`'s `PlayerStatsTable`. Reuses `SituationalStatsView`
-/// from PR2 to render the opponent's situational breakdown so a poker
-/// player can answer "how does this villain play in 3-bet pots?" without
-/// switching tabs.
+/// Phase 3 PR3 + Phase 4 PR3: opponent deep-dive sheet, presented from a
+/// player row tap in `ReportsView`'s `PlayerStatsTable`. Reuses
+/// `SituationalStatsView` from PR2 to render the opponent's situational
+/// breakdown so a poker player can answer "how does this villain play in
+/// 3-bet pots?" without switching tabs.
 ///
-/// Three sections:
+/// Four sections:
 ///   1. Header card — name, sample size, player type, BB/100
 ///   2. Headline preflop stats grid
 ///   3. Embedded SituationalStatsView with the opponent's flop / turn /
 ///      river splits (loaded lazily on appear)
+///   4. Phase 4 PR3 **Notes** section — list of every `PlayerNote` for
+///      this opponent with edit / delete / add affordances driven by
+///      `PlayerNoteEditorSheet`.
 struct OpponentDetailView: View {
     let opponent: PlayerStats
     let filters: StatFilters
@@ -18,6 +21,11 @@ struct OpponentDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var situational: SituationalStats?
     @State private var isLoading = false
+    @State private var notes: [PlayerNote] = []
+    @State private var resolvedPlayerId: Int64?
+    @State private var noteSheetMode: PlayerNoteEditorSheet.Mode?
+
+    private let playerRepo = PlayerRepository()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -40,6 +48,8 @@ struct OpponentDetailView: View {
                             heroName: opponent.playerName
                         )
                     }
+
+                    notesSection
                 }
                 .padding(.vertical)
             }
@@ -51,6 +61,16 @@ struct OpponentDetailView: View {
         }
         .task {
             await loadSituational()
+            loadNotes()
+        }
+        .sheet(item: $noteSheetMode) { mode in
+            PlayerNoteEditorSheet(
+                mode: mode,
+                onSave: { savedNote in
+                    handleNoteSaved(savedNote, mode: mode)
+                },
+                onDelete: deleteHandler(for: mode)
+            )
         }
     }
 
@@ -135,7 +155,131 @@ struct OpponentDetailView: View {
         )
     }
 
+    // MARK: - Notes section (PR3)
+
+    private var notesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Notes")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    if let pid = resolvedPlayerId {
+                        noteSheetMode = .add(playerId: pid)
+                    }
+                } label: {
+                    Label("Add note", systemImage: "plus.circle")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(resolvedPlayerId == nil)
+            }
+            .padding(.horizontal)
+
+            if resolvedPlayerId == nil {
+                Text("No matching player record in the local database.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            } else if notes.isEmpty {
+                Text("No notes yet — tap “Add note” to record observations on this player.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(notes) { note in
+                        noteRow(note)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
+    private func noteRow(_ note: PlayerNote) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(NoteColor.from(rawValue: note.color).swatch)
+                .frame(width: 10, height: 10)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(note.note ?? "")
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(note.updatedAt, format: .dateTime.day().month(.abbreviated).year().hour().minute())
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Button {
+                noteSheetMode = .edit(note)
+            } label: {
+                Image(systemName: "pencil")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Edit note")
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.secondary.opacity(0.06))
+        )
+    }
+
     // MARK: - Loading
+
+    private func loadNotes() {
+        // Look up the local player id by username (the only stable
+        // identifier we have on `PlayerStats`). If the player isn't in
+        // the local DB yet, the notes section shows a friendly empty
+        // state instead of crashing.
+        if resolvedPlayerId == nil {
+            do {
+                if let player = try playerRepo.fetchByUsername(opponent.playerName),
+                   let id = player.id {
+                    resolvedPlayerId = id
+                }
+            } catch {
+                print("[OpponentDetailView] resolve player id failed: \(error)")
+            }
+        }
+        guard let pid = resolvedPlayerId else {
+            notes = []
+            return
+        }
+        do {
+            notes = try playerRepo.fetchNotes(forPlayerId: pid)
+        } catch {
+            print("[OpponentDetailView] fetch notes failed: \(error)")
+            notes = []
+        }
+    }
+
+    private func handleNoteSaved(_ note: PlayerNote, mode: PlayerNoteEditorSheet.Mode) {
+        switch mode {
+        case .add:
+            notes.insert(note, at: 0)
+        case .edit:
+            if let idx = notes.firstIndex(where: { $0.id == note.id }) {
+                notes[idx] = note
+            }
+        }
+    }
+
+    private func deleteHandler(for mode: PlayerNoteEditorSheet.Mode) -> (() -> Void)? {
+        guard case .edit(let note) = mode, let id = note.id else { return nil }
+        return {
+            do {
+                try playerRepo.deleteNote(id: id)
+                notes.removeAll { $0.id == id }
+            } catch {
+                print("[OpponentDetailView] delete note failed: \(error)")
+            }
+        }
+    }
 
     private func loadSituational() async {
         isLoading = true

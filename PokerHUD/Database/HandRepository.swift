@@ -168,6 +168,81 @@ class HandRepository {
                 .fetchCount(db)
         }
     }
+
+    // MARK: - Tags & bookmarks (Phase 4 PR3)
+
+    /// Insert a new tag row. Mutates `tag.id` to the generated rowid so the
+    /// caller can keep a stable reference for delete-on-tap.
+    func addTag(_ tag: inout HandTag) throws {
+        try dbManager.writer.write { db in
+            try tag.insert(db)
+        }
+    }
+
+    /// All tags currently attached to a hand, ordered with newest first
+    /// so the chip list reads chronologically.
+    func fetchTags(forHandId handId: Int64) throws -> [HandTag] {
+        try dbManager.reader.read { db in
+            try HandTag
+                .filter(HandTag.Columns.handId == handId)
+                .order(HandTag.Columns.createdAt.desc)
+                .fetchAll(db)
+        }
+    }
+
+    /// Delete a single tag by id. Used by both the chip-tap delete and
+    /// the bookmark star toggle (which deletes the row tagged
+    /// `"Bookmark"` for the active hand).
+    func removeTag(id: Int64) throws {
+        try dbManager.writer.write { db in
+            _ = try HandTag.deleteOne(db, key: id)
+        }
+    }
+
+    /// Hands that carry at least one `tag = "Bookmark"` row, ordered
+    /// newest-first. Powers the "Bookmarked" filter in `HandReplayerView`.
+    /// Joining a hasMany relation can produce duplicate hand rows when a
+    /// hand has multiple matching tags, so the result is deduplicated by
+    /// id in Swift before returning.
+    func fetchBookmarkedHands(limit: Int = 200) throws -> [Hand] {
+        let hands = try dbManager.reader.read { db in
+            try Hand
+                .joining(required: Hand.tags
+                    .filter(HandTag.Columns.tag == CommonHandTag.bookmark.rawValue))
+                .order(Hand.Columns.playedAt.desc)
+                .fetchAll(db)
+        }
+        return Self.deduplicate(hands, limit: limit)
+    }
+
+    /// Hands that carry at least one tag of any kind (used by the
+    /// "Tagged" filter pill).
+    func fetchTaggedHands(limit: Int = 200) throws -> [Hand] {
+        let hands = try dbManager.reader.read { db in
+            try Hand
+                .joining(required: Hand.tags)
+                .order(Hand.Columns.playedAt.desc)
+                .fetchAll(db)
+        }
+        return Self.deduplicate(hands, limit: limit)
+    }
+
+    /// Deduplicate a hand list by id (preserving order) and trim to
+    /// `limit`. Used after a hasMany join that can produce one row per
+    /// matching child relation.
+    private static func deduplicate(_ hands: [Hand], limit: Int) -> [Hand] {
+        var seen: Set<Int64> = []
+        var result: [Hand] = []
+        result.reserveCapacity(min(hands.count, limit))
+        for hand in hands {
+            guard let id = hand.id else { continue }
+            if seen.insert(id).inserted {
+                result.append(hand)
+                if result.count >= limit { break }
+            }
+        }
+        return result
+    }
 }
 
 /// Phase 4 PR1: bundle returned by `HandRepository.fetchHandWithPlayersAndActions`.
