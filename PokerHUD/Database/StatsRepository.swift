@@ -206,6 +206,122 @@ class StatsRepository {
         }
     }
 
+    // MARK: - Hole Card Matrix (Phase 3 PR4)
+
+    /// Fetch the 169-cell hole-card matrix for a single player. Used by
+    /// `HoleCardHeatMapView`.
+    ///
+    /// SQL groups by the literal `holeCards` string (e.g. `"Ah Kd"`) and
+    /// the Swift mapper folds those into the canonical 169 buckets via
+    /// `HoleCardClassifier.bucket(for:)`. We do the bucket folding in
+    /// Swift instead of SQL because (a) the cardinality is bounded
+    /// (≤1326 distinct rank+suit pairs at the absolute worst, usually
+    /// far fewer in practice) and (b) the bucket logic is non-trivial
+    /// SQL but trivial Swift.
+    ///
+    /// Returns an "empty matrix" with all 169 cells at zero samples
+    /// when the player has no hole-card data — that lets the view
+    /// render a uniform grid regardless of sample size.
+    func fetchHoleCardMatrix(playerName: String, filters: StatFilters? = nil) throws -> HoleCardMatrix {
+        guard !playerName.isEmpty else {
+            return HoleCardMatrix.empty(playerName: playerName)
+        }
+        return try dbManager.reader.read { db in
+            var sql = """
+                SELECT
+                    hp.holeCards AS holeCards,
+                    COUNT(*) AS handsDealt,
+                    SUM(CASE WHEN hp.wonAtShowdown = 1 THEN 1 ELSE 0 END) AS handsWon,
+                    SUM(hp.netResult) AS totalNet
+                FROM hand_players hp
+                INNER JOIN players p ON p.id = hp.playerId
+                INNER JOIN hands h ON h.id = hp.handId
+                WHERE p.username = ?
+                  AND hp.holeCards IS NOT NULL
+                  AND hp.holeCards != ''
+                """
+            var arguments: [DatabaseValueConvertible] = [playerName]
+
+            if let filters = filters {
+                if let fromDate = filters.fromDate {
+                    sql += " AND h.playedAt >= ?"
+                    arguments.append(fromDate)
+                }
+                if let toDate = filters.toDate {
+                    sql += " AND h.playedAt <= ?"
+                    arguments.append(toDate)
+                }
+                if let position = filters.position {
+                    sql += " AND hp.position = ?"
+                    arguments.append(position)
+                }
+                if let gameType = filters.gameType {
+                    sql += " AND h.gameType = ?"
+                    arguments.append(gameType)
+                }
+                if let minStakes = filters.minStakes {
+                    sql += " AND h.bigBlind >= ?"
+                    arguments.append(minStakes)
+                }
+                if let maxStakes = filters.maxStakes {
+                    sql += " AND h.bigBlind <= ?"
+                    arguments.append(maxStakes)
+                }
+            }
+
+            sql += " GROUP BY hp.holeCards"
+
+            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(arguments))
+
+            // Aggregate raw rows into the 169 canonical buckets.
+            var aggregates: [HoleCardBucket: (dealt: Int, won: Int, net: Double)] = [:]
+            var totalHands = 0
+            for row in rows {
+                let holeCards: String = row["holeCards"] ?? ""
+                let handsDealt: Int = row["handsDealt"] ?? 0
+                let handsWon: Int = row["handsWon"] ?? 0
+                let totalNet: Double = row["totalNet"] ?? 0
+                totalHands += handsDealt
+                guard let bucket = HoleCardClassifier.bucket(for: holeCards) else { continue }
+                let prev = aggregates[bucket] ?? (0, 0, 0.0)
+                aggregates[bucket] = (
+                    prev.dealt + handsDealt,
+                    prev.won + handsWon,
+                    prev.net + totalNet
+                )
+            }
+
+            // Lay out into a 13×13 grid, filling missing buckets with
+            // zero samples so the view always renders a complete chart.
+            var grid: [[HoleCardCellStats]] = Array(
+                repeating: Array(
+                    repeating: HoleCardCellStats(
+                        bucket: HoleCardBucket(highRankIndex: 0, lowRankIndex: 0, isSuited: false),
+                        handsDealt: 0, handsWon: 0, totalNet: 0
+                    ),
+                    count: 13
+                ),
+                count: 13
+            )
+            for bucket in HoleCardClassifier.allBuckets() {
+                let pos = bucket.gridPosition
+                let agg = aggregates[bucket] ?? (0, 0, 0.0)
+                grid[pos.row][pos.col] = HoleCardCellStats(
+                    bucket: bucket,
+                    handsDealt: agg.dealt,
+                    handsWon: agg.won,
+                    totalNet: agg.net
+                )
+            }
+
+            return HoleCardMatrix(
+                playerName: playerName,
+                totalHands: totalHands,
+                cellsByPosition: grid
+            )
+        }
+    }
+
     // MARK: - Situational Stats (Phase 3 PR2)
 
     /// Fetch situational breakdown for a single player, split by pre-flop
