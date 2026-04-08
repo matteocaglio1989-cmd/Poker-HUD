@@ -17,16 +17,16 @@
 # Handles BOTH project layouts:
 #
 #   A. Classic Xcode project: a Poker-HUD.xcodeproj exists at the repo root.
-#      The script adds PokerHUD.storekit as a PBXFileReference and verifies
-#      the StoreKitConfigurationFileReference identifier in every shared
-#      scheme.
+#      The script adds MacOSPokerHud.storekit as a PBXFileReference and
+#      verifies the StoreKitConfigurationFileReference identifier in every
+#      shared scheme.
 #
 #   B. SPM-only workflow: no .xcodeproj — the user opens Package.swift
 #      directly in Xcode, which generates virtual schemes and stores
 #      per-user scheme settings under
 #      .swiftpm/xcode/xcuserdata/<user>.xcuserdatad/xcschemes/<Target>.xcscheme
 #      The script patches that file (or each .xcscheme it finds) to ensure
-#      <StoreKitConfigurationFileReference identifier="container:PokerHUD.storekit"/>
+#      <StoreKitConfigurationFileReference identifier="container:MacOSPokerHud.storekit"/>
 #      exists inside <LaunchAction>.
 #
 # Why this exists: a properly-loaded local .storekit file serves products
@@ -42,7 +42,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$SCRIPT_DIR"
-STOREKIT_FILE="PokerHUD.storekit"
+STOREKIT_FILE="MacOSPokerHud.storekit"
 
 echo "== Poker HUD StoreKit configuration fix =="
 echo "Repo root: $REPO_ROOT"
@@ -241,7 +241,7 @@ package in a thin Xcode App project:
   2. Save it inside this folder (e.g. Poker-HUD.xcodeproj)
   3. Add the local Swift package as a dependency
   4. In the App target's scheme: Edit Scheme → Run → Options
-     → StoreKit Configuration → PokerHUD.storekit
+     → StoreKit Configuration → MacOSPokerHud.storekit
 
 Then re-run this script to also patch the .xcodeproj scheme.
 NOTE

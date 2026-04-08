@@ -80,7 +80,7 @@ struct PaywallView: View {
         // If StoreKit failed (or returned no products) AND we have nothing to
         // show, surface an actionable error card instead of two indefinite
         // spinners. The paywall used to silently spin forever when the Xcode
-        // scheme wasn't pointing at PokerHUD.storekit — see SubscriptionManager
+        // scheme wasn't pointing at MacOSPokerHud.storekit — see SubscriptionManager
         // .loadProducts() for the now-published `loadProductsError`.
         if appState.subscriptionManager.products.isEmpty,
            let error = appState.subscriptionManager.loadProductsError {
@@ -139,7 +139,7 @@ struct PaywallView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Tip: in Xcode go to Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration and select PokerHUD.storekit, then relaunch.")
+            Text("Tip: in Xcode go to Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration and select MacOSPokerHud.storekit, then relaunch.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -154,6 +154,25 @@ struct PaywallView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.top, 4)
+
+            #if DEBUG
+            // Dev-only escape hatch: Xcode's StoreKit Testing harness
+            // doesn't reliably activate for SPM executable targets, so
+            // Product.products(for:) keeps failing with networkError in
+            // our dev setup. This button lets developers bypass the
+            // paywall and exercise the post-purchase flows anyway. The
+            // bypass is persisted across relaunches via UserDefaults.
+            // Compiled out of release builds entirely.
+            Button {
+                appState.subscriptionManager.devGrantSubscription(days: 30)
+            } label: {
+                Text("Dev: Grant 30-day test subscription")
+                    .frame(maxWidth: 280)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+            .padding(.top, 2)
+            #endif
         }
         .padding(24)
         .frame(maxWidth: 520)

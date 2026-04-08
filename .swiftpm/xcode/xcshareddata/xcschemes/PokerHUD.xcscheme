@@ -61,7 +61,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../../../PokerHUD.storekit">
+         identifier = "../../../MacOSPokerHud.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
