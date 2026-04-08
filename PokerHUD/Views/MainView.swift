@@ -22,7 +22,7 @@ struct MainView: View {
             // banner never covers a nav item.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if case .trial(let remaining) = appState.subscriptionManager.entitlement {
-                    TrialBannerView(remainingSeconds: remaining)
+                    TrialBannerView(remainingHands: remaining)
                 }
             }
         } detail: {

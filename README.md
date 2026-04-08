@@ -29,7 +29,7 @@ Earlier shipped:
 - ✅ Real-time stat updates with visual flash feedback on new hands
 - ✅ File watcher for auto-import (recursive)
 - ✅ Menu bar HUD-only mode
-- ✅ StoreKit 2 subscription gating with 3-hour cumulative free trial
+- ✅ StoreKit 2 subscription gating with 100-hand free trial
 
 ## Features Roadmap
 

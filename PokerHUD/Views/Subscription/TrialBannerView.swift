@@ -2,28 +2,29 @@ import SwiftUI
 
 /// Compact trial pill shown at the bottom of the sidebar column in
 /// `MainView` while the user is on the free trial. Clicking "Upgrade"
-/// opens the paywall as a sheet so they can subscribe without waiting for
-/// the trial to run out.
+/// opens the paywall as a sheet so they can subscribe without waiting
+/// for the counter to run out.
 ///
-/// The vertical layout (icon + label on top, full-width button below) is
-/// tuned for the ~200 pt sidebar slot. The static `format(remaining:)`
-/// helper below is also reused by `SettingsView` and `PaywallView` for
-/// consistent "Xh Ym" / "Ym Zs" formatting — do not rename it.
+/// The counter now reads "N hands left" — the trial budget is 100
+/// imported hands (see `TrialPolicy.totalHands`). The static
+/// `format(remainingHands:)` helper is reused by `SettingsView` and
+/// `PaywallView` for consistent phrasing; do not rename it without
+/// updating both call sites.
 struct TrialBannerView: View {
-    let remainingSeconds: TimeInterval
+    let remainingHands: Int
     @State private var showingPaywall: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Image(systemName: "clock.fill")
+                Image(systemName: "tray.2.fill")
                     .foregroundStyle(.orange)
                     .font(.caption)
                 Text("Free trial")
                     .font(.caption)
                     .fontWeight(.medium)
                 Spacer()
-                Text(Self.format(remaining: remainingSeconds))
+                Text(Self.format(remainingHands: remainingHands))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -50,18 +51,11 @@ struct TrialBannerView: View {
         }
     }
 
-    /// Format a remaining-seconds value as e.g. "2h 14m" or "14m 03s".
-    static func format(remaining: TimeInterval) -> String {
-        let total = max(0, Int(remaining))
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
-        let seconds = total % 60
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            return String(format: "%dm %02ds", minutes, seconds)
-        } else {
-            return "\(seconds)s"
-        }
+    /// Format a remaining-hand count as e.g. "42 hands" or "1 hand".
+    /// Negative and zero values collapse to "0 hands" so the UI never
+    /// shows a nonsense number if the counter briefly overshoots.
+    static func format(remainingHands: Int) -> String {
+        let clamped = max(0, remainingHands)
+        return clamped == 1 ? "1 hand" : "\(clamped) hands"
     }
 }

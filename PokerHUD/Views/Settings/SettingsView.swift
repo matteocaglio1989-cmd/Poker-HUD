@@ -175,7 +175,7 @@ struct SettingsView: View {
 
     private var renewalRowLabel: String {
         switch appState.subscriptionManager.entitlement {
-        case .trial:  return "Trial ends in"
+        case .trial:  return "Trial remaining"
         case .active: return "Renews on"
         default:      return "Status"
         }
@@ -186,7 +186,7 @@ struct SettingsView: View {
         case .unknown:
             return "—"
         case .trial(let remaining):
-            return TrialBannerView.format(remaining: remaining)
+            return TrialBannerView.format(remainingHands: remaining)
         case .expired:
             return "Please subscribe to continue"
         case .active(_, let expiresAt):

@@ -190,11 +190,14 @@ class AppState: ObservableObject {
             }
         }
 
-        return try await importEngine.importFiles(urls) { progress in
+        let result = try await importEngine.importFiles(urls) { progress in
             Task { @MainActor in
                 self.importProgress = progress
             }
         }
+        // Tick down the 100-hand free trial (no-op if already subscribed).
+        usageTracker.recordHandsImported(result.handsImported)
+        return result
     }
 
     // MARK: - Phase 2 HUD Management
@@ -377,6 +380,11 @@ class AppState: ObservableObject {
 
             if result.handsImported > 0 {
                 lastAutoImportTime = Date()
+
+                // Tick down the 100-hand free trial (no-op if already
+                // subscribed). Has to happen on the file-watcher path too,
+                // otherwise auto-imported hands wouldn't count.
+                usageTracker.recordHandsImported(result.handsImported)
 
                 // Auto-create/update tables and show HUD. Stats for newly
                 // created panels are pre-fetched inside `HUDManager.showHUD`,

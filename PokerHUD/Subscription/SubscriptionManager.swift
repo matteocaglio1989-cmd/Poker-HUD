@@ -117,11 +117,12 @@ final class SubscriptionManager: ObservableObject {
             }
         }
 
-        // Step 3: Fall back to the custom trial counter.
+        // Step 3: Fall back to the custom trial counter. The trial is
+        // 100 imported hands (migration 0002) — see TrialPolicy.
         do {
             let usage = try await repo.fetchUsage()
-            let remaining = TrialPolicy.totalSeconds - TimeInterval(usage.totalTrialSeconds)
-            self.entitlement = remaining > 0 ? .trial(remainingSeconds: remaining) : .expired
+            let remaining = TrialPolicy.totalHands - usage.handsImported
+            self.entitlement = remaining > 0 ? .trial(remainingHands: remaining) : .expired
         } catch {
             print("[SubscriptionManager] fetchUsage failed: \(error)")
             // Fail closed: don't silently grant access if we can't read usage.

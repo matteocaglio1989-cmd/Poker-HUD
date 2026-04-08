@@ -64,7 +64,7 @@ struct PaywallView: View {
                     .foregroundStyle(.secondary)
             }
             if case .trial(let remaining) = appState.subscriptionManager.entitlement, remaining > 0 {
-                Text("You still have \(TrialBannerView.format(remaining: remaining)) of free trial left.")
+                Text("You still have \(TrialBannerView.format(remainingHands: remaining)) left on your free trial.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
