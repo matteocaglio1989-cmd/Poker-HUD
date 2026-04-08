@@ -33,6 +33,8 @@ struct MainView: View {
                     DashboardView()
                 case .reports:
                     ReportsView()
+                case .sessions:
+                    SessionsView()
                 case .hud:
                     TableSetupView()
                 case .replayer:
@@ -49,6 +51,7 @@ struct MainView: View {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case dashboard
     case reports
+    case sessions
     case hud
     case replayer
     case settings
@@ -59,6 +62,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "Dashboard"
         case .reports: return "Reports"
+        case .sessions: return "Sessions"
         case .hud: return "HUD"
         case .replayer: return "Hand Replayer"
         case .settings: return "Settings"
@@ -69,6 +73,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "chart.line.uptrend.xyaxis"
         case .reports: return "doc.text.magnifyingglass"
+        case .sessions: return "calendar"
         case .hud: return "rectangle.on.rectangle"
         case .replayer: return "play.circle.fill"
         case .settings: return "gear"

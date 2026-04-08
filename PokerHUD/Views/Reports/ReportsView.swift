@@ -24,6 +24,9 @@ struct ReportsView: View {
     @State private var selectedSubTab: ReportsSubTab = .playerStats
     @State private var situationalStats: SituationalStats? = nil
 
+    // Phase 3 PR3: opponent detail sheet
+    @State private var selectedOpponent: PlayerStats? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -150,7 +153,10 @@ struct ReportsView: View {
                                 stats: sortedStats,
                                 heroName: heroPlayerName,
                                 sortColumn: $sortColumn,
-                                sortAscending: $sortAscending
+                                sortAscending: $sortAscending,
+                                onRowTap: { player in
+                                    selectedOpponent = player
+                                }
                             )
                         }
                     } else if !isLoading {
@@ -186,6 +192,17 @@ struct ReportsView: View {
         }
         .onChange(of: selectedStakes) { _, _ in
             Task { await loadStats() }
+        }
+        // Phase 3 PR3: opponent detail drill-down sheet, presented when
+        // the user taps a row in PlayerStatsTable. Reuses the current
+        // filter set so the sheet's situational stats match what the
+        // user was looking at in the parent table.
+        .sheet(item: $selectedOpponent) { opponent in
+            OpponentDetailView(
+                opponent: opponent,
+                filters: createFilters(for: selectedTimeRange)
+            )
+            .frame(minWidth: 720, minHeight: 600)
         }
     }
 
@@ -481,6 +498,10 @@ struct PlayerStatsTable: View {
     let heroName: String
     @Binding var sortColumn: SortColumn?
     @Binding var sortAscending: Bool
+    /// Phase 3 PR3: tap callback for opponent detail drill-down. Made
+    /// optional so existing call sites that don't care about taps still
+    /// compile (none in the current codebase, but a defensive default).
+    var onRowTap: ((PlayerStats) -> Void)? = nil
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -517,6 +538,10 @@ struct PlayerStatsTable: View {
                 // Rows
                 ForEach(stats) { stat in
                     PlayerStatsRow(stat: stat, isHero: stat.playerName == heroName)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onRowTap?(stat)
+                        }
                     Divider()
                 }
             }
