@@ -228,9 +228,10 @@ class HUDManager {
     private var lastFindWindowLog: [UUID: String] = [:]
 
     private func repositionAllPanels() {
-        // Get ALL PokerStars table windows in front-to-back z-order.
-        // CGWindowListCopyWindowInfo returns them in this order, so
-        // windows[0] is the frontmost table.
+        let layoutMode = TableLayoutMode.load()
+
+        // In stacked mode, only show panels for the frontmost table.
+        // In side-by-side mode, show panels for all tables.
         let allWindows = PokerStarsWindowDetector.findTableWindows()
         let frontmostWindowID = allWindows.first?.windowID
 
@@ -239,51 +240,47 @@ class HUDManager {
 
             let boundID = tableWindowBinding[table.id]
 
-            // Only show panels for the frontmost PokerStars table.
-            // Cross-app window ordering via NSWindow.order(_:relativeTo:)
-            // doesn't work (Apple restricts it to same-app windows),
-            // so the only reliable way to prevent background table
-            // labels from bleeding through onto the front table is
-            // to hide them entirely. When the user clicks a different
-            // table to bring it forward, CGWindowList's ordering
-            // updates and the next 500ms tick swaps which panels are
-            // visible.
-            let isFrontmostTable = (boundID != nil && boundID == frontmostWindowID)
+            // Decide whether this table's panels should be visible
+            let shouldShow: Bool
+            switch layoutMode {
+            case .stacked:
+                shouldShow = (boundID != nil && boundID == frontmostWindowID)
+            case .sideBySide:
+                shouldShow = true
+            }
+
+            // Only reposition if the poker window actually moved
+            let needsReposition: Bool
+            if let lastFrame = lastWindowFrames[table.id] {
+                let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
+                let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
+                let wdw = abs(windowFrame.width - lastFrame.width)
+                let wdh = abs(windowFrame.height - lastFrame.height)
+                needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
+            } else {
+                needsReposition = true
+            }
+
+            if needsReposition {
+                lastWindowFrames[table.id] = windowFrame
+            }
 
             for seat in table.seatAssignments {
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
                 guard let panel = panels[key] else { continue }
 
-                if !isFrontmostTable {
+                if !shouldShow {
                     panel.orderOut(nil)
                     continue
                 }
 
-                // Only reposition if the poker window actually moved
-                let needsReposition: Bool
-                if let lastFrame = lastWindowFrames[table.id] {
-                    let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
-                    let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
-                    let wdw = abs(windowFrame.width - lastFrame.width)
-                    let wdh = abs(windowFrame.height - lastFrame.height)
-                    needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
-                } else {
-                    needsReposition = true
+                if needsReposition, let slot = panelSlots[key] {
+                    let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: table.tableSize, slot: slot)
+                        ?? HUDSeatOffsets.defaultOffset(forTableSize: table.tableSize, slot: slot)
+                    let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
+                    panel.reposition(to: targetPos)
                 }
-
-                if let slot = panelSlots[key] {
-                    if needsReposition {
-                        let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: table.tableSize, slot: slot)
-                            ?? HUDSeatOffsets.defaultOffset(forTableSize: table.tableSize, slot: slot)
-                        let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
-                        panel.reposition(to: targetPos)
-                    }
-                    panel.orderFront(nil)
-                }
-            }
-
-            if isFrontmostTable || lastWindowFrames[table.id] == nil {
-                lastWindowFrames[table.id] = windowFrame
+                panel.orderFront(nil)
             }
         }
     }

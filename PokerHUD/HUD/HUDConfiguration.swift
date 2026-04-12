@@ -1,6 +1,45 @@
 import Foundation
 import SwiftUI
 
+/// How HUD labels behave when multiple PokerStars table windows are
+/// open simultaneously.
+enum TableLayoutMode: String, CaseIterable, Identifiable {
+    /// Show labels only for the frontmost (topmost) table. Best when
+    /// tables are stacked / cascaded on top of each other — prevents
+    /// background table labels from bleeding through.
+    case stacked = "Stacked"
+    /// Show labels for ALL open tables simultaneously. Best when
+    /// tables are tiled side by side with no overlap.
+    case sideBySide = "Side by Side"
+
+    var id: String { rawValue }
+
+    var description: String {
+        switch self {
+        case .stacked:
+            return "Show HUD only on the active table (best for stacked/cascaded tables)"
+        case .sideBySide:
+            return "Show HUD on all tables at once (best for tiled tables)"
+        }
+    }
+
+    // MARK: - UserDefaults persistence
+
+    private static let key = "hud.tableLayoutMode"
+
+    static func load() -> TableLayoutMode {
+        guard let raw = UserDefaults.standard.string(forKey: key),
+              let mode = TableLayoutMode(rawValue: raw) else {
+            return .stacked  // default — safer for most players
+        }
+        return mode
+    }
+
+    static func save(_ mode: TableLayoutMode) {
+        UserDefaults.standard.set(mode.rawValue, forKey: key)
+    }
+}
+
 /// HUD appearance and behavior configuration
 struct HUDConfiguration: Codable {
     var opacity: Double

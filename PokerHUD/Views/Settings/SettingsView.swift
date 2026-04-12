@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var totalPlayers = 0
     @State private var accessibilityGranted = AccessibilityPermission.isGranted
     @State private var screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
+    @State private var tableLayoutMode: TableLayoutMode = TableLayoutMode.load()
 
     var body: some View {
         Form {
@@ -105,6 +106,21 @@ struct SettingsView: View {
                     accessibilityGranted = AccessibilityPermission.isGranted
                     screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
                 }
+            }
+
+            Section("HUD") {
+                Picker("Table Layout", selection: $tableLayoutMode) {
+                    ForEach(TableLayoutMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: tableLayoutMode) { _, newValue in
+                    TableLayoutMode.save(newValue)
+                }
+                Text(tableLayoutMode.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Database") {
