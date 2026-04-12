@@ -27,7 +27,12 @@ class HUDPanel: NSPanel {
     }
 
     private func configure() {
-        level = .screenSaver
+        // `.floating` keeps panels above PokerStars' normal windows
+        // when visible, but unlike the old `.screenSaver` level, it
+        // doesn't dominate every window on the entire system. The
+        // actual show/hide when PokerStars gains or loses focus is
+        // handled by HUDManager's workspace-notification observer.
+        level = .floating
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false

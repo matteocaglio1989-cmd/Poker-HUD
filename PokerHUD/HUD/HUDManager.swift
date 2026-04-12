@@ -25,9 +25,44 @@ class HUDManager {
     /// Combine subscription to `HandImportPublisher`. Stored so it lives
     /// for the lifetime of the HUDManager and gets cancelled on deinit.
     private var importSubscription: AnyCancellable?
+    /// Workspace observer that hides HUD panels when PokerStars loses
+    /// focus and shows them when it regains focus. Without this, the
+    /// floating panels would stay on top of every other app's windows.
+    private var appActivationObserver: NSObjectProtocol?
 
     init(configuration: HUDConfiguration = .standard) {
         self.configuration = configuration
+        startAppActivationObserver()
+    }
+
+    /// Watch for app-activation changes. When PokerStars (or our own
+    /// Poker HUD app) is the frontmost app, all panels are shown.
+    /// When any other app gains focus, all panels are hidden so they
+    /// don't float over unrelated windows.
+    private func startAppActivationObserver() {
+        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+
+                let isPokerStars = app.localizedName?.contains("PokerStars") == true
+                let isOurApp = app == NSRunningApplication.current
+
+                if isPokerStars || isOurApp {
+                    for panel in self.panels.values {
+                        panel.orderFront(nil)
+                    }
+                } else {
+                    for panel in self.panels.values {
+                        panel.orderOut(nil)
+                    }
+                }
+            }
+        }
     }
 
     /// Subscribe this HUDManager to a `HandImportPublisher`. After this
