@@ -159,6 +159,30 @@ class HandRepository {
         }
     }
 
+    // MARK: - Hero results (batch)
+
+    /// Fetch the hero's `netResult` for a batch of hand IDs in a single
+    /// query. Returns a dictionary keyed by `Hand.id` so the caller can
+    /// look up each hand's P/L in O(1). Used by `HandReplayerView` to
+    /// display a profit/loss column in the hand list without N+1 queries.
+    func fetchHeroResults(forHandIds handIds: [Int64]) throws -> [Int64: Double] {
+        guard !handIds.isEmpty else { return [:] }
+        return try dbManager.reader.read { db in
+            let idList = handIds.map { "\($0)" }.joined(separator: ",")
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT handId, netResult FROM hand_players
+                WHERE handId IN (\(idList)) AND isHero = 1
+            """)
+            var result: [Int64: Double] = [:]
+            for row in rows {
+                let handId: Int64 = row["handId"]
+                let net: Double = row["netResult"]
+                result[handId] = net
+            }
+            return result
+        }
+    }
+
     // MARK: - Statistics
 
     func count() throws -> Int {

@@ -7,6 +7,7 @@ import SwiftUI
 /// hands, bookmarked hands, and any-tagged hands.
 struct HandReplayerView: View {
     @State private var hands: [Hand] = []
+    @State private var heroResults: [Int64: Double] = [:]
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var selectedHand: HandSelection?
@@ -106,7 +107,7 @@ struct HandReplayerView: View {
         ScrollView {
             LazyVStack(spacing: 8) {
                 ForEach(hands) { hand in
-                    HandRow(hand: hand)
+                    HandRow(hand: hand, heroNetResult: heroResults[hand.id ?? -1])
                         .contentShape(Rectangle())
                         .onTapGesture {
                             if let id = hand.id {
@@ -175,9 +176,14 @@ struct HandReplayerView: View {
             case .tagged:
                 hands = try handRepo.fetchTaggedHands(limit: handLimit)
             }
+            // Batch-fetch hero P/L for every loaded hand so HandRow can
+            // display it without an N+1 query per row.
+            let handIds = hands.compactMap { $0.id }
+            heroResults = try handRepo.fetchHeroResults(forHandIds: handIds)
         } catch {
             errorMessage = error.localizedDescription
             hands = []
+            heroResults = [:]
         }
     }
 }
@@ -214,6 +220,7 @@ enum HandReplayerFilter: String, CaseIterable, Identifiable, Hashable {
 
 private struct HandRow: View {
     let hand: Hand
+    let heroNetResult: Double?
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
@@ -247,6 +254,22 @@ private struct HandRow: View {
                     .foregroundColor(.secondary)
                     .frame(width: 130, alignment: .trailing)
             }
+
+            // Hero P/L
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("P/L").font(.caption2).foregroundColor(.secondary)
+                if let net = heroNetResult {
+                    Text(String(format: "%+.2f", net))
+                        .font(.system(.callout, design: .monospaced))
+                        .fontWeight(.semibold)
+                        .foregroundColor(net >= 0 ? .green : .red)
+                } else {
+                    Text("—")
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(width: 70)
 
             // Pot
             VStack(alignment: .trailing, spacing: 2) {
