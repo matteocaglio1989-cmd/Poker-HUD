@@ -675,14 +675,30 @@ class PokerStarsParser: HandHistoryParser {
         return (username: username, cards: cards)
     }
 
+    /// Extract ALL bracket groups from a street-header line and join
+    /// them into a single space-separated card string. PokerStars uses
+    /// different bracket layouts per street:
+    ///
+    ///   *** FLOP ***  [Jc Jh Qd]           → 1 group  → "Jc Jh Qd"
+    ///   *** TURN ***  [Jc Jh Qd] [9c]      → 2 groups → "Jc Jh Qd 9c"
+    ///   *** RIVER *** [Jc Jh Qd 9c] [3c]   → 2 groups → "Jc Jh Qd 9c 3c"
+    ///
+    /// The old `firstMatch` version only captured the first group,
+    /// which silently dropped the turn card (identical to the flop
+    /// board → no update) and the river card (board stuck at 4 cards
+    /// → ReplayerEngine's `board.count >= 5` threshold never met →
+    /// no dealRiver step emitted).
     private func extractBoard(from line: String) -> String? {
         let pattern = #"\[([^\]]+)\]"#
-        guard let regex = try? NSRegularExpression(pattern: pattern),
-              let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
-              let range = Range(match.range(at: 1), in: line) else {
-            return nil
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let matches = regex.matches(in: line, range: NSRange(line.startIndex..., in: line))
+        var cards: [String] = []
+        for match in matches {
+            if let range = Range(match.range(at: 1), in: line) {
+                cards.append(String(line[range]))
+            }
         }
-        return String(line[range])
+        return cards.isEmpty ? nil : cards.joined(separator: " ")
     }
 
     private func parsePotAndRake(from line: String) -> (pot: Double, rake: Double) {
