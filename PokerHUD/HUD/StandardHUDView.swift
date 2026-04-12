@@ -20,12 +20,19 @@ struct StandardHUDView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Row 1: player name only
-            Text(playerName)
-                .font(.system(size: CGFloat(configuration.fontSize), weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Row 1: player name (left) + hand count (right)
+            HStack(spacing: 4) {
+                Text(playerName)
+                    .font(.system(size: CGFloat(configuration.fontSize), weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Spacer(minLength: 2)
+                if let stats = stats {
+                    Text("\(stats.handsPlayed)")
+                        .font(.system(size: CGFloat(configuration.fontSize), weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
 
             Divider()
                 .background(Color.white.opacity(0.3))
