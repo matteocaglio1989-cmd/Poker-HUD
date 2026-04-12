@@ -18,6 +18,8 @@ struct PokerTableView: View {
     /// the actual GeometryReader so the table scales gracefully.
     var body: some View {
         GeometryReader { geo in
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+
             ZStack {
                 // Outer rail
                 RoundedRectangle(cornerRadius: geo.size.height * 0.5)
@@ -45,6 +47,28 @@ struct PokerTableView: View {
                             total: bundle.handPlayers.count,
                             in: geo.size
                         ))
+                }
+
+                // Bet chips on the felt — positioned between each
+                // player's seat and the centre pot, like physical
+                // chips pushed forward on a real table. Rendered as a
+                // separate layer so they're visually distinct from
+                // the player's name/stack plate.
+                ForEach(Array(bundle.handPlayers.enumerated()), id: \.element.playerId) { index, hp in
+                    let bet = step.bets[hp.playerId] ?? 0
+                    if bet > 0 {
+                        let seatPos = seatPosition(
+                            index: index,
+                            total: bundle.handPlayers.count,
+                            in: geo.size
+                        )
+                        betChipView(amount: bet)
+                            .position(
+                                x: seatPos.x + (center.x - seatPos.x) * 0.4,
+                                y: seatPos.y + (center.y - seatPos.y) * 0.4
+                            )
+                            .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
         }
@@ -102,7 +126,6 @@ struct PokerTableView: View {
         let isFolded = step.foldedPlayers.contains(hp.playerId)
         let isActive = step.activePlayerId == hp.playerId
         let stack = step.stacks[hp.playerId] ?? hp.startingStack
-        let bet = step.bets[hp.playerId] ?? 0
         let player = bundle.playersById[hp.playerId]
 
         // Show villain hole cards face-down except at showdown / when
@@ -170,21 +193,34 @@ struct PokerTableView: View {
                     .stroke(isActive ? theme.accentColor : Color.clear, lineWidth: 2)
             )
             .opacity(isFolded ? 0.45 : 1.0)
-
-            // Bet chips below the seat (when something has been put in
-            // for this street).
-            if bet > 0 {
-                Text(String(format: "%.2f", bet))
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule().fill(theme.accentColor)
-                    )
-                    .transition(.scale.combined(with: .opacity))
-            }
         }
+    }
+
+    // MARK: - Bet chip on felt
+
+    /// A small chip indicator placed on the felt between a player's seat
+    /// and the centre pot. Mimics the look of physical chips pushed
+    /// forward on a real table: a coloured chip dot + the amount in a
+    /// dark semi-transparent capsule.
+    private func betChipView(amount: Double) -> some View {
+        HStack(spacing: 3) {
+            Circle()
+                .fill(theme.accentColor)
+                .frame(width: 10, height: 10)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.6), lineWidth: 0.5)
+                )
+            Text(String(format: "%.2f", amount))
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(
+            Capsule().fill(Color.black.opacity(0.6))
+        )
     }
 
     // MARK: - Seat positioning
