@@ -133,7 +133,10 @@ struct PokerTableView: View {
         let showCards: Bool = {
             if hp.isHero { return true }
             if !hp.cards.isEmpty {
-                if case .showdown = step.kind { return true }
+                switch step.kind {
+                case .showdown, .potAwarded: return true
+                default: break
+                }
             }
             return false
         }()

@@ -243,6 +243,37 @@ final class ReplayerEngine: ObservableObject {
             ))
         }
 
+        // Final step: award the pot to the winner(s). The pot drops
+        // to 0 and each winner's stack increases by their `totalWon`.
+        // With SwiftUI's `withAnimation` on the parent's step index,
+        // this produces the visual effect of chips sliding from the
+        // centre pot to the winner's seat — no custom particle
+        // animation needed.
+        let winners = handPlayers.filter { $0.totalWon > 0 }
+        if !winners.isEmpty {
+            var finalStacks = stacks
+            for winner in winners {
+                finalStacks[winner.playerId, default: 0] += winner.totalWon
+            }
+            let winnerNames = winners.compactMap { hp -> String? in
+                let name = bundle.playersById[hp.playerId]?.username ?? "Player"
+                return String(format: "%@ wins %.2f", name, hp.totalWon)
+            }
+            let winnerIds = winners.compactMap { $0.playerId }
+
+            steps.append(ReplayerStep(
+                index: steps.count,
+                kind: .potAwarded,
+                pot: 0,
+                stacks: finalStacks,
+                bets: [:],
+                revealedBoard: board,
+                activePlayerId: winnerIds.first,
+                foldedPlayers: folded,
+                descriptor: winnerNames.joined(separator: " · ")
+            ))
+        }
+
         return steps
     }
 
@@ -318,6 +349,9 @@ enum ReplayerStepKind {
     case dealTurn
     case dealRiver
     case showdown
+    /// Final step: pot awarded to the winner(s). Pot drops to 0,
+    /// winner's stack increases. SwiftUI animates the transition.
+    case potAwarded
 
     var isAction: Bool {
         if case .action = self { return true }
