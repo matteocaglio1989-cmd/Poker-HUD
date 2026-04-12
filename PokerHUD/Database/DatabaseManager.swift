@@ -265,6 +265,15 @@ class DatabaseManager {
             try db.create(index: "idx_sessions_site", on: "sessions", columns: ["siteId"])
         }
 
+        migrator.registerMigration("addMoneyType") { db in
+            try db.alter(table: "hands") { t in
+                t.add(column: "moneyType", .text)
+                    .notNull()
+                    .defaults(to: "CASH")
+            }
+            try db.create(index: "idx_hands_moneyType", on: "hands", columns: ["moneyType"])
+        }
+
         return migrator
     }
 }

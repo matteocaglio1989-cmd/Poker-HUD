@@ -74,7 +74,21 @@ class ImportEngine {
         }
 
         // Parse hands
-        let parsedHands = try parser.parse(content)
+        var parsedHands = try parser.parse(content)
+
+        // Detect money type from the source filename:
+        //   "Play Money" in name → PLAY_MONEY
+        //   tournamentId present → TOURNAMENT
+        //   otherwise → CASH (parser default)
+        let isPlayMoneyFile = url.lastPathComponent
+            .localizedCaseInsensitiveContains("Play Money")
+        for i in parsedHands.indices {
+            if isPlayMoneyFile {
+                parsedHands[i].hand.moneyType = "PLAY_MONEY"
+            } else if parsedHands[i].hand.tournamentId != nil {
+                parsedHands[i].hand.moneyType = "TOURNAMENT"
+            }
+        }
 
         var handsImported = 0
         var newPlayers = 0
@@ -135,7 +149,8 @@ class ImportEngine {
             potTotal: handData.potTotal,
             rake: handData.rake,
             playedAt: handData.playedAt,
-            rawText: handData.rawText
+            rawText: handData.rawText,
+            moneyType: handData.moneyType
         )
 
         // Create player records
@@ -267,7 +282,18 @@ class ImportEngine {
         guard let siteId = site.id else {
             throw ImportEngineError.missingPersistedID("Site")
         }
-        let parsedHands = try parser.parse(content)
+        var parsedHands = try parser.parse(content)
+
+        // Detect money type (same logic as importFile)
+        let isPlayMoneyFile = url.lastPathComponent
+            .localizedCaseInsensitiveContains("Play Money")
+        for i in parsedHands.indices {
+            if isPlayMoneyFile {
+                parsedHands[i].hand.moneyType = "PLAY_MONEY"
+            } else if parsedHands[i].hand.tournamentId != nil {
+                parsedHands[i].hand.moneyType = "TOURNAMENT"
+            }
+        }
 
         var handsImported = 0
         var affectedTableNames = Set<String>()

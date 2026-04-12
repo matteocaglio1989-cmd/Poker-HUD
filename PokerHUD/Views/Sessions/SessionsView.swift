@@ -16,6 +16,7 @@ struct SessionsView: View {
     @State private var selectedHero: String = ""
     @State private var availableHeroes: [String] = []
     @State private var selectedSession: PlayedSession?
+    @State private var moneyFilter: MoneyTypeFilter = .all
 
     private let detector = SessionDetector()
 
@@ -44,6 +45,9 @@ struct SessionsView: View {
         .onChange(of: selectedHero) { _, _ in
             Task { await load() }
         }
+        .onChange(of: moneyFilter) { _, _ in
+            Task { await load() }
+        }
         .sheet(item: $selectedSession) { session in
             SessionDetailView(session: session, heroPlayerName: selectedHero)
                 .frame(minWidth: 720, minHeight: 560)
@@ -62,6 +66,13 @@ struct SessionsView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
+            Picker("Game", selection: $moneyFilter) {
+                ForEach(MoneyTypeFilter.allCases) { m in
+                    Text(m.rawValue).tag(m)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 280)
             if !availableHeroes.isEmpty {
                 Picker("Hero", selection: $selectedHero) {
                     ForEach(availableHeroes, id: \.self) { name in
@@ -160,7 +171,7 @@ struct SessionsView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            sessions = try detector.allSessions(heroPlayerName: selectedHero)
+            sessions = try detector.allSessions(heroPlayerName: selectedHero, moneyType: moneyFilter.dbValue)
         } catch {
             errorMessage = error.localizedDescription
             sessions = []

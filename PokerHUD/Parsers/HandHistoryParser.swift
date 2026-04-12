@@ -19,7 +19,7 @@ protocol HandHistoryParser {
 
 /// A fully parsed hand with all related data
 struct ParsedHand {
-    let hand: HandData
+    var hand: HandData
     let players: [PlayerData]
     let actions: [ActionData]
 }
@@ -41,6 +41,12 @@ struct HandData {
     let playedAt: Date
     let rawText: String
     let tournamentId: String?
+    /// Set by ImportEngine after parsing, based on the source filename
+    /// and parsed tournament ID. Values: `"CASH"`, `"TOURNAMENT"`,
+    /// `"PLAY_MONEY"`. Defaults to `"CASH"` in the parser; the import
+    /// engine overrides to `"PLAY_MONEY"` when the filename contains
+    /// "Play Money", or to `"TOURNAMENT"` when `tournamentId` is set.
+    var moneyType: String = "CASH"
 }
 
 /// Player data for a hand

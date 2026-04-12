@@ -91,8 +91,8 @@ struct SessionDetector {
     /// Return every historical session for the hero, newest first. Limit
     /// caps the underlying hand window — 5000 hands is plenty for the
     /// current dataset and bounds the worst-case runtime.
-    func allSessions(heroPlayerName: String? = nil, limit: Int = 5000) throws -> [PlayedSession] {
-        let rows = try fetchHeroHands(playerName: heroPlayerName, limit: limit)
+    func allSessions(heroPlayerName: String? = nil, moneyType: String? = nil, limit: Int = 5000) throws -> [PlayedSession] {
+        let rows = try fetchHeroHands(playerName: heroPlayerName, moneyType: moneyType, limit: limit)
         guard !rows.isEmpty else { return [] }
         return groupIntoSessions(rows: rows)
     }
@@ -140,6 +140,7 @@ struct SessionDetector {
         playerName: String?,
         from: Date? = nil,
         to: Date? = nil,
+        moneyType: String? = nil,
         limit: Int
     ) throws -> [Row] {
         try dbManager.reader.read { db in
@@ -164,6 +165,10 @@ struct SessionDetector {
             if let to = to {
                 sql += " AND h.playedAt <= ?"
                 arguments.append(to)
+            }
+            if let moneyType = moneyType {
+                sql += " AND h.moneyType = ?"
+                arguments.append(moneyType)
             }
 
             sql += " ORDER BY h.playedAt DESC LIMIT ?"

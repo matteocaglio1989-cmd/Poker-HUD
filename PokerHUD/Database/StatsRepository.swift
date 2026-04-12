@@ -60,6 +60,10 @@ class StatsRepository {
                     sql += " AND h.gameType = ?"
                     arguments.append(gameType)
                 }
+                if let moneyType = filters.moneyType {
+                    sql += " AND h.moneyType = ?"
+                    arguments.append(moneyType)
+                }
             }
 
             guard let row = try Row.fetchOne(db, sql: sql, arguments: StatementArguments(arguments)) else {
@@ -145,6 +149,10 @@ class StatsRepository {
                 if let gameType = filters.gameType {
                     sql += " AND h.gameType = ?"
                     arguments.append(gameType)
+                }
+                if let moneyType = filters.moneyType {
+                    sql += " AND h.moneyType = ?"
+                    arguments.append(moneyType)
                 }
                 if let minStakes = filters.minStakes {
                     sql += " AND h.bigBlind >= ?"
@@ -258,6 +266,10 @@ class StatsRepository {
                 if let gameType = filters.gameType {
                     sql += " AND h.gameType = ?"
                     arguments.append(gameType)
+                }
+                if let moneyType = filters.moneyType {
+                    sql += " AND h.moneyType = ?"
+                    arguments.append(moneyType)
                 }
                 if let minStakes = filters.minStakes {
                     sql += " AND h.bigBlind >= ?"
@@ -396,6 +408,10 @@ class StatsRepository {
                     sql += " AND h.gameType = ?"
                     arguments.append(gameType)
                 }
+                if let moneyType = filters.moneyType {
+                    sql += " AND h.moneyType = ?"
+                    arguments.append(moneyType)
+                }
                 if let minStakes = filters.minStakes {
                     sql += " AND h.bigBlind >= ?"
                     arguments.append(minStakes)
@@ -462,4 +478,28 @@ struct StatFilters {
     /// shared at least one hand with this hero. Single-player fetches
     /// (`fetchPlayerStats(playerId:filters:)`) ignore this field.
     var heroPlayerName: String?
+    /// `"CASH"`, `"TOURNAMENT"`, or `"PLAY_MONEY"`. Nil = all.
+    var moneyType: String?
+}
+
+/// Filter enum for the money-type picker used across Reports,
+/// Sessions, and Hand Replayer. Shared here so all three views
+/// import a single source of truth.
+enum MoneyTypeFilter: String, CaseIterable, Identifiable {
+    case all       = "All"
+    case cash      = "Cash"
+    case tournament = "Tournament"
+    case playMoney = "Play Money"
+
+    var id: String { rawValue }
+
+    /// The raw DB value to filter on, or nil for "all".
+    var dbValue: String? {
+        switch self {
+        case .all:        return nil
+        case .cash:       return "CASH"
+        case .tournament: return "TOURNAMENT"
+        case .playMoney:  return "PLAY_MONEY"
+        }
+    }
 }

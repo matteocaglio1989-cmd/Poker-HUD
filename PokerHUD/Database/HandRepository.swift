@@ -63,12 +63,14 @@ class HandRepository {
         }
     }
 
-    func fetchRecent(limit: Int = 100) throws -> [Hand] {
+    func fetchRecent(limit: Int = 100, moneyType: String? = nil) throws -> [Hand] {
         try dbManager.reader.read { db in
-            try Hand
+            var request = Hand
                 .order(Hand.Columns.playedAt.desc)
-                .limit(limit)
-                .fetchAll(db)
+            if let moneyType = moneyType {
+                request = request.filter(Hand.Columns.moneyType == moneyType)
+            }
+            return try request.limit(limit).fetchAll(db)
         }
     }
 

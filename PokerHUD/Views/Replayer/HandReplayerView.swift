@@ -13,6 +13,7 @@ struct HandReplayerView: View {
     @State private var selectedHand: HandSelection?
     @State private var handLimit = 200
     @State private var filter: HandReplayerFilter = .all
+    @State private var moneyFilter: MoneyTypeFilter = .all
 
     private let handRepo = HandRepository()
 
@@ -22,8 +23,18 @@ struct HandReplayerView: View {
                 .padding(.horizontal)
                 .padding(.top)
 
-            filterPills
-                .padding(.horizontal)
+            HStack(spacing: 12) {
+                filterPills
+                Spacer()
+                Picker("Game", selection: $moneyFilter) {
+                    ForEach(MoneyTypeFilter.allCases) { m in
+                        Text(m.rawValue).tag(m)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 280)
+            }
+            .padding(.horizontal)
 
             if isLoading {
                 ProgressView("Loading hands…")
@@ -41,6 +52,9 @@ struct HandReplayerView: View {
             await load()
         }
         .onChange(of: filter) { _, _ in
+            Task { await load() }
+        }
+        .onChange(of: moneyFilter) { _, _ in
             Task { await load() }
         }
         .sheet(item: $selectedHand) { selection in
@@ -168,13 +182,19 @@ struct HandReplayerView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
+            let mt = moneyFilter.dbValue
             switch filter {
             case .all:
-                hands = try handRepo.fetchRecent(limit: handLimit)
+                hands = try handRepo.fetchRecent(limit: handLimit, moneyType: mt)
             case .bookmarked:
                 hands = try handRepo.fetchBookmarkedHands(limit: handLimit)
             case .tagged:
                 hands = try handRepo.fetchTaggedHands(limit: handLimit)
+            }
+            // Post-filter for bookmarked/tagged (those queries don't
+            // have a moneyType parameter yet — filter in-memory)
+            if let mt = mt, filter != .all {
+                hands = hands.filter { $0.moneyType == mt }
             }
             // Batch-fetch hero P/L for every loaded hand so HandRow can
             // display it without an N+1 query per row.

@@ -15,6 +15,7 @@ struct ReportsView: View {
     @State private var selectedPosition: PositionFilter = .all
     @State private var selectedGameType: GameTypeFilter = .all
     @State private var selectedStakes: StakesFilter = .all
+    @State private var selectedMoneyType: MoneyTypeFilter = .all
 
     // Sortable table state. nil = preserve repository order (handsPlayed DESC).
     @State private var sortColumn: SortColumn? = nil
@@ -109,6 +110,14 @@ struct ReportsView: View {
                             Picker("Stakes", selection: $selectedStakes) {
                                 ForEach(StakesFilter.allCases) { s in
                                     Text(s.title).tag(s)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 140)
+
+                            Picker("Money", selection: $selectedMoneyType) {
+                                ForEach(MoneyTypeFilter.allCases) { m in
+                                    Text(m.rawValue).tag(m)
                                 }
                             }
                             .pickerStyle(.menu)
@@ -221,6 +230,9 @@ struct ReportsView: View {
             Task { await loadStats() }
         }
         .onChange(of: selectedStakes) { _, _ in
+            Task { await loadStats() }
+        }
+        .onChange(of: selectedMoneyType) { _, _ in
             Task { await loadStats() }
         }
         // Phase 3 PR3: opponent detail drill-down sheet, presented when
@@ -363,6 +375,9 @@ struct ReportsView: View {
         if let stakes = selectedStakes.bigBlindRange {
             filters.minStakes = stakes.lowerBound
             filters.maxStakes = stakes.upperBound
+        }
+        if let mt = selectedMoneyType.dbValue {
+            filters.moneyType = mt
         }
         if !heroPlayerName.isEmpty {
             filters.heroPlayerName = heroPlayerName
