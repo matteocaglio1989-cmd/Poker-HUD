@@ -153,7 +153,14 @@ class HUDManager {
             let stats = playerStats[playerName]
             let state = HUDPanelState(stats: stats)
             panelStates[key] = state
-            let view = HUDContentView(playerName: playerName, state: state, configuration: configuration)
+            var view = HUDContentView(playerName: playerName, state: state, configuration: configuration)
+            // Resize the panel when the user double-clicks to
+            // expand / collapse the stat grid.
+            view.onExpandToggle = { [weak panel] expanded in
+                panel?.resize(to: expanded
+                    ? CGSize(width: 210, height: 420)
+                    : CGSize(width: 180, height: 90))
+            }
             panel.setContent(view)
             panel.orderFront(nil)
             panels[key] = panel
