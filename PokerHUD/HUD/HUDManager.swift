@@ -53,8 +53,16 @@ class HUDManager {
                 let isOurApp = app == NSRunningApplication.current
 
                 if isPokerStars || isOurApp {
-                    for panel in self.panels.values {
-                        panel.orderFront(nil)
+                    // Re-order each panel above its bound PokerStars
+                    // window (not orderFront which would put ALL panels
+                    // above ALL windows and break stacked-table ordering).
+                    for table in self.trackedTables {
+                        guard let boundID = self.tableWindowBinding[table.id] else { continue }
+                        for seat in table.seatAssignments {
+                            let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
+                            guard let panel = self.panels[key] else { continue }
+                            panel.order(.above, relativeTo: Int(boundID))
+                        }
                     }
                 } else {
                     for panel in self.panels.values {
@@ -231,15 +239,28 @@ class HUDManager {
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
 
+            // Get the bound PokerStars window ID so we can order
+            // each HUD panel just above its specific table window,
+            // not above ALL windows. This is what makes stacked
+            // tables work: each table's labels follow that table's
+            // z-order instead of floating above everything.
+            let boundID = tableWindowBinding[table.id]
+
             // Only reposition if the poker window itself moved (not the user dragging HUD panels)
+            let needsReposition: Bool
             if let lastFrame = lastWindowFrames[table.id] {
                 let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
                 let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
                 let wdw = abs(windowFrame.width - lastFrame.width)
                 let wdh = abs(windowFrame.height - lastFrame.height)
-                guard wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2 else { continue }
+                needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
+            } else {
+                needsReposition = true
             }
-            lastWindowFrames[table.id] = windowFrame
+
+            if needsReposition {
+                lastWindowFrames[table.id] = windowFrame
+            }
 
             let tableSize = table.tableSize
 
@@ -248,11 +269,19 @@ class HUDManager {
                 guard let panel = panels[key],
                       let slot = panelSlots[key] else { continue }
 
-                let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
-                    ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
-                let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
+                if needsReposition {
+                    let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
+                        ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
+                    let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
+                    panel.reposition(to: targetPos)
+                }
 
-                panel.reposition(to: targetPos)
+                // Always maintain z-order: place this panel just
+                // above its bound PokerStars window so stacked
+                // tables' labels don't bleed through.
+                if let wid = boundID {
+                    panel.order(.above, relativeTo: Int(wid))
+                }
             }
         }
     }
