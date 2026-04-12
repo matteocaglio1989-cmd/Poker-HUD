@@ -560,7 +560,26 @@ class AppState: ObservableObject {
                     hudManager?.showHUD(for: managedTables[existingIndex])
                 }
             } else {
-                // Create new table automatically
+                // Create new table automatically — but ONLY if we can
+                // find a live PokerStars window whose title contains
+                // this table name. Without this guard, closing one
+                // table during multi-table play would cause the file-
+                // watcher import of the closed table's final hand(s)
+                // to re-create the table and bind it to an OPEN
+                // table's window via the "first unbound" fallback,
+                // producing the bug where the closed table's HUD
+                // labels appear on the wrong table.
+                //
+                // If no window matches, the hand import has already
+                // succeeded (DB updated, stats refreshed) — we just
+                // don't create HUD panels for a table that no longer
+                // exists on screen.
+                let windows = PokerStarsWindowDetector.findTableWindows()
+                guard let matchedWindow = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) else {
+                    Log.app.debug("Skipping HUD creation for '\(tableName, privacy: .public)' — no matching PokerStars window (table likely closed)")
+                    continue
+                }
+
                 let tableSize = seats.first?.tableSize ?? 6
                 let stakes = seats.first?.stakes ?? "?"
 
@@ -583,42 +602,12 @@ class AppState: ObservableObject {
                 table.seatAssignments = seatAssignments
 
                 managedTables.append(table)
-                // Mark this table as auto-created so pruneClosedTables() is
-                // allowed to remove it when its PokerStars window closes.
-                // Manually-added tables (via TableSetupView "Add Table") are
-                // never in this set and are never auto-pruned.
                 autoCreatedTableIDs.insert(table.id)
 
-                // Try to bind this new table to the correct PokerStars window.
-                //
-                // Order of preference:
-                //   a) Name match — works whenever Screen Recording OR
-                //      Accessibility permission is granted (the AX path
-                //      enriches CGWindowList titles when SR is denied).
-                //   b) First unbound — CGWindowList returns front-to-back,
-                //      so the frontmost unbound window is usually right
-                //      for a single-table session. With multiple unbound
-                //      windows this is inherently ambiguous (the multi-
-                //      table launch bug) but it's better to bind something
-                //      than to leave the HUD invisible. HUDManager.findWindowFrame's
-                //      cache validation auto-corrects any wrong initial
-                //      binding on the next reposition tick (every 500 ms)
-                //      once titles become readable.
-                let windows = PokerStarsWindowDetector.findTableWindows()
-                let boundIDs = Set(hudManager?.getAllBoundWindowIDs() ?? [])
-                let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
-
-                if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
-                    hudManager?.bindTable(table.id, toWindow: named.windowID)
-                    Log.app.debug("Bound new table '\(tableName, privacy: .public)' to window \(named.windowID) by name")
-                } else if let unbound = unboundWindows.first {
-                    hudManager?.bindTable(table.id, toWindow: unbound.windowID)
-                    if unboundWindows.count > 1 {
-                        Log.app.warning("Bound '\(tableName, privacy: .public)' to window \(unbound.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable. Grant Accessibility permission in System Settings → Privacy & Security for reliable multi-table binding.")
-                    } else {
-                        Log.app.debug("Bound new table '\(tableName, privacy: .public)' to only unbound window \(unbound.windowID)")
-                    }
-                }
+                // Bind to the matched window (name-verified, so
+                // we know it's the right one).
+                hudManager?.bindTable(table.id, toWindow: matchedWindow.windowID)
+                Log.app.debug("Bound new table '\(tableName, privacy: .public)' to window \(matchedWindow.windowID) by name")
 
                 hudManager?.showHUD(for: table)
                 Log.app.debug("Auto-created table: \(tableName, privacy: .public) with \(seats.count) players")
