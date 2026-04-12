@@ -53,17 +53,9 @@ class HUDManager {
                 let isOurApp = app == NSRunningApplication.current
 
                 if isPokerStars || isOurApp {
-                    // Re-order each panel above its bound PokerStars
-                    // window (not orderFront which would put ALL panels
-                    // above ALL windows and break stacked-table ordering).
-                    for table in self.trackedTables {
-                        guard let boundID = self.tableWindowBinding[table.id] else { continue }
-                        for seat in table.seatAssignments {
-                            let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-                            guard let panel = self.panels[key] else { continue }
-                            panel.order(.above, relativeTo: Int(boundID))
-                        }
-                    }
+                    // Trigger the reposition pass which shows panels
+                    // for the frontmost table only.
+                    self.repositionAllPanels()
                 } else {
                     for panel in self.panels.values {
                         panel.orderOut(nil)
@@ -236,52 +228,62 @@ class HUDManager {
     private var lastFindWindowLog: [UUID: String] = [:]
 
     private func repositionAllPanels() {
+        // Get ALL PokerStars table windows in front-to-back z-order.
+        // CGWindowListCopyWindowInfo returns them in this order, so
+        // windows[0] is the frontmost table.
+        let allWindows = PokerStarsWindowDetector.findTableWindows()
+        let frontmostWindowID = allWindows.first?.windowID
+
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
 
-            // Get the bound PokerStars window ID so we can order
-            // each HUD panel just above its specific table window,
-            // not above ALL windows. This is what makes stacked
-            // tables work: each table's labels follow that table's
-            // z-order instead of floating above everything.
             let boundID = tableWindowBinding[table.id]
 
-            // Only reposition if the poker window itself moved (not the user dragging HUD panels)
-            let needsReposition: Bool
-            if let lastFrame = lastWindowFrames[table.id] {
-                let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
-                let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
-                let wdw = abs(windowFrame.width - lastFrame.width)
-                let wdh = abs(windowFrame.height - lastFrame.height)
-                needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
-            } else {
-                needsReposition = true
-            }
-
-            if needsReposition {
-                lastWindowFrames[table.id] = windowFrame
-            }
-
-            let tableSize = table.tableSize
+            // Only show panels for the frontmost PokerStars table.
+            // Cross-app window ordering via NSWindow.order(_:relativeTo:)
+            // doesn't work (Apple restricts it to same-app windows),
+            // so the only reliable way to prevent background table
+            // labels from bleeding through onto the front table is
+            // to hide them entirely. When the user clicks a different
+            // table to bring it forward, CGWindowList's ordering
+            // updates and the next 500ms tick swaps which panels are
+            // visible.
+            let isFrontmostTable = (boundID != nil && boundID == frontmostWindowID)
 
             for seat in table.seatAssignments {
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-                guard let panel = panels[key],
-                      let slot = panelSlots[key] else { continue }
+                guard let panel = panels[key] else { continue }
 
-                if needsReposition {
-                    let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
-                        ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
-                    let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
-                    panel.reposition(to: targetPos)
+                if !isFrontmostTable {
+                    panel.orderOut(nil)
+                    continue
                 }
 
-                // Always maintain z-order: place this panel just
-                // above its bound PokerStars window so stacked
-                // tables' labels don't bleed through.
-                if let wid = boundID {
-                    panel.order(.above, relativeTo: Int(wid))
+                // Only reposition if the poker window actually moved
+                let needsReposition: Bool
+                if let lastFrame = lastWindowFrames[table.id] {
+                    let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
+                    let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
+                    let wdw = abs(windowFrame.width - lastFrame.width)
+                    let wdh = abs(windowFrame.height - lastFrame.height)
+                    needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
+                } else {
+                    needsReposition = true
                 }
+
+                if let slot = panelSlots[key] {
+                    if needsReposition {
+                        let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: table.tableSize, slot: slot)
+                            ?? HUDSeatOffsets.defaultOffset(forTableSize: table.tableSize, slot: slot)
+                        let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
+                        panel.reposition(to: targetPos)
+                    }
+                    panel.orderFront(nil)
+                }
+            }
+
+            if isFrontmostTable || lastWindowFrames[table.id] == nil {
+                lastWindowFrames[table.id] = windowFrame
             }
         }
     }
