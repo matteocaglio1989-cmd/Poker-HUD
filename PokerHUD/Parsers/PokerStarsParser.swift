@@ -214,13 +214,24 @@ class PokerStarsParser: HandHistoryParser {
             }
         }
 
-        // Check who went to showdown
+        // Check who went to showdown and extract their shown hole cards.
+        // "Dealt to" above only captures the hero's cards; the opponents'
+        // cards are only revealed in "shows" lines at showdown. Without
+        // this, the replayer's PokerTableView has no cards to display for
+        // villains at the showdown step.
         var showdownPlayers = Set<String>()
         if let showdownIndex = lines.firstIndex(where: { $0.hasPrefix("*** SHOW DOWN ***") }) {
             for line in lines[showdownIndex...] {
                 if line.contains(": shows ") {
                     if let username = line.components(separatedBy: ": shows ").first {
                         showdownPlayers.insert(username)
+                        // Extract shown cards: "LUCABUDI: shows [8h Qc] (two pair, ...)"
+                        if holeCards[username] == nil,
+                           let bracketStart = line.firstIndex(of: "["),
+                           let bracketEnd = line.firstIndex(of: "]") {
+                            let cardsStr = String(line[line.index(after: bracketStart)..<bracketEnd])
+                            holeCards[username] = cardsStr
+                        }
                     }
                 }
             }
