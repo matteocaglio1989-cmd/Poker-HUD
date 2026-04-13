@@ -17,7 +17,7 @@
 // against Apple's root certificate (AppleRootCA-G3.cer) using a library such
 // as `x509` or the `App Store Server Library` for Node/Deno.
 
-const APPLE_BUNDLE_ID = "com.pokerhud.app";
+const APPLE_BUNDLE_ID = "com.pokereye.pokerhud";
 
 export interface JWSHeader {
     alg: string;
