@@ -142,24 +142,6 @@ struct SettingsView: View {
                     clearAllData()
                 }
             }
-
-            Section("About") {
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text("2.0.0 (Phase 2)")
-                        .foregroundColor(.secondary)
-                }
-
-                HStack {
-                    Text("Build")
-                    Spacer()
-                    Text("HUD Overlay Release")
-                        .foregroundColor(.secondary)
-                }
-
-                Link("GitHub Repository", destination: URL(string: "https://github.com/matteocaglio1989-cmd/Poker-HUD")!)
-            }
         }
         .formStyle(.grouped)
         .frame(maxWidth: 600)
