@@ -61,7 +61,44 @@ struct PokerStarsWindowDetector {
             ))
         }
 
-        return enrichWithAXTitles(results)
+        return enrichWithAXTitles(results).filter { !isLobbyLikeWindow($0) }
+    }
+
+    /// Returns true if the detected window looks like a PokerStars non-table
+    /// window (currently just the main Lobby and tournament/SNG lobbies)
+    /// that must be excluded from the HUD binding candidate list.
+    ///
+    /// Without this filter the Lobby window (~1280×768 on macOS) passes the
+    /// 600×400 size floor and becomes eligible for the exclusion fallback in
+    /// `HUDManager.findWindowFrame` / `AppState.autoManageTables`, which
+    /// then happily binds a real DB table to it and renders HUD panels on
+    /// top of the lobby. The user reported exactly this symptom with a
+    /// screenshot showing 5 player panels rendered over "PokerStars Lobby -
+    /// Last Login: …".
+    ///
+    /// Implementation: substring match on "Lobby" (case-insensitive). The
+    /// PokerStars macOS lobby title is always of the form "PokerStars
+    /// Lobby - Last Login: <timestamp>" regardless of the client's locale
+    /// (verified against the Italian client). Real cash-game table names
+    /// are never composed with the word "Lobby" — they're things like
+    /// "Fidelio V", "Aruna V", "Celbalrai V" — so the false-positive risk
+    /// is effectively zero.
+    ///
+    /// Title-less fallback: when neither Screen Recording nor Accessibility
+    /// is granted, `windowName` is empty and we can't distinguish the lobby
+    /// from a table without resorting to brittle size heuristics. In that
+    /// case we keep the window (pre-PR status quo) and rely on the user
+    /// having granted at least one permission. The `[HUD][diag]` log
+    /// already prints `axGranted=false` + `<no-title>` when this happens,
+    /// so the diagnostic trail exists.
+    private static func isLobbyLikeWindow(_ window: DetectedPokerWindow) -> Bool {
+        guard !window.windowName.isEmpty else { return false }
+        if window.windowName.localizedCaseInsensitiveContains("Lobby") {
+            let namePrefix = String(window.windowName.prefix(60))
+            Log.ax.debug("Excluding lobby window \(window.windowID): '\(namePrefix, privacy: .public)'")
+            return true
+        }
+        return false
     }
 
     /// If any of the detected windows have an empty `windowName` — which
@@ -190,15 +227,19 @@ extension PokerStarsWindowDetector {
         }
     }
 
-    /// Prompt user to grant Screen Recording permission
+    /// Prompt the user to grant Screen Recording permission. Returns true
+    /// if permission is already granted (no prompt is shown). On the first
+    /// call when not yet granted, macOS shows the standard "Allow Screen
+    /// Recording" dialog and returns false; the user then has to act in
+    /// System Settings, so a relaunch is required to pick up the change.
+    ///
+    /// Replaces the previous `CGWindowListCreateImage(1×1)` side-effect
+    /// trick, which was deprecated in macOS 14. `CGRequestScreenCaptureAccess`
+    /// is the canonical modern API for triggering this prompt and is
+    /// available since macOS 11 — well below our deployment target.
     @discardableResult
-    static func requestScreenRecordingPermission() -> CGImage? {
-        CGWindowListCreateImage(
-            CGRect(x: 0, y: 0, width: 1, height: 1),
-            .optionOnScreenOnly,
-            kCGNullWindowID,
-            .bestResolution
-        )
+    static func requestScreenRecordingPermission() -> Bool {
+        CGRequestScreenCaptureAccess()
     }
 }
 

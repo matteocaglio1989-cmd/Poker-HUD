@@ -52,6 +52,18 @@ class PlayerRepository {
         }
     }
 
+    /// Bulk fetch by primary key. Used by `HandDetailView` so it can resolve
+    /// every seat's `playerId` to a username in a single round-trip instead
+    /// of N separate `fetchById` calls.
+    func fetchByIds(_ ids: [Int64]) throws -> [Player] {
+        guard !ids.isEmpty else { return [] }
+        return try dbManager.reader.read { db in
+            try Player
+                .filter(ids.contains(Player.Columns.id))
+                .fetchAll(db)
+        }
+    }
+
     func fetchByUsername(_ username: String, siteId: Int64? = nil) throws -> Player? {
         try dbManager.reader.read { db in
             if let siteId = siteId {
@@ -113,7 +125,9 @@ class PlayerRepository {
 
     func delete(_ player: Player) throws {
         try dbManager.writer.write { db in
-            try player.delete(db)
+            // Discard the Bool "did delete" flag — see HandRepository.delete
+            // for why this is `_ =` rather than a bare `try`.
+            _ = try player.delete(db)
         }
     }
 
@@ -131,6 +145,23 @@ class PlayerRepository {
                 .filter(PlayerNote.Columns.playerId == playerId)
                 .order(PlayerNote.Columns.createdAt.desc)
                 .fetchAll(db)
+        }
+    }
+
+    /// Phase 4 PR3: persist edits to an existing note. Bumps `updatedAt`
+    /// to "now" so the editor sheet can show "edited just now" if needed.
+    func updateNote(_ note: PlayerNote) throws {
+        var copy = note
+        copy.updatedAt = Date()
+        try dbManager.writer.write { db in
+            try copy.update(db)
+        }
+    }
+
+    /// Phase 4 PR3: delete a single note row by id.
+    func deleteNote(id: Int64) throws {
+        try dbManager.writer.write { db in
+            _ = try PlayerNote.deleteOne(db, key: id)
         }
     }
 

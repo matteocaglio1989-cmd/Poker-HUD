@@ -4,7 +4,13 @@ import Supabase
 /// Thin wrapper around the Supabase client for subscription and trial-usage
 /// persistence. All methods assume the caller is already authenticated — if
 /// the JWT is missing/expired Supabase will return an error that propagates.
-@MainActor
+///
+/// Intentionally not `@MainActor`: every method is `async` and only touches
+/// the Supabase client, which is itself thread-safe. Keeping the repo
+/// nonisolated lets `SubscriptionManager` and `UsageTracker` use it as a
+/// default initializer parameter (Swift 6 evaluates default parameter
+/// expressions in a nonisolated context, so a `@MainActor` repo there
+/// failed to compile).
 struct SubscriptionRepository {
     private let client: SupabaseClient
 
@@ -38,47 +44,102 @@ struct SubscriptionRepository {
 
     // MARK: - Trial usage
 
+    /// Shape of a row in `public.user_usage`. Both the legacy
+    /// `total_trial_seconds` counter (3-hour wall-clock policy) and the
+    /// new `hands_imported` counter (100-hand policy, migration 0002)
+    /// are kept here so the client can tolerate a pre-migration DB
+    /// during rollout. `handsImported` is the only field the trial
+    /// entitlement reads today.
     struct UsageRow: Codable {
-        let totalTrialSeconds: Int
+        let handsImported: Int
         let trialStartedAt: Date
 
         enum CodingKeys: String, CodingKey {
-            case totalTrialSeconds = "total_trial_seconds"
-            case trialStartedAt    = "trial_started_at"
+            case handsImported  = "hands_imported"
+            case trialStartedAt = "trial_started_at"
         }
     }
 
-    /// Fetch the cumulative trial seconds for the current user, creating the
-    /// row on first call.
+    /// Fetch the cumulative imported-hand count for the current user,
+    /// creating the row on first call. Selects `hands_imported` from
+    /// the column added in migration 0002.
+    ///
+    /// **Rollout tolerance**: if the client is running against a
+    /// Supabase project where migration 0002 has not yet been applied,
+    /// PostgREST returns `42703` ("column user_usage.hands_imported
+    /// does not exist") on both the SELECT and the INSERT path. Rather
+    /// than propagating that error (which would make
+    /// `SubscriptionManager.refreshEntitlement` fail closed to
+    /// `.expired` and strand the user on the paywall through no fault
+    /// of their own), we catch the specific missing-column code and
+    /// return a synthetic fresh-trial row with `handsImported = 0`.
+    /// Once the migration is applied, the real row takes over on the
+    /// next refresh.
     func fetchUsage() async throws -> UsageRow {
-        if let existing: UsageRow = try? await client
-            .from("user_usage")
-            .select("total_trial_seconds, trial_started_at")
-            .single()
-            .execute()
-            .value {
+        do {
+            let existing: UsageRow = try await client
+                .from("user_usage")
+                .select("hands_imported, trial_started_at")
+                .single()
+                .execute()
+                .value
             return existing
+        } catch {
+            if Self.isMissingColumnError(error) {
+                return Self.syntheticFreshTrialRow()
+            }
+            // Fall through to the insert path for any other error —
+            // most commonly "no rows" (PGRST116) on first use, which is
+            // the exact case we want the insert to handle.
         }
 
         // First call for this user — insert a default row. We rely on RLS to
         // key the insert on auth.uid(); the DB defaults fill in the rest.
-        struct InsertRow: Encodable { let total_trial_seconds: Int }
-        let inserted: UsageRow = try await client
-            .from("user_usage")
-            .insert(InsertRow(total_trial_seconds: 0))
-            .select("total_trial_seconds, trial_started_at")
-            .single()
-            .execute()
-            .value
-        return inserted
+        struct InsertRow: Encodable { let hands_imported: Int }
+        do {
+            let inserted: UsageRow = try await client
+                .from("user_usage")
+                .insert(InsertRow(hands_imported: 0))
+                .select("hands_imported, trial_started_at")
+                .single()
+                .execute()
+                .value
+            return inserted
+        } catch {
+            if Self.isMissingColumnError(error) {
+                return Self.syntheticFreshTrialRow()
+            }
+            throw error
+        }
     }
 
-    /// Atomically increment the current user's trial counter by `delta`
-    /// seconds via the `add_usage_seconds` SECURITY DEFINER RPC.
-    func addUsageSeconds(_ delta: Int) async throws -> UsageRow {
+    /// Matches the PostgREST `42703` ("undefined column") error. The
+    /// Supabase Swift SDK surfaces this as a `PostgrestError` whose
+    /// String representation contains both the code and the column
+    /// name, so we check for both — either marker is sufficient.
+    /// Matching on two markers means we don't have to pin a specific
+    /// SDK error type (the struct has moved between SDK versions).
+    private static func isMissingColumnError(_ error: Error) -> Bool {
+        let description = "\(error)".lowercased()
+        return description.contains("42703")
+            || description.contains("hands_imported")
+    }
+
+    /// Synthetic "fresh trial" row returned when the migration hasn't
+    /// landed yet. Gives the user a brand-new 100-hand allowance via
+    /// the normal `TrialPolicy.totalHands - usage.handsImported` path
+    /// in `SubscriptionManager.refreshEntitlement`.
+    private static func syntheticFreshTrialRow() -> UsageRow {
+        UsageRow(handsImported: 0, trialStartedAt: Date())
+    }
+
+    /// Atomically increment the current user's imported-hand counter
+    /// by `delta` via the `add_imported_hands` SECURITY DEFINER RPC
+    /// (migration 0002).
+    func addImportedHands(_ delta: Int) async throws -> UsageRow {
         struct Params: Encodable { let delta: Int }
         let updated: UsageRow = try await client
-            .rpc("add_usage_seconds", params: Params(delta: delta))
+            .rpc("add_imported_hands", params: Params(delta: delta))
             .single()
             .execute()
             .value
