@@ -155,24 +155,6 @@ struct PaywallView: View {
             .controlSize(.large)
             .padding(.top, 4)
 
-            #if DEBUG
-            // Dev-only escape hatch: Xcode's StoreKit Testing harness
-            // doesn't reliably activate for SPM executable targets, so
-            // Product.products(for:) keeps failing with networkError in
-            // our dev setup. This button lets developers bypass the
-            // paywall and exercise the post-purchase flows anyway. The
-            // bypass is persisted across relaunches via UserDefaults.
-            // Compiled out of release builds entirely.
-            Button {
-                appState.subscriptionManager.devGrantSubscription(days: 30)
-            } label: {
-                Text("Dev: Grant 30-day test subscription")
-                    .frame(maxWidth: 280)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .padding(.top, 2)
-            #endif
         }
         .padding(24)
         .frame(maxWidth: 520)

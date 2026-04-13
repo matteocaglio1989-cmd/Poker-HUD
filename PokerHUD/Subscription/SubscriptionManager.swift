@@ -83,30 +83,8 @@ final class SubscriptionManager: ObservableObject {
         }
     }
 
-    #if DEBUG
-    /// UserDefaults key used to persist a dev-only paywall bypass across
-    /// relaunches. Set by `devGrantSubscription(days:)` and consulted at the
-    /// top of `refreshEntitlement()`. Stripped from release builds by the
-    /// compile-time `#if DEBUG` gate.
-    private static let devBypassUntilDateKey = "dev.subscription.bypass.untilDate"
-    #endif
-
     /// Recompute `entitlement` from Supabase + StoreKit + trial usage.
     func refreshEntitlement() async {
-        #if DEBUG
-        // Dev-only bypass: if a debug developer has clicked "Dev: Grant 30-day
-        // test subscription" on the paywall's error card, short-circuit to
-        // `.active` until that stored date passes. Lets the app be used
-        // end-to-end without fighting Xcode's SPM-executable StoreKit Testing
-        // harness activation. Guarded by #if DEBUG so it's never compiled
-        // into release builds.
-        if let until = UserDefaults.standard.object(forKey: Self.devBypassUntilDateKey) as? Date,
-           until > Date() {
-            self.entitlement = .active(plan: .monthly, expiresAt: until)
-            return
-        }
-        #endif
-
         // Step 1: Supabase source of truth.
         if let record = try? await repo.fetchSubscription(), record.isActive,
            let plan = SubscriptionProductIDs.plan(for: record.productId) {
@@ -139,17 +117,22 @@ final class SubscriptionManager: ObservableObject {
             }
         }
 
-        // Step 3: Fall back to the custom trial counter. The trial is
-        // 100 imported hands (migration 0002) — see TrialPolicy.
-        do {
-            let usage = try await repo.fetchUsage()
-            let remaining = TrialPolicy.totalHands - usage.handsImported
-            self.entitlement = remaining > 0 ? .trial(remainingHands: remaining) : .expired
-        } catch {
-            Log.subscription.error("fetchUsage failed: \(error.localizedDescription, privacy: .public)")
-            // Fail closed: don't silently grant access if we can't read usage.
-            self.entitlement = .expired
+        // Step 3: Trial counter. Uses the LOCAL UserDefaults counter
+        // as the primary source of truth (always available, no network
+        // dependency). Falls back to Supabase only if the local counter
+        // is 0 AND Supabase has a higher value (multi-device sync).
+        let localImported = UsageTracker.localHandsImported
+        var imported = localImported
+
+        // Best-effort check: if Supabase has a higher count (e.g.
+        // from another device), use that instead.
+        if let usage = try? await repo.fetchUsage(),
+           usage.handsImported > imported {
+            imported = usage.handsImported
         }
+
+        let remaining = TrialPolicy.totalHands - imported
+        self.entitlement = remaining > 0 ? .trial(remainingHands: remaining) : .expired
     }
 
     /// Reset in-memory state on sign-out so the next user starts clean.
@@ -159,24 +142,6 @@ final class SubscriptionManager: ObservableObject {
         isPurchasing = false
     }
 
-    #if DEBUG
-    /// Dev-only override: grants a synthetic `.active` entitlement for
-    /// `days` days and persists the expiry to `UserDefaults` so the bypass
-    /// survives app relaunches. Exposed on the paywall's error card via a
-    /// `#if DEBUG`-gated button so developers can exercise the post-purchase
-    /// code paths without having to first solve Xcode's SPM-executable
-    /// StoreKit Testing harness activation (which won't reliably load the
-    /// local .storekit file in this project layout).
-    ///
-    /// Release builds strip this method entirely via the `#if DEBUG` gate —
-    /// there is no way to call it from a production binary.
-    func devGrantSubscription(days: Int = 30) {
-        let until = Date().addingTimeInterval(TimeInterval(days) * 86_400)
-        UserDefaults.standard.set(until, forKey: Self.devBypassUntilDateKey)
-        self.entitlement = .active(plan: .monthly, expiresAt: until)
-        Log.subscription.debug("DEV bypass active until \(until, privacy: .public)")
-    }
-    #endif
 
     // MARK: - Purchase
 

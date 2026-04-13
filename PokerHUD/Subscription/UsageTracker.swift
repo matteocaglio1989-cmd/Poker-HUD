@@ -1,20 +1,23 @@
 import Foundation
 
-/// Flushes freshly-imported hand counts to Supabase while the user is on
-/// the custom free trial, then asks `SubscriptionManager` to re-resolve
-/// the entitlement so the UI updates (and the paywall appears the moment
-/// the counter hits the 100-hand cap in `TrialPolicy.totalHands`).
+/// Tracks imported-hand counts for the free trial. Uses a LOCAL
+/// UserDefaults counter as the primary mechanism (reliable, no
+/// network dependency) and optionally syncs to Supabase as a
+/// secondary record.
 ///
-/// The old implementation accumulated wall-clock seconds from a 1 Hz
-/// timer; that was replaced by the 100-hand policy (migration 0002) and
-/// the tracker is now entirely event-driven — it only fires when
-/// `AppState` reports a successful import. Start/stop no longer manage
-/// any resources, but they're kept as no-ops so the AppState auth
-/// lifecycle hooks don't need to change shape.
+/// The old implementation relied entirely on a Supabase RPC
+/// (`add_imported_hands`) which silently failed when the migration
+/// wasn't applied, leaving the trial counter stuck at 100 forever.
+/// The local counter fixes this: every successful import increments
+/// a UserDefaults integer, and `SubscriptionManager.refreshEntitlement`
+/// reads it directly — no network round-trip needed.
 @MainActor
 final class UsageTracker {
     private let repo: SubscriptionRepository
     private weak var subscriptionManager: SubscriptionManager?
+
+    /// UserDefaults key for the local imported-hands counter.
+    private static let localHandsKey = "trial.handsImported"
 
     init(
         subscriptionManager: SubscriptionManager,
@@ -26,35 +29,44 @@ final class UsageTracker {
 
     // MARK: - Public API
 
-    /// Kept for call-site compatibility with the old timer-based
-    /// tracker. No resources to allocate any more.
     func start() {}
-
-    /// Kept for call-site compatibility with the old timer-based
-    /// tracker. No resources to release any more.
     func stop() {}
 
-    /// Record that `count` new hands were just imported. Only has an
-    /// effect while the current entitlement is `.trial` — if the user
-    /// is already on an active subscription or the trial has expired,
-    /// this is a no-op so we don't burn RPC quota or confuse the UI.
+    /// Record that `count` new hands were just imported.
     ///
-    /// After the RPC succeeds, asks `SubscriptionManager` to refresh
-    /// the entitlement so the banner countdown updates live and the
-    /// paywall appears the moment the counter reaches the 100-hand cap.
+    /// Always increments the local UserDefaults counter (regardless
+    /// of entitlement state — even if the user is subscribed, we
+    /// track in case they cancel later). Then refreshes the
+    /// entitlement so the sidebar banner updates live.
     func recordHandsImported(_ count: Int) {
         guard count > 0 else { return }
+
+        // Always increment the local counter — it's the source of
+        // truth for the trial. Cheap, no network, no failure mode.
+        let current = UserDefaults.standard.integer(forKey: Self.localHandsKey)
+        UserDefaults.standard.set(current + count, forKey: Self.localHandsKey)
+
+        // Only refresh entitlement if on trial (avoid unnecessary
+        // Supabase calls for subscribers).
         guard subscriptionManager?.entitlement.isTrial == true else { return }
 
+        // Best-effort sync to Supabase (for multi-device tracking).
+        // If it fails, the local counter is still correct.
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
                 _ = try await self.repo.addImportedHands(count)
             } catch {
-                Log.subscription.error("addImportedHands failed: \(error.localizedDescription, privacy: .public)")
-                return
+                Log.subscription.error("addImportedHands (Supabase) failed: \(error.localizedDescription, privacy: .public) — local counter is still accurate")
             }
             await self.subscriptionManager?.refreshEntitlement()
         }
+    }
+
+    /// Read the local imported-hands count. Used by
+    /// `SubscriptionManager.refreshEntitlement` as the primary
+    /// source of truth for the trial counter.
+    static var localHandsImported: Int {
+        UserDefaults.standard.integer(forKey: localHandsKey)
     }
 }
