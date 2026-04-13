@@ -29,9 +29,21 @@ class HUDManager {
     /// focus and shows them when it regains focus. Without this, the
     /// floating panels would stay on top of every other app's windows.
     private var appActivationObserver: NSObjectProtocol?
+    /// Tracks whether PokerStars (or our app) is the frontmost app.
+    /// The 500ms reposition timer checks this flag before calling
+    /// `orderFront` on any panel — without it, the timer would
+    /// immediately undo the activation observer's `orderOut`, making
+    /// the labels pop back up over other apps within half a second.
+    private var pokerStarsIsActive: Bool = false
 
     init(configuration: HUDConfiguration = .standard) {
         self.configuration = configuration
+        // Check initial state — PokerStars might already be frontmost
+        // at launch.
+        if let frontApp = NSWorkspace.shared.frontmostApplication {
+            pokerStarsIsActive = frontApp.localizedName?.contains("PokerStars") == true
+                || frontApp == NSRunningApplication.current
+        }
         startAppActivationObserver()
     }
 
@@ -52,9 +64,9 @@ class HUDManager {
                 let isPokerStars = app.localizedName?.contains("PokerStars") == true
                 let isOurApp = app == NSRunningApplication.current
 
-                if isPokerStars || isOurApp {
-                    // Trigger the reposition pass which shows panels
-                    // for the frontmost table only.
+                self.pokerStarsIsActive = isPokerStars || isOurApp
+
+                if self.pokerStarsIsActive {
                     self.repositionAllPanels()
                 } else {
                     for panel in self.panels.values {
@@ -228,10 +240,15 @@ class HUDManager {
     private var lastFindWindowLog: [UUID: String] = [:]
 
     private func repositionAllPanels() {
+        // If PokerStars isn't the active app, don't touch panels at
+        // all — the activation observer already hid them. Without
+        // this early return, the orderFront(nil) below would undo
+        // the hide within 500ms, making labels pop back up over
+        // whatever app the user switched to.
+        guard pokerStarsIsActive else { return }
+
         let layoutMode = TableLayoutMode.load()
 
-        // In stacked mode, only show panels for the frontmost table.
-        // In side-by-side mode, show panels for all tables.
         let allWindows = PokerStarsWindowDetector.findTableWindows()
         let frontmostWindowID = allWindows.first?.windowID
 
@@ -240,7 +257,6 @@ class HUDManager {
 
             let boundID = tableWindowBinding[table.id]
 
-            // Decide whether this table's panels should be visible
             let shouldShow: Bool
             switch layoutMode {
             case .stacked:
