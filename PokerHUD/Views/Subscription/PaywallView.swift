@@ -134,7 +134,7 @@ struct PaywallView: View {
     private var legalRow: some View {
         HStack(spacing: 24) {
             Link("Terms of Use", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-            Link("Privacy Policy", destination: URL(string: "https://github.com/matteocaglio1989-cmd/Poker-HUD#privacy")!)
+            Link("Privacy Policy", destination: URL(string: "https://github.com/matteocaglio1989-cmd/Poker-HUD/blob/main/PRIVACY.md")!)
         }
         .font(.caption)
         .foregroundStyle(.secondary)
