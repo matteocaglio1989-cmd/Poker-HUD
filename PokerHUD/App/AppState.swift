@@ -40,47 +40,6 @@ class AppState: ObservableObject {
     private var subscriptionCancellable: AnyCancellable?
     private var didRunPostAuthSetup: Bool = false
 
-    /// IDs of tables added by `autoManageTables` (i.e. derived from imported
-    /// hand histories). These are eligible for automatic pruning when their
-    /// PokerStars window closes. Tables added manually via TableSetupView's
-    /// "Add Table" button are **not** in this set and are never auto-pruned.
-    private var autoCreatedTableIDs: Set<UUID> = []
-
-    /// URL of the hand-history directory currently being accessed via a
-    /// security-scoped bookmark, or `nil` if the file watcher isn't
-    /// running. Retained so `stopFileWatcher()` can call
-    /// `stopAccessingSecurityScopedResource()` on the same URL that
-    /// `startAccessingSecurityScopedResource()` was called on — calling
-    /// stop on a different URL is a no-op.
-    private var activeScopedHandHistoryURL: URL?
-
-    /// UserDefaults key holding the security-scoped bookmark `Data` for
-    /// the hand-history directory. Under App Sandbox the raw path stored
-    /// in `handHistoryPath` is not re-openable across launches; the
-    /// bookmark is the only way to restore access.
-    private static let handHistoryBookmarkKey = "handHistoryBookmark"
-
-    /// Legacy key that used to hold a plain path string. Still written
-    /// for display purposes (the Dashboard's auto-import strip shows the
-    /// folder path), and consumed as a fallback on first launch after
-    /// the App Sandbox migration so users with a pre-sandbox install
-    /// get a single "please re-pick your folder" prompt instead of a
-    /// silent permission denial.
-    private static let handHistoryPathKey = "handHistoryPath"
-
-    /// Set to `true` after `onAuthenticated` detects a legacy
-    /// `handHistoryPath` without a matching bookmark. Consumed by
-    /// `SettingsView` / `TableSetupView` to show a "please re-pick
-    /// your folder" banner. Resets to `false` once the user completes
-    /// a fresh `pickHandHistoryDirectory()`.
-    @Published var needsHandHistoryDirectoryReselection: Bool = false
-
-    /// Periodic sweep that calls `pruneClosedTables()` every 30s. Covers the
-    /// case where the user closes all tables and stops playing so no more
-    /// file-watcher events fire to piggyback on. Started in `onAuthenticated`
-    /// and stopped in `onSignedOut`.
-    private var pruneTimer: Timer?
-
     init() {
         self.databaseManager = DatabaseManager.shared
         self.statsCalculator = StatsCalculator(databaseManager: databaseManager)
@@ -165,79 +124,28 @@ class AppState: ObservableObject {
             await self.subscriptionManager.loadProducts()
             await self.subscriptionManager.refreshEntitlement()
             self.usageTracker.start()
-            self.startPruneTimer()
 
             // Only auto-start the file watcher if the user actually has
             // access (trial with time remaining or active subscription).
-            // Unsubscribed users will hit the paywall instead, and we
-            // don't want background imports happening behind it.
-            guard self.subscriptionManager.entitlement.grantsAccess else { return }
-            self.restoreHandHistoryDirectoryFromBookmark()
-        }
-    }
-
-    /// Try to resolve the saved security-scoped bookmark and restart the
-    /// file watcher against it. Called from `onAuthenticated` on every
-    /// launch. If the bookmark is missing or stale, falls back to either
-    /// the legacy raw-path UserDefaults key (sets
-    /// `needsHandHistoryDirectoryReselection` so the UI can prompt) or a
-    /// clean "no folder picked yet" state.
-    private func restoreHandHistoryDirectoryFromBookmark() {
-        let defaults = UserDefaults.standard
-
-        if let bookmark = defaults.data(forKey: Self.handHistoryBookmarkKey) {
-            var isStale = false
-            do {
-                let url = try URL(
-                    resolvingBookmarkData: bookmark,
-                    options: .withSecurityScope,
-                    relativeTo: nil,
-                    bookmarkDataIsStale: &isStale
-                )
-                if isStale {
-                    // macOS asks us to refresh the bookmark — easiest
-                    // path is to re-pick. Flag the UI and bail out.
-                    Log.app.warning("Hand-history bookmark is stale; prompting for re-pick")
-                    defaults.removeObject(forKey: Self.handHistoryBookmarkKey)
-                    needsHandHistoryDirectoryReselection = true
-                    return
+            // Unsubscribed users will hit the paywall instead, and we don't
+            // want background imports happening behind it.
+            if self.subscriptionManager.entitlement.grantsAccess,
+               let savedPath = UserDefaults.standard.string(forKey: "handHistoryPath") {
+                let url = URL(fileURLWithPath: savedPath)
+                if FileManager.default.fileExists(atPath: savedPath) {
+                    self.startFileWatcher(directory: url)
+                } else {
+                    self.handHistoryPath = savedPath
                 }
-                guard url.startAccessingSecurityScopedResource() else {
-                    Log.app.error("startAccessingSecurityScopedResource() returned false for saved bookmark")
-                    needsHandHistoryDirectoryReselection = true
-                    return
-                }
-                // Hold the access open for the lifetime of the watcher;
-                // `stopFileWatcher` calls stopAccessing on this URL.
-                activeScopedHandHistoryURL = url
-                handHistoryPath = url.path
-                startFileWatcherInternal(directory: url)
-                return
-            } catch {
-                Log.app.error("Failed to resolve hand-history bookmark: \(error.localizedDescription, privacy: .public)")
-                defaults.removeObject(forKey: Self.handHistoryBookmarkKey)
-                needsHandHistoryDirectoryReselection = true
-                return
             }
-        }
-
-        // No bookmark — check for the legacy raw-path key and prompt
-        // the user to re-pick if it exists. Under App Sandbox the raw
-        // path is non-accessible without a fresh NSOpenPanel grant.
-        if let legacyPath = defaults.string(forKey: Self.handHistoryPathKey), !legacyPath.isEmpty {
-            handHistoryPath = legacyPath
-            needsHandHistoryDirectoryReselection = true
-            Log.app.debug("Legacy handHistoryPath present but no bookmark — asking user to re-pick")
         }
     }
 
     /// Tear down user-scoped state when the user signs out.
     private func onSignedOut() {
         stopFileWatcher()
-        stopPruneTimer()
         hideAllHUDs()
         managedTables.removeAll()
-        autoCreatedTableIDs.removeAll()
         autoImportLog.removeAll()
         handHistoryPath = nil
         usageTracker.stop()
@@ -267,14 +175,11 @@ class AppState: ObservableObject {
             }
         }
 
-        let result = try await importEngine.importFiles(urls) { progress in
+        return try await importEngine.importFiles(urls) { progress in
             Task { @MainActor in
                 self.importProgress = progress
             }
         }
-        // Tick down the 100-hand free trial (no-op if already subscribed).
-        usageTracker.recordHandsImported(result.handsImported)
-        return result
     }
 
     // MARK: - Phase 2 HUD Management
@@ -291,86 +196,6 @@ class AppState: ObservableObject {
             hudManager?.hideHUD(for: table)
         }
         managedTables.removeAll { $0.id == id }
-        // Drop the auto-created marker too so a manual deletion doesn't
-        // leak into the prune set (and so re-adding a table with the same
-        // id after a manual delete starts fresh).
-        autoCreatedTableIDs.remove(id)
-    }
-
-    // MARK: - Auto-prune closed tables
-
-    /// Remove auto-created tables whose PokerStars window is no longer
-    /// open. The user doesn't want stale rows lingering in HUD Setup after
-    /// they close a table — this runs on every file-watcher event and on
-    /// a 30s periodic timer.
-    ///
-    /// "Closed" means neither of these signals fires for the table:
-    ///
-    ///   1. A current PokerStars window's title contains the table name
-    ///      (strong signal, requires Screen Recording or Accessibility)
-    ///   2. The cached binding's windowID is still in the live window list
-    ///      (title-less fallback; if no binding exists yet the table is
-    ///      treated as newborn-alive to avoid pruning before its first
-    ///      reposition tick)
-    ///
-    /// Manually-added tables (not in `autoCreatedTableIDs`) are skipped —
-    /// users expect those to persist until they explicitly delete them.
-    private func pruneClosedTables() {
-        guard hudEnabled else { return }
-        let windows = PokerStarsWindowDetector.findTableWindows()
-        let liveWindowIDs = Set(windows.map { $0.windowID })
-        // When there's no PokerStars running at all, every auto-created
-        // table is stale (possibly imported from a leftover hand history
-        // file with no live table) and should be pruned regardless of
-        // the binding cache state. The "no binding → newborn, don't
-        // prune" escape below is only sensible when SOME PokerStars
-        // windows exist — otherwise there's nothing to be newborn
-        // against.
-        let noWindowsAtAll = windows.isEmpty
-
-        let toRemove: [UUID] = managedTables.compactMap { table in
-            guard autoCreatedTableIDs.contains(table.id) else { return nil }
-
-            // Signal 1: a live window's title still matches this table.
-            if windows.contains(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
-                return nil
-            }
-
-            // Signal 2: cached binding points at a live windowID.
-            if let boundID = hudManager?.boundWindowID(for: table.id) {
-                if liveWindowIDs.contains(boundID) {
-                    return nil
-                }
-            } else if !noWindowsAtAll {
-                // Some PokerStars windows exist but this table hasn't
-                // been bound yet — newborn, give it a chance.
-                return nil
-            }
-
-            // Neither signal fired (or there's nothing running at all) —
-            // table is closed.
-            return table.id
-        }
-
-        for id in toRemove {
-            let name = managedTables.first(where: { $0.id == id })?.tableName ?? "?"
-            Log.app.debug("Auto-pruning closed table '\(name, privacy: .public)' (id=\(id, privacy: .public))")
-            removeTable(id: id)
-        }
-    }
-
-    private func startPruneTimer() {
-        pruneTimer?.invalidate()
-        pruneTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.pruneClosedTables()
-            }
-        }
-    }
-
-    private func stopPruneTimer() {
-        pruneTimer?.invalidate()
-        pruneTimer = nil
     }
 
     /// Show HUD panels for a table
@@ -395,47 +220,8 @@ class AppState: ObservableObject {
 
     // MARK: - File Watcher
 
-    /// Public entry point for starting the file watcher on a freshly-
-    /// picked URL (typically from `NSOpenPanel`). Captures a security-
-    /// scoped bookmark and persists it to UserDefaults so the directory
-    /// survives across app relaunches under App Sandbox.
-    ///
-    /// Under sandbox, the URL returned by NSOpenPanel already has
-    /// security scope active for the current session, so we do NOT
-    /// call `startAccessingSecurityScopedResource()` here — we just
-    /// capture the bookmark and hand off to the internal starter. On
-    /// subsequent launches, `restoreHandHistoryDirectoryFromBookmark`
-    /// calls `startAccessingSecurityScopedResource()` before restarting
-    /// the watcher.
+    /// Start watching a directory for new hand history files
     func startFileWatcher(directory: URL) {
-        // Capture the security-scoped bookmark for future launches.
-        // `.withSecurityScope` makes the bookmark usable across app
-        // restarts under App Sandbox.
-        do {
-            let bookmark = try directory.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
-            UserDefaults.standard.set(bookmark, forKey: Self.handHistoryBookmarkKey)
-            activeScopedHandHistoryURL = directory
-        } catch {
-            // If bookmark capture fails (e.g. outside sandbox, or some
-            // filesystem oddity), continue without it — the watcher
-            // still works for the current session, it just won't
-            // survive a relaunch. Log loudly so we can diagnose.
-            Log.app.error("Failed to capture security-scoped bookmark for hand history dir: \(error.localizedDescription, privacy: .public)")
-        }
-
-        needsHandHistoryDirectoryReselection = false
-        startFileWatcherInternal(directory: directory)
-    }
-
-    /// Internal watcher starter, shared between the fresh-pick path
-    /// (`startFileWatcher(directory:)`) and the cold-launch restore
-    /// path (`restoreHandHistoryDirectoryFromBookmark`). Does not
-    /// touch the security scope — callers are responsible for that.
-    private func startFileWatcherInternal(directory: URL) {
         fileWatcher = FileWatcher()
 
         fileWatcherCancellable = fileWatcher?.fileChanged
@@ -449,27 +235,15 @@ class AppState: ObservableObject {
         fileWatcher?.startWatching(directory: directory)
         isFileWatcherActive = true
         handHistoryPath = directory.path
-        // Keep the legacy raw-path key in sync for display purposes
-        // (the Dashboard's auto-import strip reads it). Bookmarks are
-        // the source of truth for sandbox access; the raw path is
-        // cosmetic.
-        UserDefaults.standard.set(directory.path, forKey: Self.handHistoryPathKey)
+        UserDefaults.standard.set(directory.path, forKey: "handHistoryPath")
     }
 
-    /// Stop the file watcher and release the security-scoped access.
+    /// Stop the file watcher
     func stopFileWatcher() {
         fileWatcherCancellable?.cancel()
         fileWatcher?.stopWatching()
         fileWatcher = nil
         isFileWatcherActive = false
-
-        // Release the security-scoped access so the sandbox doesn't
-        // leak an open file handle. Safe to call on a URL that never
-        // had startAccessing called — it's a no-op in that case.
-        if let url = activeScopedHandHistoryURL {
-            url.stopAccessingSecurityScopedResource()
-            activeScopedHandHistoryURL = nil
-        }
     }
 
     /// Pick a hand history directory via open panel
@@ -481,10 +255,6 @@ class AppState: ObservableObject {
         panel.message = "Select your PokerStars hand history folder"
 
         if panel.runModal() == .OK, let url = panel.url {
-            // Release any previous scope before replacing with the new
-            // one — prevents a double-scoped-access leak if the user
-            // re-picks mid-session.
-            stopFileWatcher()
             startFileWatcher(directory: url)
         }
     }
@@ -492,10 +262,6 @@ class AppState: ObservableObject {
     /// Handle a file change event from the watcher
     private func handleFileWatcherEvent(url: URL) async {
         let filename = url.lastPathComponent
-        // Piggyback on every import to prune any auto-created tables whose
-        // PokerStars window has been closed. This keeps the HUD Setup UI
-        // clean during active play without waiting for the 30s timer.
-        pruneClosedTables()
         do {
             let result = try await importEngine.importFileForHUD(url)
 
@@ -512,11 +278,6 @@ class AppState: ObservableObject {
 
             if result.handsImported > 0 {
                 lastAutoImportTime = Date()
-
-                // Tick down the 100-hand free trial (no-op if already
-                // subscribed). Has to happen on the file-watcher path too,
-                // otherwise auto-imported hands wouldn't count.
-                usageTracker.recordHandsImported(result.handsImported)
 
                 // Auto-create/update tables and show HUD. Stats for newly
                 // created panels are pre-fetched inside `HUDManager.showHUD`,
@@ -538,7 +299,7 @@ class AppState: ObservableObject {
             )
             autoImportLog.insert(event, at: 0)
             if autoImportLog.count > 50 { autoImportLog.removeLast() }
-            Log.app.error("File watcher import error: \(error.localizedDescription, privacy: .public)")
+            print("[AppState] File watcher import error: \(error)")
         }
     }
 
@@ -560,26 +321,7 @@ class AppState: ObservableObject {
                     hudManager?.showHUD(for: managedTables[existingIndex])
                 }
             } else {
-                // Create new table automatically — but ONLY if we can
-                // find a live PokerStars window whose title contains
-                // this table name. Without this guard, closing one
-                // table during multi-table play would cause the file-
-                // watcher import of the closed table's final hand(s)
-                // to re-create the table and bind it to an OPEN
-                // table's window via the "first unbound" fallback,
-                // producing the bug where the closed table's HUD
-                // labels appear on the wrong table.
-                //
-                // If no window matches, the hand import has already
-                // succeeded (DB updated, stats refreshed) — we just
-                // don't create HUD panels for a table that no longer
-                // exists on screen.
-                let windows = PokerStarsWindowDetector.findTableWindows()
-                guard let matchedWindow = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) else {
-                    Log.app.debug("Skipping HUD creation for '\(tableName, privacy: .public)' — no matching PokerStars window (table likely closed)")
-                    continue
-                }
-
+                // Create new table automatically
                 let tableSize = seats.first?.tableSize ?? 6
                 let stakes = seats.first?.stakes ?? "?"
 
@@ -602,15 +344,23 @@ class AppState: ObservableObject {
                 table.seatAssignments = seatAssignments
 
                 managedTables.append(table)
-                autoCreatedTableIDs.insert(table.id)
 
-                // Bind to the matched window (name-verified, so
-                // we know it's the right one).
-                hudManager?.bindTable(table.id, toWindow: matchedWindow.windowID)
-                Log.app.debug("Bound new table '\(tableName, privacy: .public)' to window \(matchedWindow.windowID) by name")
+                // Try to bind this new table to the correct PokerStars window
+                // CGWindowList returns windows front-to-back, so the first unbound
+                // window is most likely the one that just generated this hand
+                let windows = PokerStarsWindowDetector.findTableWindows()
+                let boundIDs = Set(hudManager?.getAllBoundWindowIDs() ?? [])
+                // Try name match first (if Screen Recording permission granted)
+                if let named = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(tableName) }) {
+                    hudManager?.bindTable(table.id, toWindow: named.windowID)
+                    print("[AppState] Bound new table '\(tableName)' to window \(named.windowID) by name")
+                } else if let unbound = windows.first(where: { !boundIDs.contains($0.windowID) }) {
+                    hudManager?.bindTable(table.id, toWindow: unbound.windowID)
+                    print("[AppState] Bound new table '\(tableName)' to window \(unbound.windowID) (frontmost unbound)")
+                }
 
                 hudManager?.showHUD(for: table)
-                Log.app.debug("Auto-created table: \(tableName, privacy: .public) with \(seats.count) players")
+                print("[AppState] Auto-created table: \(tableName) with \(seats.count) players")
             }
         }
     }
@@ -619,6 +369,7 @@ class AppState: ObservableObject {
     /// Adds new players, updates changed seats, and removes players who left.
     private func updateTableSeats(at index: Int, with seats: [TableSeatInfo]) {
         var changed = false
+        let newSeatNumbers = Set(seats.map { $0.seatNumber })
         let newPlayerNames = Set(seats.map { $0.playerName })
 
         // 1. Remove panels for players who are no longer at the table
@@ -631,7 +382,7 @@ class AppState: ObservableObject {
                 let key = PanelKey(tableId: managedTables[index].id, seatNumber: seat.seatNumber)
                 hudManager?.removeSinglePanel(key: key)
                 managedTables[index].seatAssignments[seatIdx].playerName = nil
-                Log.app.debug("Player left: \(oldPlayer, privacy: .public) from seat \(seat.seatNumber)")
+                print("[AppState] Player left: \(oldPlayer) from seat \(seat.seatNumber)")
                 changed = true
             }
         }
@@ -648,7 +399,7 @@ class AppState: ObservableObject {
                         hudManager?.removeSinglePanel(key: key)
                     }
                     managedTables[index].seatAssignments[seatIdx].playerName = seatInfo.playerName
-                    Log.app.debug("Seat \(seatInfo.seatNumber): \(oldPlayer ?? "empty", privacy: .public) -> \(seatInfo.playerName, privacy: .public)")
+                    print("[AppState] Seat \(seatInfo.seatNumber): \(oldPlayer ?? "empty") -> \(seatInfo.playerName)")
                     changed = true
                 }
             }

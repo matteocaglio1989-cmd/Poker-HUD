@@ -1,5 +1,5 @@
 {
-  "identifier" : "com.pokerhud.app.macos.storekit",
+  "identifier" : "com.pokerhud.app.storekit",
   "nonRenewingSubscriptions" : [],
   "products" : [],
   "settings" : {

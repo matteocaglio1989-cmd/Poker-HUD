@@ -22,13 +22,6 @@ final class SubscriptionManager: ObservableObject {
     @Published private(set) var products: [Product] = []
     @Published private(set) var isPurchasing: Bool = false
     @Published var purchaseError: String?
-    /// Set whenever `loadProducts()` fails (or returns no products), so the
-    /// paywall can show an error + Retry instead of spinning forever. Cleared
-    /// at the start of every `loadProducts()` call. This was added because
-    /// silently swallowing the error to a `print` left the paywall stuck on
-    /// two `ProgressView`s when the StoreKit configuration file wasn't
-    /// selected in the active Xcode scheme — exactly the dev trap we hit.
-    @Published var loadProductsError: String?
 
     private let repo: SubscriptionRepository
     private var transactionListener: Task<Void, Never>?
@@ -52,34 +45,13 @@ final class SubscriptionManager: ObservableObject {
 
     // MARK: - Lifecycle
 
-    /// Load StoreKit products into `products`. Safe to call repeatedly —
-    /// the paywall's Retry button calls this directly.
+    /// Load StoreKit products into `products`. Safe to call repeatedly.
     func loadProducts() async {
-        loadProductsError = nil
         do {
             let loaded = try await Product.products(for: SubscriptionProductIDs.all)
             self.products = loaded.sorted { $0.price < $1.price }
-            if loaded.isEmpty {
-                // StoreKit returned an empty result without throwing — most
-                // commonly because the Xcode scheme isn't pointing at the
-                // .storekit configuration file and there's no sandbox tester
-                // signed in either.
-                self.loadProductsError = "No subscription plans returned by StoreKit."
-            }
         } catch {
-            Log.subscription.error("loadProducts failed: \(error.localizedDescription, privacy: .public)")
-            // The bare `error.localizedDescription` for StoreKit/ASD errors is
-            // almost always something useless like "Unable to Complete Request",
-            // which leaves us guessing at the actual root cause. Bridge to
-            // NSError and include the domain + code + full Swift description
-            // so the paywall card surfaces enough detail to pinpoint things
-            // like ASDErrorDomain 509 (team-id mismatch) vs 825 (no products).
-            let ns = error as NSError
-            self.loadProductsError = """
-                \(error.localizedDescription)
-
-                [\(ns.domain) \(ns.code)] \(String(describing: error))
-                """
+            print("[SubscriptionManager] loadProducts failed: \(error)")
         }
     }
 
@@ -99,9 +71,7 @@ final class SubscriptionManager: ObservableObject {
             if let expires = tx.expirationDate, expires <= Date() { continue }
 
             // Upload the JWS so the server row catches up.
-            // `jwsRepresentation` lives on `VerificationResult`, not on the
-            // unwrapped `Transaction` itself — we read it from `result`.
-            _ = try? await repo.verifyReceipt(jws: result.jwsRepresentation)
+            _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
 
             // Re-read the now-updated row.
             if let record = try? await repo.fetchSubscription(), record.isActive,
@@ -117,22 +87,16 @@ final class SubscriptionManager: ObservableObject {
             }
         }
 
-        // Step 3: Trial counter. Uses the LOCAL UserDefaults counter
-        // as the primary source of truth (always available, no network
-        // dependency). Falls back to Supabase only if the local counter
-        // is 0 AND Supabase has a higher value (multi-device sync).
-        let localImported = UsageTracker.localHandsImported
-        var imported = localImported
-
-        // Best-effort check: if Supabase has a higher count (e.g.
-        // from another device), use that instead.
-        if let usage = try? await repo.fetchUsage(),
-           usage.handsImported > imported {
-            imported = usage.handsImported
+        // Step 3: Fall back to the custom trial counter.
+        do {
+            let usage = try await repo.fetchUsage()
+            let remaining = TrialPolicy.totalSeconds - TimeInterval(usage.totalTrialSeconds)
+            self.entitlement = remaining > 0 ? .trial(remainingSeconds: remaining) : .expired
+        } catch {
+            print("[SubscriptionManager] fetchUsage failed: \(error)")
+            // Fail closed: don't silently grant access if we can't read usage.
+            self.entitlement = .expired
         }
-
-        let remaining = TrialPolicy.totalHands - imported
-        self.entitlement = remaining > 0 ? .trial(remainingHands: remaining) : .expired
     }
 
     /// Reset in-memory state on sign-out so the next user starts clean.
@@ -141,7 +105,6 @@ final class SubscriptionManager: ObservableObject {
         purchaseError = nil
         isPurchasing = false
     }
-
 
     // MARK: - Purchase
 
@@ -156,7 +119,7 @@ final class SubscriptionManager: ObservableObject {
             case .success(let verification):
                 switch verification {
                 case .verified(let tx):
-                    _ = try? await repo.verifyReceipt(jws: verification.jwsRepresentation)
+                    _ = try? await repo.verifyReceipt(jws: tx.jwsRepresentation)
                     await tx.finish()
                     await refreshEntitlement()
                 case .unverified(_, let error):
@@ -207,7 +170,7 @@ final class SubscriptionManager: ObservableObject {
                 guard let self else { return }
                 if case .verified(let tx) = update,
                    SubscriptionProductIDs.all.contains(tx.productID) {
-                    _ = try? await self.repo.verifyReceipt(jws: update.jwsRepresentation)
+                    _ = try? await self.repo.verifyReceipt(jws: tx.jwsRepresentation)
                     await tx.finish()
                     await self.refreshEntitlement()
                 }

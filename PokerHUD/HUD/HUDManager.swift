@@ -25,56 +25,9 @@ class HUDManager {
     /// Combine subscription to `HandImportPublisher`. Stored so it lives
     /// for the lifetime of the HUDManager and gets cancelled on deinit.
     private var importSubscription: AnyCancellable?
-    /// Workspace observer that hides HUD panels when PokerStars loses
-    /// focus and shows them when it regains focus. Without this, the
-    /// floating panels would stay on top of every other app's windows.
-    private var appActivationObserver: NSObjectProtocol?
-    /// Tracks whether PokerStars (or our app) is the frontmost app.
-    /// The 500ms reposition timer checks this flag before calling
-    /// `orderFront` on any panel — without it, the timer would
-    /// immediately undo the activation observer's `orderOut`, making
-    /// the labels pop back up over other apps within half a second.
-    private var pokerStarsIsActive: Bool = false
 
     init(configuration: HUDConfiguration = .standard) {
         self.configuration = configuration
-        // Check initial state — PokerStars might already be frontmost
-        // at launch.
-        if let frontApp = NSWorkspace.shared.frontmostApplication {
-            pokerStarsIsActive = frontApp.localizedName?.contains("PokerStars") == true
-                || frontApp == NSRunningApplication.current
-        }
-        startAppActivationObserver()
-    }
-
-    /// Watch for app-activation changes. When PokerStars (or our own
-    /// Poker HUD app) is the frontmost app, all panels are shown.
-    /// When any other app gains focus, all panels are hidden so they
-    /// don't float over unrelated windows.
-    private func startAppActivationObserver() {
-        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
-
-                let isPokerStars = app.localizedName?.contains("PokerStars") == true
-                let isOurApp = app == NSRunningApplication.current
-
-                self.pokerStarsIsActive = isPokerStars || isOurApp
-
-                if self.pokerStarsIsActive {
-                    self.repositionAllPanels()
-                } else {
-                    for panel in self.panels.values {
-                        panel.orderOut(nil)
-                    }
-                }
-            }
-        }
     }
 
     /// Subscribe this HUDManager to a `HandImportPublisher`. After this
@@ -114,7 +67,7 @@ class HUDManager {
                     playerStats[playerName] = stats
                 }
             } catch {
-                Log.hud.error("Error loading \(playerName, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                print("[HUD] Error loading \(playerName): \(error)")
             }
         }
 
@@ -127,19 +80,7 @@ class HUDManager {
     }
 
     private func createPanels(for table: ActiveTable) {
-        // If there's no PokerStars window to overlay, don't create panels
-        // at all. The old behaviour fell back to stacking panels at the
-        // screen center — which produced a useless row of floating labels
-        // whenever the file watcher imported hands from a leftover file
-        // with no PokerStars running. The table is still added to
-        // `trackedTables` by the caller (`showHUD`) and
-        // `repositionAllPanels` will create panels on the next tick if a
-        // matching window shows up.
-        guard let windowFrame = findWindowFrame(for: table) else {
-            Log.hud.debug("Skipping panel creation for '\(table.tableName, privacy: .public)' — no matching PokerStars window")
-            return
-        }
-
+        let windowFrame = findWindowFrame(for: table)
         let heroSeat = findHeroSeat(in: table)
         let maxSeats = table.tableSize <= 6 ? 6 : 9
         let tableSize = table.tableSize
@@ -160,7 +101,13 @@ class HUDManager {
             let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
                 ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
 
-            let position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
+            let position: CGPoint
+            if let wf = windowFrame {
+                position = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: wf)
+            } else {
+                let screen = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+                position = CGPoint(x: screen.midX - 90 + CGFloat(slot) * 40, y: screen.midY)
+            }
 
             let panelRect = NSRect(x: position.x, y: position.y, width: 180, height: 90)
             let panel = HUDPanel(contentRect: panelRect)
@@ -189,25 +136,16 @@ class HUDManager {
                 if let wf = windowFrame {
                     let fraction = HUDSeatOffsets.shared.absoluteToFractional(newOrigin, windowFrame: wf)
                     HUDSeatOffsets.shared.saveOffset(fraction, forTableSize: capturedTableSize, slot: slot)
-                    let fx = String(format: "%.3f", fraction.x)
-                    let fy = String(format: "%.3f", fraction.y)
-                    Log.hud.debug("Saved \(capturedTableSize)-max slot \(slot) at (\(fx, privacy: .public), \(fy, privacy: .public))")
+                    print("[HUD] Saved \(capturedTableSize)-max slot \(slot) at (\(String(format: "%.3f", fraction.x)), \(String(format: "%.3f", fraction.y)))")
                 } else {
-                    Log.hud.warning("No window found to save \(capturedTableSize)-max slot \(slot)")
+                    print("[HUD] WARNING: No window found to save \(capturedTableSize)-max slot \(slot)")
                 }
             }
 
             let stats = playerStats[playerName]
             let state = HUDPanelState(stats: stats)
             panelStates[key] = state
-            var view = HUDContentView(playerName: playerName, state: state, configuration: configuration)
-            // Resize the panel when the user double-clicks to
-            // expand / collapse the stat grid.
-            view.onExpandToggle = { [weak panel] expanded in
-                panel?.resize(to: expanded
-                    ? CGSize(width: 210, height: 420)
-                    : CGSize(width: 180, height: 90))
-            }
+            let view = HUDContentView(playerName: playerName, state: state, configuration: configuration)
             panel.setContent(view)
             panel.orderFront(nil)
             panels[key] = panel
@@ -233,70 +171,32 @@ class HUDManager {
     /// Cached last window frames to detect when the poker window actually moved
     private var lastWindowFrames: [UUID: NSRect] = [:]
 
-    /// Per-table fingerprint of the last `findWindowFrame` call result, used
-    /// to rate-limit the diagnostic log so we only print on state changes
-    /// (a 500 ms reposition tick happens 120× per minute and would otherwise
-    /// flood the console).
-    private var lastFindWindowLog: [UUID: String] = [:]
-
     private func repositionAllPanels() {
-        // If PokerStars isn't the active app, don't touch panels at
-        // all — the activation observer already hid them. Without
-        // this early return, the orderFront(nil) below would undo
-        // the hide within 500ms, making labels pop back up over
-        // whatever app the user switched to.
-        guard pokerStarsIsActive else { return }
-
-        let layoutMode = TableLayoutMode.load()
-
-        let allWindows = PokerStarsWindowDetector.findTableWindows()
-        let frontmostWindowID = allWindows.first?.windowID
-
         for table in trackedTables {
             guard let windowFrame = findWindowFrame(for: table) else { continue }
 
-            let boundID = tableWindowBinding[table.id]
-
-            let shouldShow: Bool
-            switch layoutMode {
-            case .stacked:
-                shouldShow = (boundID != nil && boundID == frontmostWindowID)
-            case .sideBySide:
-                shouldShow = true
-            }
-
-            // Only reposition if the poker window actually moved
-            let needsReposition: Bool
+            // Only reposition if the poker window itself moved (not the user dragging HUD panels)
             if let lastFrame = lastWindowFrames[table.id] {
                 let wdx = abs(windowFrame.origin.x - lastFrame.origin.x)
                 let wdy = abs(windowFrame.origin.y - lastFrame.origin.y)
                 let wdw = abs(windowFrame.width - lastFrame.width)
                 let wdh = abs(windowFrame.height - lastFrame.height)
-                needsReposition = wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2
-            } else {
-                needsReposition = true
+                guard wdx > 2 || wdy > 2 || wdw > 2 || wdh > 2 else { continue }
             }
+            lastWindowFrames[table.id] = windowFrame
 
-            if needsReposition {
-                lastWindowFrames[table.id] = windowFrame
-            }
+            let tableSize = table.tableSize
 
             for seat in table.seatAssignments {
                 let key = PanelKey(tableId: table.id, seatNumber: seat.seatNumber)
-                guard let panel = panels[key] else { continue }
+                guard let panel = panels[key],
+                      let slot = panelSlots[key] else { continue }
 
-                if !shouldShow {
-                    panel.orderOut(nil)
-                    continue
-                }
+                let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: tableSize, slot: slot)
+                    ?? HUDSeatOffsets.defaultOffset(forTableSize: tableSize, slot: slot)
+                let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
 
-                if needsReposition, let slot = panelSlots[key] {
-                    let fractionalOffset = HUDSeatOffsets.shared.offset(forTableSize: table.tableSize, slot: slot)
-                        ?? HUDSeatOffsets.defaultOffset(forTableSize: table.tableSize, slot: slot)
-                    let targetPos = HUDSeatOffsets.shared.fractionalToAbsolute(fractionalOffset, windowFrame: windowFrame)
-                    panel.reposition(to: targetPos)
-                }
-                panel.orderFront(nil)
+                panel.reposition(to: targetPos)
             }
         }
     }
@@ -305,105 +205,41 @@ class HUDManager {
 
     private func findWindowFrame(for table: ActiveTable) -> NSRect? {
         let windows = PokerStarsWindowDetector.findTableWindows()
-        guard !windows.isEmpty else {
-            logFindWindow(for: table, windows: [], step: "no-windows", boundID: nil)
-            return nil
-        }
+        guard !windows.isEmpty else { return nil }
 
-        // 1. If we have a cached binding, use it — but if window titles are
-        //    readable (Screen Recording or Accessibility granted) and the
-        //    cached window's title does NOT contain this table's name,
-        //    treat the cache as poisoned and re-match. This is what auto-
-        //    corrects the multi-table launch swap that happens when
-        //    `autoManageTables` had to bind by exclusion: as soon as titles
-        //    become readable on the next reposition tick (every 500 ms),
-        //    we notice the mismatch and fix it without an app relaunch.
+        // 1. Use existing binding if window still exists
         if let boundID = tableWindowBinding[table.id],
-           let bound = windows.first(where: { $0.windowID == boundID }) {
-            if bound.windowName.isEmpty {
-                // No title to validate against — trust the cached binding.
-                logFindWindow(for: table, windows: windows, step: "1-cached-no-title", boundID: boundID)
-                return bound.frame
-            }
-            if bound.windowName.contains(table.tableName) {
-                // Cached binding is correct.
-                logFindWindow(for: table, windows: windows, step: "1-cached-validated", boundID: boundID)
-                return bound.frame
-            }
-            // Cached binding is wrong. Clear it and fall through to step 2.
-            Log.hud.debug("Cached binding for '\(table.tableName, privacy: .public)' points at window titled '\(bound.windowName, privacy: .public)' — mismatch, re-binding")
-            tableWindowBinding.removeValue(forKey: table.id)
+           let w = windows.first(where: { $0.windowID == boundID }) {
+            return w.frame
         }
 
-        // 2. Match by window title (works whenever Screen Recording OR
-        //    Accessibility permission is granted — see PokerStarsWindowDetector
-        //    .enrichWithAXTitles).
+        // 2. Match by window title (works if Screen Recording permission granted)
         if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
-            Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to window \(matched.windowID) by name match")
-            logFindWindow(for: table, windows: windows, step: "2-name-match", boundID: matched.windowID)
+            print("[HUD] Bound '\(table.tableName)' to window \(matched.windowID) by name match")
             return matched.frame
         }
 
-        // 3. Title-less fallback: bind by exclusion to the first unbound
-        //    window. CGWindowList returns windows front-to-back, so the
-        //    frontmost unbound window is usually the right one for a
-        //    single-table session. With multiple unbound windows this is
-        //    inherently ambiguous (the long-standing multi-table launch
-        //    bug), but it's better to bind *something* than to leave the
-        //    HUD invisible — and step 1's cache validation will auto-
-        //    correct on the next tick if the user grants Accessibility
-        //    permission and titles become readable.
+        // 3. No window names available — bind by exclusion
+        //    Each table gets a unique window. Already-bound windows are excluded.
         let boundIDs = Set(tableWindowBinding.values)
         let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
 
         if let window = unboundWindows.first {
             tableWindowBinding[table.id] = window.windowID
-            if unboundWindows.count > 1 {
-                Log.hud.warning("Bound '\(table.tableName, privacy: .public)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Accessibility permission in System Settings → Privacy & Security for reliable multi-table binding.")
-            } else {
-                Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to only unbound window \(window.windowID)")
-            }
-            logFindWindow(for: table, windows: windows, step: "3-exclusion-fallback", boundID: window.windowID)
+            print("[HUD] Bound '\(table.tableName)' to window \(window.windowID) (first unbound)")
             return window.frame
         }
 
-        // 4. All windows are bound. Our binding's CGWindowID no longer
-        //    exists (window was closed and reopened, etc.). Clear the
-        //    stale binding so the next call falls through to step 2 or 3.
+        // 4. All windows are bound — this table's window might have been closed and reopened
+        //    Clear stale binding and try the frontmost window
         tableWindowBinding.removeValue(forKey: table.id)
         if let front = windows.first {
             tableWindowBinding[table.id] = front.windowID
-            logFindWindow(for: table, windows: windows, step: "4-stale-cleared", boundID: front.windowID)
             return front.frame
         }
 
-        logFindWindow(for: table, windows: windows, step: "no-window", boundID: nil)
         return nil
-    }
-
-    /// Rate-limited diagnostic log for `findWindowFrame`. Only prints when
-    /// the (step, boundID, AX-permission, window-list-fingerprint) tuple
-    /// changes for this table — so a stable correct binding doesn't spam
-    /// the console at 2 Hz, but a flapping or stuck mis-binding gets a
-    /// fresh log line every time the situation changes. Designed so we can
-    /// ask the user to paste the console and immediately see what state
-    /// `findWindowFrame` is in.
-    private func logFindWindow(
-        for table: ActiveTable,
-        windows: [DetectedPokerWindow],
-        step: String,
-        boundID: CGWindowID?
-    ) {
-        let axGranted = AccessibilityPermission.isGranted
-        let windowFingerprint = windows
-            .map { "\($0.windowID):\($0.windowName.isEmpty ? "<no-title>" : String($0.windowName.prefix(40)))" }
-            .joined(separator: " | ")
-        let fingerprint = "\(step)|\(boundID.map { String($0) } ?? "nil")|ax=\(axGranted)|\(windowFingerprint)"
-        if lastFindWindowLog[table.id] == fingerprint { return }
-        lastFindWindowLog[table.id] = fingerprint
-        let boundStr = boundID.map { String($0) } ?? "nil"
-        Log.hud.debug("[diag] '\(table.tableName, privacy: .public)' → step=\(step, privacy: .public) bound=\(boundStr, privacy: .public) axGranted=\(axGranted) windows=[\(windowFingerprint, privacy: .public)]")
     }
 
     /// Rebind a table to a specific window
@@ -414,31 +250,6 @@ class HUDManager {
     /// Get all currently bound window IDs
     func getAllBoundWindowIDs() -> [CGWindowID] {
         Array(tableWindowBinding.values)
-    }
-
-    /// Returns the cached window binding for a specific table, or nil if
-    /// none. Used by `AppState.pruneClosedTables()` as the title-less
-    /// fallback check when a table's PokerStars window title can't be
-    /// matched (no Screen Recording / Accessibility permission).
-    func boundWindowID(for tableId: UUID) -> CGWindowID? {
-        tableWindowBinding[tableId]
-    }
-
-    /// Manual recovery action: clear every cached table → window binding so
-    /// the next reposition tick re-binds every tracked table from scratch.
-    /// Wired to the menu-bar "Reset HUD Bindings" item for users who hit a
-    /// stuck multi-table swap mid-session and don't want to relaunch the
-    /// app. Also clears `lastWindowFrames` so the next tick is treated as
-    /// "first observation" and forces a layout pass on every panel.
-    func resetAllBindings() {
-        let count = tableWindowBinding.count
-        tableWindowBinding.removeAll()
-        lastWindowFrames.removeAll()
-        // Drop the per-table diagnostic fingerprints too so the next
-        // re-bind cycle logs fresh state to Console.app — useful for
-        // diagnosing whether the manual reset actually fixed anything.
-        lastFindWindowLog.removeAll()
-        Log.hud.debug("Reset \(count) cached table-window binding(s); next reposition tick will re-bind from scratch")
     }
 
     private func findHeroSeat(in table: ActiveTable) -> Int {

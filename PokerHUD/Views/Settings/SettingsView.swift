@@ -11,7 +11,6 @@ struct SettingsView: View {
     @State private var totalPlayers = 0
     @State private var accessibilityGranted = AccessibilityPermission.isGranted
     @State private var screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
-    @State private var tableLayoutMode: TableLayoutMode = TableLayoutMode.load()
 
     var body: some View {
         Form {
@@ -108,21 +107,6 @@ struct SettingsView: View {
                 }
             }
 
-            Section("HUD") {
-                Picker("Table Layout", selection: $tableLayoutMode) {
-                    ForEach(TableLayoutMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: tableLayoutMode) { _, newValue in
-                    TableLayoutMode.save(newValue)
-                }
-                Text(tableLayoutMode.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
             Section("Database") {
                 HStack {
                     Text("Total Hands")
@@ -141,6 +125,24 @@ struct SettingsView: View {
                 Button("Clear All Data", role: .destructive) {
                     clearAllData()
                 }
+            }
+
+            Section("About") {
+                HStack {
+                    Text("Version")
+                    Spacer()
+                    Text("2.0.0 (Phase 2)")
+                        .foregroundColor(.secondary)
+                }
+
+                HStack {
+                    Text("Build")
+                    Spacer()
+                    Text("HUD Overlay Release")
+                        .foregroundColor(.secondary)
+                }
+
+                Link("GitHub Repository", destination: URL(string: "https://github.com/matteocaglio1989-cmd/Poker-HUD")!)
             }
         }
         .formStyle(.grouped)
@@ -173,7 +175,7 @@ struct SettingsView: View {
 
     private var renewalRowLabel: String {
         switch appState.subscriptionManager.entitlement {
-        case .trial:  return "Trial remaining"
+        case .trial:  return "Trial ends in"
         case .active: return "Renews on"
         default:      return "Status"
         }
@@ -184,7 +186,7 @@ struct SettingsView: View {
         case .unknown:
             return "—"
         case .trial(let remaining):
-            return TrialBannerView.format(remainingHands: remaining)
+            return TrialBannerView.format(remaining: remaining)
         case .expired:
             return "Please subscribe to continue"
         case .active(_, let expiresAt):
@@ -207,7 +209,7 @@ struct SettingsView: View {
             totalHands = hands
             totalPlayers = players
         } catch {
-            Log.app.error("Error loading settings data: \(error.localizedDescription, privacy: .public)")
+            print("Error loading settings data: \(error)")
         }
     }
 
@@ -216,7 +218,7 @@ struct SettingsView: View {
             try HandRepository().deleteAll()
             Task { await loadData() }
         } catch {
-            Log.app.error("Error clearing data: \(error.localizedDescription, privacy: .public)")
+            print("Error clearing data: \(error)")
         }
     }
 }
@@ -394,7 +396,7 @@ struct EditSiteView: View {
                 try updatedSite.update(db)
             }
         } catch {
-            Log.app.error("Error updating site: \(error.localizedDescription, privacy: .public)")
+            print("Error updating site: \(error)")
         }
     }
 }
@@ -479,12 +481,7 @@ struct AddSiteView: View {
     private func saveSite() {
         do {
             try DatabaseManager.shared.writer.write { db in
-                // `let` because GRDB 7's `insert(_:)` is not a `mutating`
-                // method on MutablePersistableRecord — capturing the new
-                // rowID would require `insertAndFetch(_:)`, which we don't
-                // need here. The compiler warning that prompted this fix
-                // was correct: the local was never reassigned.
-                let site = Site(
+                var site = Site(
                     id: nil,
                     name: siteName,
                     handHistoryPath: handHistoryPath.isEmpty ? nil : handHistoryPath,
@@ -493,7 +490,7 @@ struct AddSiteView: View {
                 try site.insert(db)
             }
         } catch {
-            Log.app.error("Error saving site: \(error.localizedDescription, privacy: .public)")
+            print("Error saving site: \(error)")
         }
     }
 }

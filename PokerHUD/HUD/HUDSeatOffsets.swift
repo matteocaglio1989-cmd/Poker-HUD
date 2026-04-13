@@ -109,7 +109,7 @@ class HUDSeatOffsets {
         }
         UserDefaults.standard.set(dict, forKey: userDefaultsKey)
         UserDefaults.standard.set(Self.schemaVersion, forKey: schemaVersionKey)
-        Log.hud.debug("Persisted \(self.offsets.count) HUD offsets (schema v\(Self.schemaVersion))")
+        print("[HUDOffsets] Persisted \(offsets.count) offsets (schema v\(Self.schemaVersion))")
     }
 
     private func load() {
@@ -123,7 +123,7 @@ class HUDSeatOffsets {
         }
 
         if !offsets.isEmpty {
-            Log.hud.debug("Loaded \(self.offsets.count) saved HUD offsets")
+            print("[HUDOffsets] Loaded \(offsets.count) saved offsets")
         }
     }
 
@@ -180,7 +180,7 @@ class HUDSeatOffsets {
             // Rewrite the same key in the new format so we don't need a
             // separate legacy key lying around.
             persist()
-            Log.hud.debug("Migrated \(migrated) legacy HUD offsets to 6-max bucket")
+            print("[HUDOffsets] Migrated \(migrated) legacy offsets to 6-max bucket")
         }
     }
 }

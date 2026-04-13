@@ -4,30 +4,7 @@ import GRDB
 class DatabaseManager {
     static let shared = DatabaseManager()
 
-    /// The live database queue, or `nil` if initialization failed. Reads
-    /// and writes against the `reader` / `writer` accessors are only safe
-    /// when this is non-nil; the root router in `PokerHUDApp` renders a
-    /// user-visible error page whenever `initializationError != nil`, so
-    /// no regular code path reaches the repositories in that state.
-    private var dbQueue: DatabaseQueue?
-
-    /// `nil` on a healthy launch; set to the underlying `Error` if the
-    /// filesystem / GRDB init / migration failed. The root router checks
-    /// this property before mounting the normal app UI and shows a
-    /// one-page error view (with the underlying message) if it's set.
-    ///
-    /// Declared `private(set) var` rather than `let` so Swift's definite-
-    /// initialization analysis allows `init()` to call `self.migrator`
-    /// (which is a computed property that accesses `self`) before the
-    /// property is assigned. `var` + `Optional` auto-initializes to
-    /// `nil` at the start of `init` so `self` is considered fully
-    /// initialized from the first line of the body, which is what
-    /// makes the `migrator.migrate(queue)` call type-check.
-    ///
-    /// The `private(set)` keeps it set-exactly-once in practice — the
-    /// only writer is `init()`, the compiler rejects any external
-    /// mutation.
-    private(set) var initializationError: Error?
+    private var dbQueue: DatabaseQueue!
 
     private init() {
         do {
@@ -49,43 +26,20 @@ class DatabaseManager {
                 try db.execute(sql: "PRAGMA journal_mode = WAL")
                 try db.execute(sql: "PRAGMA busy_timeout = 5000")
             }
-            let queue = try DatabaseQueue(path: dbPath, configuration: config)
-            try migrator.migrate(queue)
-            self.dbQueue = queue
+            dbQueue = try DatabaseQueue(path: dbPath, configuration: config)
+
+            try migrator.migrate(dbQueue)
         } catch {
-            // Don't crash the process — App Store reviewers treat first-
-            // launch crashes as an automatic rejection. Instead, capture
-            // the error so the root router can show a clean "Couldn't
-            // open the local database" page with the underlying message,
-            // and let the user quit cleanly.
-            Log.app.error("Database initialization failed: \(error.localizedDescription, privacy: .public)")
-            self.initializationError = error
+            fatalError("Failed to initialize database: \(error)")
         }
     }
 
-    /// Preconditioned database reader. Do NOT call this when
-    /// `initializationError != nil` — the root router gates the normal
-    /// app UI behind a successful init, so any reachable caller is
-    /// guaranteed to have a live queue. If this precondition is
-    /// violated it still fails closed (empty fallback) rather than
-    /// crashing.
     var reader: DatabaseReader {
-        // The force-unwrap here is the last remaining one in the file,
-        // and it's guarded by the `initializationError == nil` invariant
-        // enforced at the app-level router. The alternative — returning
-        // an `Optional<DatabaseReader>` — would ripple into every
-        // repository call site for zero practical benefit.
-        guard let dbQueue = dbQueue else {
-            preconditionFailure("DatabaseManager accessed before successful init — root router should have shown initializationError page.")
-        }
-        return dbQueue
+        dbQueue
     }
 
     var writer: DatabaseWriter {
-        guard let dbQueue = dbQueue else {
-            preconditionFailure("DatabaseManager accessed before successful init — root router should have shown initializationError page.")
-        }
-        return dbQueue
+        dbQueue
     }
 
     private var migrator: DatabaseMigrator {
@@ -263,15 +217,6 @@ class DatabaseManager {
             try db.create(index: "idx_actions_hand", on: "actions", columns: ["handId"])
             try db.create(index: "idx_actions_player", on: "actions", columns: ["playerId"])
             try db.create(index: "idx_sessions_site", on: "sessions", columns: ["siteId"])
-        }
-
-        migrator.registerMigration("addMoneyType") { db in
-            try db.alter(table: "hands") { t in
-                t.add(column: "moneyType", .text)
-                    .notNull()
-                    .defaults(to: "CASH")
-            }
-            try db.create(index: "idx_hands_moneyType", on: "hands", columns: ["moneyType"])
         }
 
         return migrator

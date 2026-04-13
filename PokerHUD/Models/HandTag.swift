@@ -34,10 +34,6 @@ enum CommonHandTag: String, CaseIterable {
     case mistake = "Mistake"
     case goodPlay = "Good Play"
     case interesting = "Interesting"
-    /// Phase 4 PR3: bookmarks ride on the existing `hand_tags` table to
-    /// avoid a schema migration. The toolbar star button in
-    /// `HandDetailView` toggles a tag with this exact rawValue.
-    case bookmark = "Bookmark"
 
     var displayName: String {
         rawValue

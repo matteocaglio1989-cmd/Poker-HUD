@@ -20,11 +20,8 @@ enum Plan: String, Codable {
 enum Entitlement: Equatable {
     /// Not yet loaded — show a spinner, never flash the paywall.
     case unknown
-    /// User still has trial hands left. The counter ticks down one per
-    /// successfully imported hand (not per wall-clock second — the old
-    /// 3-hour model was replaced in migration 0002 because the
-    /// wall-clock version ran down far slower than players expected).
-    case trial(remainingHands: Int)
+    /// User still has trial seconds left.
+    case trial(remainingSeconds: TimeInterval)
     /// Paid subscription is currently active and not expired.
     case active(plan: Plan, expiresAt: Date)
     /// Trial burnt out and no active subscription.
@@ -84,11 +81,14 @@ enum SubscriptionProductIDs {
 
 /// Policy constants for the custom, Supabase-tracked free trial. We can't
 /// use StoreKit's native introductory offer because Apple's minimum free
-/// trial is 3 days, and the product requirement is a fixed number of
-/// imported hands. The old wall-clock "3 hours of cumulative active
-/// usage" policy was replaced in migration 0002 because users reported
-/// it ran down far too slowly in practice.
+/// trial is 3 days, and the product requirement is 3 hours of cumulative
+/// active usage.
 enum TrialPolicy {
-    /// Hands a brand-new user can import before the paywall kicks in.
-    static let totalHands: Int = 100
+    /// 3 hours, expressed in seconds.
+    static let totalSeconds: TimeInterval = 3 * 60 * 60
+
+    /// How often (in seconds of accumulated use) the client flushes its
+    /// in-memory counter to Supabase. Lower values are more accurate at the
+    /// cost of more writes.
+    static let flushIntervalSeconds: TimeInterval = 30
 }

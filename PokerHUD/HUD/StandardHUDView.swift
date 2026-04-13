@@ -1,59 +1,57 @@
 import SwiftUI
 
-/// Minimalist HUD panel: player name on top, a single big `25/15/1`
-/// (VPIP/PFR/3Bet) line underneath. Two rows total.
-///
-/// Intentionally tiny — the user wanted the in-game overlay to show
-/// only the three numbers that matter during a hand, at double the
-/// normal font size, with no secondary rows cluttering the view.
-/// Fold-to-cbet, squeeze, aggression factor, showdown stats, hand
-/// count, and the player-type badge all still live in
-/// `OpponentDetailView` one click away in the Reports tab.
+/// Compact stat display panel for a single opponent
 struct StandardHUDView: View {
     let playerName: String
     let stats: PlayerStats?
     let configuration: HUDConfiguration
 
-    private var bigFontSize: CGFloat {
-        CGFloat(configuration.fontSize) * 2
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // Row 1: player name (left) + hand count (right)
+        VStack(alignment: .leading, spacing: 3) {
+            // Player name + type badge
             HStack(spacing: 4) {
                 Text(playerName)
-                    .font(.system(size: CGFloat(configuration.fontSize), weight: .bold, design: .monospaced))
+                    .font(.system(size: configuration.fontSize, weight: .bold, design: .monospaced))
                     .foregroundColor(.white)
                     .lineLimit(1)
-                Spacer(minLength: 2)
-                if let stats = stats {
-                    Text("\(stats.handsPlayed)")
-                        .font(.system(size: CGFloat(configuration.fontSize), weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.6))
+
+                Spacer()
+
+                if let stats = stats, configuration.showPlayerType {
+                    PlayerTypeBadge(type: stats.playerType, fontSize: configuration.fontSize - 2)
                 }
             }
 
             Divider()
                 .background(Color.white.opacity(0.3))
 
-            // Row 2: big VPIP / PFR / 3Bet
             if let stats = stats {
-                HStack(spacing: 2) {
-                    bigStatCell(value: stats.vpip, color: configuration.colorThresholds.colorForVPIP(stats.vpip))
-                    Text("/").foregroundColor(.gray)
-                        .font(.system(size: bigFontSize, weight: .semibold, design: .monospaced))
-                    bigStatCell(value: stats.pfr, color: configuration.colorThresholds.colorForPFR(stats.pfr))
-                    Text("/").foregroundColor(.gray)
-                        .font(.system(size: bigFontSize, weight: .semibold, design: .monospaced))
-                    bigStatCell(value: stats.threeBet, color: configuration.colorThresholds.colorFor3Bet(stats.threeBet))
+                // Row 1: VPIP / PFR / 3Bet
+                HStack(spacing: 0) {
+                    statCell(value: stats.vpip, color: configuration.colorThresholds.colorForVPIP(stats.vpip))
+                    Text("/").foregroundColor(.gray).font(.system(size: configuration.fontSize - 1, design: .monospaced))
+                    statCell(value: stats.pfr, color: configuration.colorThresholds.colorForPFR(stats.pfr))
+                    Text("/").foregroundColor(.gray).font(.system(size: configuration.fontSize - 1, design: .monospaced))
+                    statCell(value: stats.threeBet, color: configuration.colorThresholds.colorFor3Bet(stats.threeBet))
+                    Spacer()
+                    statLabel("AF", value: String(format: "%.1f", stats.aggressionFactor),
+                              color: configuration.colorThresholds.colorForAF(stats.aggressionFactor))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Row 2: WTSD / W$SD
+                HStack(spacing: 0) {
+                    statLabel("WT", value: String(format: "%.0f", stats.wtsd), color: .white)
+                    Text(" ").font(.system(size: configuration.fontSize - 1))
+                    statLabel("W$", value: String(format: "%.0f", stats.wsd), color: .white)
+                    Spacer()
+                    Text("\(stats.handsPlayed)h")
+                        .font(.system(size: configuration.fontSize - 1, design: .monospaced))
+                        .foregroundColor(.gray)
+                }
             } else {
-                Text("—")
-                    .font(.system(size: bigFontSize, weight: .semibold, design: .monospaced))
+                Text("No data")
+                    .font(.system(size: configuration.fontSize - 1, design: .monospaced))
                     .foregroundColor(.gray)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(6)
@@ -62,17 +60,25 @@ struct StandardHUDView: View {
         .frame(width: 170)
     }
 
-    private func bigStatCell(value: Double, color: Color) -> some View {
+    private func statCell(value: Double, color: Color) -> some View {
         Text(String(format: "%.0f", value))
-            .font(.system(size: bigFontSize, weight: .bold, design: .monospaced))
+            .font(.system(size: configuration.fontSize, weight: .semibold, design: .monospaced))
             .foregroundColor(color)
+    }
+
+    private func statLabel(_ label: String, value: String, color: Color) -> some View {
+        HStack(spacing: 1) {
+            Text(label + ":")
+                .font(.system(size: configuration.fontSize - 1, design: .monospaced))
+                .foregroundColor(.gray)
+            Text(value)
+                .font(.system(size: configuration.fontSize, weight: .medium, design: .monospaced))
+                .foregroundColor(color)
+        }
     }
 }
 
-/// Color-coded player type badge. No longer used by `StandardHUDView`
-/// (the minimalist redesign dropped it) but still referenced by
-/// `ReportsView.HeroSummaryCard`, `OpponentDetailView`, and
-/// `HUDPopoverView`, so the declaration stays.
+/// Color-coded player type badge
 struct PlayerTypeBadge: View {
     let type: PlayerType
     let fontSize: CGFloat

@@ -27,12 +27,7 @@ class HUDPanel: NSPanel {
     }
 
     private func configure() {
-        // `.floating` keeps panels above PokerStars' normal windows
-        // when visible, but unlike the old `.screenSaver` level, it
-        // doesn't dominate every window on the entire system. The
-        // actual show/hide when PokerStars gains or loses focus is
-        // handled by HUDManager's workspace-notification observer.
-        level = .floating
+        level = .screenSaver
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
@@ -54,9 +49,7 @@ class HUDPanel: NSPanel {
             let dy = abs(currentOrigin.y - self.lastSavedOrigin.y)
             if dx > 5 || dy > 5 {
                 self.lastSavedOrigin = currentOrigin
-                let x = Int(currentOrigin.x)
-                let y = Int(currentOrigin.y)
-                Log.hud.debug("Slot \(self.slotIndex) moved to (\(x), \(y))")
+                print("[HUDPanel] Slot \(self.slotIndex) moved to (\(Int(currentOrigin.x)), \(Int(currentOrigin.y)))")
                 self.onDragEnd?(currentOrigin)
             }
         }

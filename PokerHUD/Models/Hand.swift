@@ -18,18 +18,13 @@ struct Hand: Codable, FetchableRecord, PersistableRecord {
     var rake: Double
     var playedAt: Date
     var rawText: String?
-    /// `"CASH"`, `"TOURNAMENT"`, or `"PLAY_MONEY"`. Set by the import
-    /// engine based on the source filename (contains "Play Money") and
-    /// the parsed tournament ID. Used to filter views across Reports,
-    /// Sessions, and the Hand Replayer.
-    var moneyType: String
 
     static let databaseTableName = "hands"
 
     enum Columns: String, ColumnExpression {
         case id, siteId, handId, tournamentId, tableName
         case gameType, limitType, tableSize, smallBlind, bigBlind
-        case ante, board, potTotal, rake, playedAt, rawText, moneyType
+        case ante, board, potTotal, rake, playedAt, rawText
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {

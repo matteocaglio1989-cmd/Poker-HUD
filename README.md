@@ -2,34 +2,15 @@
 
 A native macOS application for tracking and analyzing poker hands with real-time HUD overlay. Built with Swift/SwiftUI and GRDB.swift.
 
-## Current Status: Phase 4 - Hand Replayer ✅
+## Current Status: Phase 2 - HUD Overlay ✅
 
-Phase 4 is complete with the following features on top of the Phase 1 + 2 + 3 foundation:
-- ✅ Hand Replayer tab with recent-hand list + All / Bookmarked / Tagged filter pills
-- ✅ Tap-to-open hand detail sheet from Dashboard, Sessions, and Replayer
-- ✅ Top-down visual poker table with animated step-through replay
-- ✅ ReplayerEngine with pot + stack reconstruction from the action stream
-- ✅ Playback controls: rewind / prev / play-pause / next / fast-forward with 1x/2x/4x speed
-- ✅ 4 table themes (Classic Green, Dark, Wood, Tournament) persisted to UserDefaults
-- ✅ Bookmark star + tag chips with 8 presets + free-form custom tags (zero schema change — rides on the existing `hand_tags` table)
-- ✅ Player notes system: notes section in Opponent detail with 6-colour palette + edit/delete
-
-Earlier shipped (Phase 3 - Advanced Reports):
-- ✅ Filter engine: hero / position / game type / stakes / date range / min hands
-- ✅ Sortable player stats table with situational columns (C-Bet, Squeeze, 4-Bet, F3B…)
-- ✅ Situational sub-tab: C-Bet by pot type (single-raised vs 3-bet+)
-- ✅ Sessions tab with historical session list + Swift Charts profit curve
-- ✅ Opponent detail drilldown sheet with embedded situational view
-- ✅ 13×13 hole-card heat map with frequency / win% / net-per-hand color modes
-- ✅ CSV / JSON / PDF export of player stats from the Reports header
-
-Earlier shipped:
+Phase 2 is complete with the following features on top of the Phase 1 foundation:
 - ✅ Floating NSPanel HUD overlays with per-seat auto-positioning
 - ✅ Accessibility API window-title enrichment for reliable multi-table binding
 - ✅ Real-time stat updates with visual flash feedback on new hands
 - ✅ File watcher for auto-import (recursive)
 - ✅ Menu bar HUD-only mode
-- ✅ StoreKit 2 subscription gating with 100-hand free trial
+- ✅ StoreKit 2 subscription gating with 3-hour cumulative free trial
 
 ## Features Roadmap
 
@@ -50,22 +31,22 @@ Earlier shipped:
 - [x] File watcher for auto-import
 - [x] Menu bar HUD-only mode
 
-### Phase 3 - Advanced Reports ✅ (COMPLETE)
-- [x] Situational views (C-Bet, 3-Bet, River Play)
-- [x] Filter engine with autocomplete
-- [x] Hole card heat maps
-- [x] Opponent analysis
-- [x] Session tracking and reports
-- [x] Export functionality
+### Phase 3 - Advanced Reports (Next)
+- [ ] Situational views (C-Bet, 3-Bet, River Play)
+- [ ] Filter engine with autocomplete
+- [ ] Hole card heat maps
+- [ ] Opponent analysis
+- [ ] Session tracking and reports
+- [ ] Export functionality
 
-### Phase 4 - Hand Replayer ✅ (COMPLETE)
-- [x] Visual poker table
-- [x] Step-through hand replay
-- [x] Hand tagging and bookmarking
-- [x] Player notes system
-- [x] Multiple table themes
+### Phase 4 - Hand Replayer
+- [ ] Visual poker table
+- [ ] Step-through hand replay
+- [ ] Hand tagging and bookmarking
+- [ ] Player notes system
+- [ ] Multiple table themes
 
-### Phase 5 - Multi-Site & Polish (Next)
+### Phase 5 - Multi-Site & Polish
 - [ ] Additional poker site parsers (GGPoker, 888, partypoker, etc.)
 - [ ] Tournament detection
 - [ ] HUD editor (drag-and-drop)
@@ -296,5 +277,5 @@ For issues, questions, or feature requests:
 
 ---
 
-**Phases 1-4 Status:** Complete ✅
-**Next Up:** Phase 5 - Multi-Site & Polish
+**Phase 1 Status:** Foundation Complete ✅
+**Next Up:** Phase 2 - HUD Overlay Implementation

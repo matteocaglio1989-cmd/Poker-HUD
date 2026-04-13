@@ -64,7 +64,7 @@ struct PaywallView: View {
                     .foregroundStyle(.secondary)
             }
             if case .trial(let remaining) = appState.subscriptionManager.entitlement, remaining > 0 {
-                Text("You still have \(TrialBannerView.format(remainingHands: remaining)) left on your free trial.")
+                Text("You still have \(TrialBannerView.format(remaining: remaining)) of free trial left.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -75,43 +75,32 @@ struct PaywallView: View {
         }
     }
 
-    @ViewBuilder
     private var planCards: some View {
-        // If StoreKit failed (or returned no products) AND we have nothing to
-        // show, surface an actionable error card instead of two indefinite
-        // spinners. The paywall used to silently spin forever when the Xcode
-        // scheme wasn't pointing at MacOSPokerHud.storekit — see SubscriptionManager
-        // .loadProducts() for the now-published `loadProductsError`.
-        if appState.subscriptionManager.products.isEmpty,
-           let error = appState.subscriptionManager.loadProductsError {
-            loadFailedCard(error: error)
-        } else {
-            HStack(spacing: 24) {
-                if let monthly = appState.subscriptionManager.monthlyProduct {
-                    PlanCard(
-                        product: monthly,
-                        badge: nil,
-                        isPurchasing: appState.subscriptionManager.isPurchasing,
-                        onSubscribe: {
-                            Task { await appState.subscriptionManager.purchase(monthly) }
-                        }
-                    )
-                } else {
-                    loadingCard
-                }
+        HStack(spacing: 24) {
+            if let monthly = appState.subscriptionManager.monthlyProduct {
+                PlanCard(
+                    product: monthly,
+                    badge: nil,
+                    isPurchasing: appState.subscriptionManager.isPurchasing,
+                    onSubscribe: {
+                        Task { await appState.subscriptionManager.purchase(monthly) }
+                    }
+                )
+            } else {
+                loadingCard
+            }
 
-                if let yearly = appState.subscriptionManager.yearlyProduct {
-                    PlanCard(
-                        product: yearly,
-                        badge: "Save 17%",
-                        isPurchasing: appState.subscriptionManager.isPurchasing,
-                        onSubscribe: {
-                            Task { await appState.subscriptionManager.purchase(yearly) }
-                        }
-                    )
-                } else {
-                    loadingCard
-                }
+            if let yearly = appState.subscriptionManager.yearlyProduct {
+                PlanCard(
+                    product: yearly,
+                    badge: "Save 17%",
+                    isPurchasing: appState.subscriptionManager.isPurchasing,
+                    onSubscribe: {
+                        Task { await appState.subscriptionManager.purchase(yearly) }
+                    }
+                )
+            } else {
+                loadingCard
             }
         }
     }
@@ -121,48 +110,6 @@ struct PaywallView: View {
             .fill(Color(NSColor.controlBackgroundColor))
             .frame(width: 240, height: 280)
             .overlay(ProgressView())
-    }
-
-    /// Single full-width error card shown when StoreKit cannot return any
-    /// products. Includes a Retry button that re-runs `loadProducts()` and a
-    /// dev hint that points at the most common cause (the .storekit scheme
-    /// configuration file not being selected in Xcode).
-    private func loadFailedCard(error: String) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.orange)
-            Text("Couldn't load subscription plans")
-                .font(.headline)
-            Text(error)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("Tip: in Xcode go to Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration and select MacOSPokerHud.storekit, then relaunch.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 4)
-            Button {
-                Task { await appState.subscriptionManager.loadProducts() }
-            } label: {
-                Text("Retry")
-                    .frame(maxWidth: 200)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .padding(.top, 4)
-
-        }
-        .padding(24)
-        .frame(maxWidth: 520)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(NSColor.controlBackgroundColor))
-                .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
-        )
     }
 
     @ViewBuilder

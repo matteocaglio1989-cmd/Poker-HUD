@@ -10,7 +10,7 @@
 -- user_usage
 -- ---------------------------------------------------------------------------
 create table if not exists public.user_usage (
-    user_id uuid primary key references auth.users(id) on delete cascade default auth.uid(),
+    user_id uuid primary key references auth.users(id) on delete cascade,
     total_trial_seconds integer not null default 0,
     trial_started_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
