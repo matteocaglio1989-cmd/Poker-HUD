@@ -23,6 +23,13 @@
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
 
+    <!-- Export compliance: the app uses only standard HTTPS (via
+         Supabase + StoreKit) and no custom encryption algorithms.
+         Setting this to false skips the export compliance
+         questionnaire on every App Store Connect upload. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
     <!-- Permission prompts shown by macOS TCC when the app first calls the
          Accessibility API and Screen Recording API. Both strings explain
          exactly what the app will (and won't) do with the permission, which
