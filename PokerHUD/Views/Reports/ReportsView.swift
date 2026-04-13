@@ -11,6 +11,26 @@ struct ReportsView: View {
     @State private var heroPlayerName: String = ""
     @State private var availableHeroes: [String] = []
 
+    // Phase 3 PR1 filter state
+    @State private var selectedPosition: PositionFilter = .all
+    @State private var selectedGameType: GameTypeFilter = .all
+    @State private var selectedStakes: StakesFilter = .all
+    @State private var selectedMoneyType: MoneyTypeFilter = .all
+
+    // Sortable table state. nil = preserve repository order (handsPlayed DESC).
+    @State private var sortColumn: SortColumn? = nil
+    @State private var sortAscending: Bool = false
+
+    // Phase 3 PR2: sub-tab + situational stats state
+    @State private var selectedSubTab: ReportsSubTab = .playerStats
+    @State private var situationalStats: SituationalStats? = nil
+
+    // Phase 3 PR3: opponent detail sheet
+    @State private var selectedOpponent: PlayerStats? = nil
+
+    // Phase 3 PR4: hole-card heat map state
+    @State private var holeCardMatrix: HoleCardMatrix? = nil
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -25,6 +45,27 @@ struct ReportsView: View {
                     }
 
                     Spacer()
+
+                    // Phase 3 PR4: export menu — CSV / JSON / PDF of the
+                    // currently filtered player stats. PDF snapshots the
+                    // sortedStats table view as it appears on screen.
+                    ExportMenu(
+                        stats: sortedStats,
+                        pdfSnapshotView: {
+                            AnyView(
+                                PlayerStatsTable(
+                                    stats: sortedStats,
+                                    heroName: heroPlayerName,
+                                    sortColumn: .constant(sortColumn),
+                                    sortAscending: .constant(sortAscending)
+                                )
+                                .padding()
+                                .frame(width: 1200)
+                            )
+                        },
+                        suggestedFilenameRoot: filenameRoot()
+                    )
+                    .frame(width: 110)
 
                     // Filters
                     VStack(alignment: .trailing, spacing: 8) {
@@ -48,6 +89,41 @@ struct ReportsView: View {
                             .pickerStyle(.menu)
                         }
 
+                        // Phase 3 PR1: position / game type / stakes filters
+                        HStack {
+                            Picker("Position", selection: $selectedPosition) {
+                                ForEach(PositionFilter.allCases) { p in
+                                    Text(p.title).tag(p)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 140)
+
+                            Picker("Game", selection: $selectedGameType) {
+                                ForEach(GameTypeFilter.allCases) { g in
+                                    Text(g.title).tag(g)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 140)
+
+                            Picker("Stakes", selection: $selectedStakes) {
+                                ForEach(StakesFilter.allCases) { s in
+                                    Text(s.title).tag(s)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 140)
+
+                            Picker("Money", selection: $selectedMoneyType) {
+                                ForEach(MoneyTypeFilter.allCases) { m in
+                                    Text(m.rawValue).tag(m)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(width: 140)
+                        }
+
                         Stepper("Min Hands: \(minHands)", value: $minHands, in: 1...1000, step: 5)
                     }
                 }
@@ -68,11 +144,24 @@ struct ReportsView: View {
                     .padding(.horizontal)
                 }
 
-                // Hero summary card
+                // Hero summary card (visible on both sub-tabs so the
+                // hero's headline numbers stay anchored while the user
+                // flips between "Player Stats" and "Situational").
                 if !heroPlayerName.isEmpty, let heroStats = playerStats.first(where: { $0.playerName == heroPlayerName }) {
                     HeroSummaryCard(stats: heroStats)
                         .padding(.horizontal)
                 }
+
+                // Phase 3 PR2: segmented sub-tab picker. macOS-native feel
+                // and cheaper to wire than a real TabView.
+                Picker("", selection: $selectedSubTab) {
+                    ForEach(ReportsSubTab.allCases) { tab in
+                        Text(tab.title).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 360)
+                .padding(.horizontal)
 
                 // Loading State
                 if isLoading {
@@ -81,20 +170,43 @@ struct ReportsView: View {
                         .padding()
                 }
 
-                // Stats Table
-                if !playerStats.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Player Statistics (\(playerStats.count) players)")
-                                .font(.headline)
-                            Spacer()
-                        }
-                        .padding(.horizontal)
+                // Sub-tab body
+                switch selectedSubTab {
+                case .playerStats:
+                    if !playerStats.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Text("Player Statistics (\(playerStats.count) players)")
+                                    .font(.headline)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
 
-                        PlayerStatsTable(stats: playerStats, heroName: heroPlayerName)
+                            PlayerStatsTable(
+                                stats: sortedStats,
+                                heroName: heroPlayerName,
+                                sortColumn: $sortColumn,
+                                sortAscending: $sortAscending,
+                                onRowTap: { player in
+                                    selectedOpponent = player
+                                }
+                            )
+                        }
+                    } else if !isLoading {
+                        EmptyReportView()
                     }
-                } else if !isLoading {
-                    EmptyReportView()
+
+                case .situational:
+                    SituationalStatsView(
+                        stats: situationalStats,
+                        heroName: heroPlayerName
+                    )
+
+                case .holdings:
+                    HoleCardHeatMapView(
+                        matrix: holeCardMatrix,
+                        heroName: heroPlayerName
+                    )
                 }
             }
         }
@@ -110,6 +222,29 @@ struct ReportsView: View {
         }
         .onChange(of: heroPlayerName) { _, _ in
             Task { await loadStats() }
+        }
+        .onChange(of: selectedPosition) { _, _ in
+            Task { await loadStats() }
+        }
+        .onChange(of: selectedGameType) { _, _ in
+            Task { await loadStats() }
+        }
+        .onChange(of: selectedStakes) { _, _ in
+            Task { await loadStats() }
+        }
+        .onChange(of: selectedMoneyType) { _, _ in
+            Task { await loadStats() }
+        }
+        // Phase 3 PR3: opponent detail drill-down sheet, presented when
+        // the user taps a row in PlayerStatsTable. Reuses the current
+        // filter set so the sheet's situational stats match what the
+        // user was looking at in the parent table.
+        .sheet(item: $selectedOpponent) { opponent in
+            OpponentDetailView(
+                opponent: opponent,
+                filters: createFilters(for: selectedTimeRange)
+            )
+            .frame(minWidth: 720, minHeight: 600)
         }
     }
 
@@ -132,7 +267,7 @@ struct ReportsView: View {
                 heroPlayerName = first
             }
         } catch {
-            print("Error loading heroes: \(error)")
+            Log.app.error("Error loading heroes: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -146,11 +281,70 @@ struct ReportsView: View {
             let allStats = try StatsCalculator().getAllPlayerStats(minHands: minHands, filters: filters)
             playerStats = allStats
             if allStats.isEmpty {
-                errorMessage = "No players found with \(minHands)+ hands. Try lowering Min Hands."
+                errorMessage = "No players found with \(minHands)+ hands matching the current filters. Try widening the filter or lowering Min Hands."
+            }
+
+            // Phase 3 PR2: also fetch situational stats for the hero on
+            // every load so flipping to the Situational sub-tab is
+            // instant. Cheap because it's one aggregated row.
+            // Phase 3 PR4: same for the hole-card matrix on the Holdings
+            // sub-tab. The matrix has at most ~1326 distinct rank+suit
+            // pairs to fold so this is also a cheap query.
+            if !heroPlayerName.isEmpty {
+                let repo = StatsRepository()
+                situationalStats = try repo.fetchSituationalStats(
+                    playerName: heroPlayerName,
+                    filters: filters
+                )
+                holeCardMatrix = try repo.fetchHoleCardMatrix(
+                    playerName: heroPlayerName,
+                    filters: filters
+                )
+            } else {
+                situationalStats = nil
+                holeCardMatrix = nil
             }
         } catch {
             errorMessage = "Error: \(error.localizedDescription)"
-            print("Error loading stats: \(error)")
+            Log.app.error("Error loading stats: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Phase 3 PR4: filename hint for the export menu. Combines the
+    /// hero (or "all") with the current time-range tag so the user
+    /// gets a sensible default in the save panel without typing.
+    private func filenameRoot() -> String {
+        let hero = heroPlayerName.isEmpty ? "all" : heroPlayerName
+        let range = selectedTimeRange.rawValue.lowercased().replacingOccurrences(of: " ", with: "-")
+        return "pokerhud-\(hero)-\(range)"
+    }
+
+    /// Phase 3 PR1: client-side sort applied on top of the repository's
+    /// default ordering (handsPlayed DESC). When `sortColumn == nil` we
+    /// preserve the SQL order so the table looks identical to before the
+    /// sort feature shipped.
+    private var sortedStats: [PlayerStats] {
+        guard let column = sortColumn else { return playerStats }
+        let asc = sortAscending
+        return playerStats.sorted { lhs, rhs in
+            let cmp: Bool
+            switch column {
+            case .player:       cmp = lhs.playerName < rhs.playerName
+            case .hands:        cmp = lhs.handsPlayed < rhs.handsPlayed
+            case .vpip:         cmp = lhs.vpip < rhs.vpip
+            case .pfr:          cmp = lhs.pfr < rhs.pfr
+            case .threeBet:     cmp = lhs.threeBet < rhs.threeBet
+            case .af:           cmp = lhs.aggressionFactor < rhs.aggressionFactor
+            case .wtsd:         cmp = lhs.wtsd < rhs.wtsd
+            case .wsd:          cmp = lhs.wsd < rhs.wsd
+            case .bb100:        cmp = lhs.bb100 < rhs.bb100
+            case .cbetFlop:     cmp = lhs.cbetFlop < rhs.cbetFlop
+            case .foldCbetFlop: cmp = lhs.foldToCbetFlop < rhs.foldToCbetFlop
+            case .squeeze:      cmp = lhs.squeeze < rhs.squeeze
+            case .fourBet:      cmp = lhs.fourBet < rhs.fourBet
+            case .foldThreeBet: cmp = lhs.foldToThreeBet < rhs.foldToThreeBet
+            }
+            return asc ? cmp : !cmp
         }
     }
 
@@ -171,7 +365,120 @@ struct ReportsView: View {
             break
         }
 
+        // Phase 3 PR1: thread the new UI filters into the SQL.
+        if let pos = selectedPosition.sqlValue {
+            filters.position = pos
+        }
+        if let game = selectedGameType.sqlValue {
+            filters.gameType = game
+        }
+        if let stakes = selectedStakes.bigBlindRange {
+            filters.minStakes = stakes.lowerBound
+            filters.maxStakes = stakes.upperBound
+        }
+        if let mt = selectedMoneyType.dbValue {
+            filters.moneyType = mt
+        }
+        if !heroPlayerName.isEmpty {
+            filters.heroPlayerName = heroPlayerName
+        }
+
         return filters
+    }
+}
+
+// MARK: - Phase 3 PR1 filter enums
+
+enum PositionFilter: String, CaseIterable, Identifiable, Hashable {
+    case all, utg, mp, co, btn, sb, bb
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .all: return "All Positions"
+        case .utg: return "UTG"
+        case .mp:  return "MP"
+        case .co:  return "CO"
+        case .btn: return "BTN"
+        case .sb:  return "SB"
+        case .bb:  return "BB"
+        }
+    }
+    /// Value passed to the SQL `hp.position = ?` clause, or nil for "no filter".
+    var sqlValue: String? {
+        switch self {
+        case .all: return nil
+        default:   return rawValue.uppercased()
+        }
+    }
+}
+
+enum GameTypeFilter: String, CaseIterable, Identifiable, Hashable {
+    case all, holdem, omaha
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .all:    return "All Games"
+        case .holdem: return "Hold'em"
+        case .omaha:  return "Omaha"
+        }
+    }
+    /// Value passed to the SQL `h.gameType = ?` clause. The PokerStars
+    /// parser stores game types like "Hold'em" / "Omaha" verbatim, which
+    /// is what we need to match.
+    var sqlValue: String? {
+        switch self {
+        case .all:    return nil
+        case .holdem: return "Hold'em"
+        case .omaha:  return "Omaha"
+        }
+    }
+}
+
+enum StakesFilter: String, CaseIterable, Identifiable, Hashable {
+    case all, micro, low, mid, high
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .all:   return "All Stakes"
+        case .micro: return "Micro (≤ €0.10)"
+        case .low:   return "Low (€0.10–€1)"
+        case .mid:   return "Mid (€1–€5)"
+        case .high:  return "High (≥ €5)"
+        }
+    }
+    /// Bounds expressed in big blinds (the table column we filter on).
+    var bigBlindRange: ClosedRange<Double>? {
+        switch self {
+        case .all:   return nil
+        case .micro: return 0.001...0.10
+        case .low:   return 0.10...1.00
+        case .mid:   return 1.00...5.00
+        case .high:  return 5.00...10000.00
+        }
+    }
+}
+
+// MARK: - Phase 3 PR1 sortable column enum
+
+enum SortColumn: String, Hashable {
+    case player, hands, vpip, pfr, threeBet, af, wtsd, wsd, bb100
+    case cbetFlop, foldCbetFlop, squeeze, fourBet, foldThreeBet
+}
+
+// MARK: - Phase 3 PR2 sub-tab enum
+
+enum ReportsSubTab: String, CaseIterable, Identifiable, Hashable {
+    case playerStats
+    case situational
+    case holdings
+
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .playerStats: return "Player Stats"
+        case .situational: return "Situational"
+        case .holdings:    return "Holdings"
+        }
     }
 }
 
@@ -254,49 +561,102 @@ struct HeroSummaryCard: View {
 struct PlayerStatsTable: View {
     let stats: [PlayerStats]
     let heroName: String
+    @Binding var sortColumn: SortColumn?
+    @Binding var sortAscending: Bool
+    /// Phase 3 PR3: tap callback for opponent detail drill-down. Made
+    /// optional so existing call sites that don't care about taps still
+    /// compile (none in the current codebase, but a defensive default).
+    var onRowTap: ((PlayerStats) -> Void)? = nil
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Player")
-                    .frame(width: 150, alignment: .leading)
-                Text("Hands")
-                    .frame(width: 60, alignment: .trailing)
-                Text("VPIP")
-                    .frame(width: 60, alignment: .trailing)
-                Text("PFR")
-                    .frame(width: 60, alignment: .trailing)
-                Text("3Bet")
-                    .frame(width: 60, alignment: .trailing)
-                Text("AF")
-                    .frame(width: 60, alignment: .trailing)
-                Text("WTSD")
-                    .frame(width: 60, alignment: .trailing)
-                Text("W$SD")
-                    .frame(width: 60, alignment: .trailing)
-                Text("BB/100")
-                    .frame(width: 80, alignment: .trailing)
-                Text("Type")
-                    .frame(width: 80, alignment: .leading)
-            }
-            .font(.caption)
-            .fontWeight(.semibold)
-            .padding(.vertical, 8)
-            .padding(.horizontal)
-            .background(Color.secondary.opacity(0.1))
+        ScrollView(.horizontal, showsIndicators: false) {
+            VStack(spacing: 0) {
+                // Header — every column tappable to sort. Click toggles
+                // ascending/descending; clicking a different column resets
+                // to descending (the most useful default for poker stats).
+                HStack(spacing: 0) {
+                    headerCell("Player", column: .player, width: 150, alignment: .leading)
+                    headerCell("Hands", column: .hands, width: 60)
+                    headerCell("VPIP", column: .vpip, width: 60)
+                    headerCell("PFR", column: .pfr, width: 60)
+                    headerCell("3Bet", column: .threeBet, width: 60)
+                    headerCell("4Bet", column: .fourBet, width: 60)
+                    headerCell("F3B", column: .foldThreeBet, width: 60)
+                    headerCell("Sqz", column: .squeeze, width: 60)
+                    headerCell("CBetF", column: .cbetFlop, width: 65)
+                    headerCell("FCBF", column: .foldCbetFlop, width: 65)
+                    headerCell("AF", column: .af, width: 60)
+                    headerCell("WTSD", column: .wtsd, width: 60)
+                    headerCell("W$SD", column: .wsd, width: 60)
+                    headerCell("BB/100", column: .bb100, width: 80)
+                    Text("Type")
+                        .frame(width: 80, alignment: .leading)
+                }
+                .font(.caption)
+                .fontWeight(.semibold)
+                .padding(.vertical, 8)
+                .padding(.horizontal)
+                .background(Color.secondary.opacity(0.1))
 
-            Divider()
-
-            // Rows
-            ForEach(stats) { stat in
-                PlayerStatsRow(stat: stat, isHero: stat.playerName == heroName)
                 Divider()
+
+                // Rows
+                ForEach(stats) { stat in
+                    PlayerStatsRow(stat: stat, isHero: stat.playerName == heroName)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onRowTap?(stat)
+                        }
+                    Divider()
+                }
             }
+            .background(Color.secondary.opacity(0.05))
+            .cornerRadius(8)
+            .padding(.horizontal)
         }
-        .background(Color.secondary.opacity(0.05))
-        .cornerRadius(8)
-        .padding(.horizontal)
+    }
+
+    /// One sortable column header. Tap toggles direction; tapping a
+    /// different column resets to descending (the default for stats —
+    /// "best players first" / "highest VPIP first" etc.). Renders an
+    /// arrow indicator next to the active column.
+    @ViewBuilder
+    private func headerCell(
+        _ label: String,
+        column: SortColumn,
+        width: CGFloat,
+        alignment: Alignment = .trailing
+    ) -> some View {
+        let isActive = sortColumn == column
+        Button {
+            if sortColumn == column {
+                sortAscending.toggle()
+            } else {
+                sortColumn = column
+                sortAscending = false
+            }
+        } label: {
+            HStack(spacing: 2) {
+                if alignment == .leading {
+                    Text(label)
+                    if isActive {
+                        Image(systemName: sortAscending ? "arrow.up" : "arrow.down")
+                            .font(.system(size: 8))
+                    }
+                    Spacer(minLength: 0)
+                } else {
+                    Spacer(minLength: 0)
+                    Text(label)
+                    if isActive {
+                        Image(systemName: sortAscending ? "arrow.up" : "arrow.down")
+                            .font(.system(size: 8))
+                    }
+                }
+            }
+            .frame(width: width, alignment: alignment)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -305,7 +665,7 @@ struct PlayerStatsRow: View {
     let isHero: Bool
 
     var body: some View {
-        HStack {
+        HStack(spacing: 0) {
             HStack(spacing: 4) {
                 if isHero {
                     Image(systemName: "star.fill")
@@ -328,6 +688,18 @@ struct PlayerStatsRow: View {
                 .foregroundColor(colorForPFR(stat.pfr))
             Text(String(format: "%.1f", stat.threeBet))
                 .frame(width: 60, alignment: .trailing)
+            // Phase 3 PR1: 5 new situational columns surfacing data that
+            // was already computed at import time but never rendered.
+            Text(String(format: "%.1f", stat.fourBet))
+                .frame(width: 60, alignment: .trailing)
+            Text(String(format: "%.1f", stat.foldToThreeBet))
+                .frame(width: 60, alignment: .trailing)
+            Text(String(format: "%.1f", stat.squeeze))
+                .frame(width: 60, alignment: .trailing)
+            Text(String(format: "%.1f", stat.cbetFlop))
+                .frame(width: 65, alignment: .trailing)
+            Text(String(format: "%.1f", stat.foldToCbetFlop))
+                .frame(width: 65, alignment: .trailing)
             Text(String(format: "%.1f", stat.aggressionFactor))
                 .frame(width: 60, alignment: .trailing)
             Text(String(format: "%.1f", stat.wtsd))

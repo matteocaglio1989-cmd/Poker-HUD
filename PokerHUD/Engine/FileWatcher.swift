@@ -45,7 +45,7 @@ class FileWatcher {
         self.timer = timer
 
         isWatching = true
-        print("[FileWatcher] Watching (recursive): \(directory.path) every \(pollInterval)s")
+        Log.filewatcher.debug("Watching (recursive): \(directory.path, privacy: .public) every \(self.pollInterval)s")
     }
 
     /// Stop watching
@@ -70,7 +70,7 @@ class FileWatcher {
             knownFiles[relativePath] = modDate
             fileChanged.send(fileURL)
         }
-        print("[FileWatcher] Emitted \(knownFiles.count) existing files for import")
+        Log.filewatcher.debug("Emitted \(self.knownFiles.count) existing files for import")
     }
 
     /// Build initial snapshot of all hand history files in the directory tree
@@ -79,7 +79,7 @@ class FileWatcher {
         for (relativePath, modDate, _) in enumerateHandHistoryFiles(in: directory) {
             knownFiles[relativePath] = modDate
         }
-        print("[FileWatcher] Snapshot: \(knownFiles.count) existing files")
+        Log.filewatcher.debug("Snapshot: \(self.knownFiles.count) existing files")
     }
 
     /// Scan for new or modified files and emit them
@@ -92,13 +92,13 @@ class FileWatcher {
                 if modDate > knownDate {
                     knownFiles[relativePath] = modDate
                     fileChanged.send(fileURL)
-                    print("[FileWatcher] Modified: \(relativePath)")
+                    Log.filewatcher.debug("Modified: \(relativePath, privacy: .public)")
                 }
             } else {
                 // New file discovered
                 knownFiles[relativePath] = modDate
                 fileChanged.send(fileURL)
-                print("[FileWatcher] New file: \(relativePath)")
+                Log.filewatcher.debug("New file: \(relativePath, privacy: .public)")
             }
         }
     }

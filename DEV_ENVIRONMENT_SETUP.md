@@ -56,7 +56,7 @@ This option lets you run the full SwiftUI application.
 
 5. Click **Next**
 
-6. **Navigate to:** `/Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/`
+6. **Navigate to:** `<repo-root>/`
 
 7. Click **Create**
 
@@ -157,7 +157,7 @@ This option lets you run the full SwiftUI application.
 
 2. Navigate to:
    ```
-   /Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/SampleData/sample_pokerstars.txt
+   <repo-root>/SampleData/sample_pokerstars.txt
    ```
 
 3. Click **Open**
@@ -179,14 +179,14 @@ This option compiles the code but won't run the SwiftUI app. Good for testing co
 The `Package.swift` is already configured. Just verify it's correct:
 
 ```bash
-cd /Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/
+cd <repo-root>/
 cat Package.swift
 ```
 
 ### Step 2: Build with SPM
 
 ```bash
-cd /Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/
+cd <repo-root>/
 swift build
 ```
 
@@ -220,7 +220,7 @@ sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 **Solutions:**
 ```bash
 # In Terminal (if using SPM):
-cd /Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/
+cd <repo-root>/
 swift package resolve
 swift package update
 
@@ -333,7 +333,7 @@ Reports:
 
 ```bash
 # Navigate to project
-cd /Users/useroverit/Desktop/Code/Poker-Hud/Poker-HUD/
+cd <repo-root>/
 
 # Open in Xcode (if .xcodeproj exists)
 open PokerHUD.xcodeproj

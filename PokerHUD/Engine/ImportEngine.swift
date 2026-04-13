@@ -69,16 +69,33 @@ class ImportEngine {
 
         // Find or create site
         let site = try findOrCreateSite(name: parser.siteName)
+        guard let siteId = site.id else {
+            throw ImportEngineError.missingPersistedID("Site")
+        }
 
         // Parse hands
-        let parsedHands = try parser.parse(content)
+        var parsedHands = try parser.parse(content)
+
+        // Detect money type from the source filename:
+        //   "Play Money" in name → PLAY_MONEY
+        //   tournamentId present → TOURNAMENT
+        //   otherwise → CASH (parser default)
+        let isPlayMoneyFile = url.lastPathComponent
+            .localizedCaseInsensitiveContains("Play Money")
+        for i in parsedHands.indices {
+            if isPlayMoneyFile {
+                parsedHands[i].hand.moneyType = "PLAY_MONEY"
+            } else if parsedHands[i].hand.tournamentId != nil {
+                parsedHands[i].hand.moneyType = "TOURNAMENT"
+            }
+        }
 
         var handsImported = 0
         var newPlayers = 0
 
         for parsedHand in parsedHands {
             // Check if hand already exists
-            if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: site.id!) != nil {
+            if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: siteId) != nil {
                 continue // Skip duplicate
             }
 
@@ -104,17 +121,21 @@ class ImportEngine {
 
     /// Import a single hand into the database
     private func importHand(_ handData: HandData, players: [PlayerData], actions: [ActionData], site: Site) async throws {
+        guard let siteId = site.id else {
+            throw ImportEngineError.missingPersistedID("Site")
+        }
+
         // Find or create tournament if applicable
         var tournamentId: Int64? = nil
         if let tournamentIdString = handData.tournamentId {
-            let tournament = try findOrCreateTournament(tournamentId: tournamentIdString, siteId: site.id!)
+            let tournament = try findOrCreateTournament(tournamentId: tournamentIdString, siteId: siteId)
             tournamentId = tournament.id
         }
 
         // Create hand record
         var hand = Hand(
             id: nil,
-            siteId: site.id!,
+            siteId: siteId,
             handId: handData.handId,
             tournamentId: tournamentId,
             tableName: handData.tableName,
@@ -128,19 +149,23 @@ class ImportEngine {
             potTotal: handData.potTotal,
             rake: handData.rake,
             playedAt: handData.playedAt,
-            rawText: handData.rawText
+            rawText: handData.rawText,
+            moneyType: handData.moneyType
         )
 
         // Create player records
         var handPlayers: [HandPlayer] = []
         for playerData in players {
             // Find or create player
-            let player = try playerRepository.findOrCreate(username: playerData.username, siteId: site.id!)
+            let player = try playerRepository.findOrCreate(username: playerData.username, siteId: siteId)
+            guard let playerId = player.id else {
+                throw ImportEngineError.missingPersistedID("Player \(playerData.username)")
+            }
 
             let handPlayer = HandPlayer(
                 id: nil,
                 handId: 0, // Will be set after hand insert
-                playerId: player.id!,
+                playerId: playerId,
                 seat: playerData.seat,
                 position: playerData.position,
                 holeCards: playerData.holeCards,
@@ -176,11 +201,12 @@ class ImportEngine {
         for actionData in actions {
             // Find player ID
             if let playerData = players.first(where: { $0.username == actionData.username }),
-               let player = try? playerRepository.fetchByUsername(playerData.username, siteId: site.id!) {
+               let player = try? playerRepository.fetchByUsername(playerData.username, siteId: siteId),
+               let playerId = player.id {
                 let action = Action(
                     id: nil,
                     handId: 0, // Will be set after hand insert
-                    playerId: player.id!,
+                    playerId: playerId,
                     street: actionData.street,
                     actionOrder: actionData.actionOrder,
                     actionType: actionData.actionType,
@@ -253,7 +279,21 @@ class ImportEngine {
         }
 
         let site = try findOrCreateSite(name: parser.siteName)
-        let parsedHands = try parser.parse(content)
+        guard let siteId = site.id else {
+            throw ImportEngineError.missingPersistedID("Site")
+        }
+        var parsedHands = try parser.parse(content)
+
+        // Detect money type (same logic as importFile)
+        let isPlayMoneyFile = url.lastPathComponent
+            .localizedCaseInsensitiveContains("Play Money")
+        for i in parsedHands.indices {
+            if isPlayMoneyFile {
+                parsedHands[i].hand.moneyType = "PLAY_MONEY"
+            } else if parsedHands[i].hand.tournamentId != nil {
+                parsedHands[i].hand.moneyType = "TOURNAMENT"
+            }
+        }
 
         var handsImported = 0
         var affectedTableNames = Set<String>()
@@ -278,7 +318,7 @@ class ImportEngine {
             }
 
             do {
-                if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: site.id!) != nil {
+                if try handRepository.fetchByHandId(parsedHand.hand.handId, siteId: siteId) != nil {
                     continue
                 }
 
@@ -336,6 +376,11 @@ enum ImportEngineError: LocalizedError {
     case unsupportedFormat
     case fileReadError
     case databaseError(Error)
+    /// Thrown when a GRDB-inserted row is missing its rowid after insert —
+    /// should be impossible given how GRDB's `didInsert` populates the `id`,
+    /// but guarding lets the importer fail gracefully instead of crashing
+    /// the whole app on a schema regression.
+    case missingPersistedID(String)
 
     var errorDescription: String? {
         switch self {
@@ -345,6 +390,8 @@ enum ImportEngineError: LocalizedError {
             return "Failed to read file"
         case .databaseError(let error):
             return "Database error: \(error.localizedDescription)"
+        case .missingPersistedID(let entity):
+            return "Database did not return a row id for \(entity) after insert"
         }
     }
 }

@@ -7,7 +7,10 @@ import Auth
 /// All published mutations happen on the main actor so views can bind directly.
 @MainActor
 final class AuthService: ObservableObject {
-    @Published private(set) var session: Session?
+    // Disambiguate from `PokerHUD/Models/Session.swift` (a poker hand-history
+    // session). Without the `Auth.` prefix Swift resolves `Session` to the
+    // GRDB model in this module, not Supabase's auth Session.
+    @Published private(set) var session: Auth.Session?
     @Published private(set) var isAuthenticated: Bool = false
     @Published private(set) var isLoading: Bool = false
     @Published var authError: String?

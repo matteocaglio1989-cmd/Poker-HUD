@@ -16,6 +16,15 @@ struct MainView: View {
             }
             .navigationTitle("Poker HUD")
             .frame(minWidth: 200)
+            // Pin the trial banner (when on a free trial) to the bottom of
+            // the sidebar column instead of overlaying the whole window —
+            // safeAreaInset reserves vertical space inside the List so the
+            // banner never covers a nav item.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if case .trial(let remaining) = appState.subscriptionManager.entitlement {
+                    TrialBannerView(remainingHands: remaining)
+                }
+            }
         } detail: {
             // Main content
             Group {
@@ -24,10 +33,12 @@ struct MainView: View {
                     DashboardView()
                 case .reports:
                     ReportsView()
+                case .sessions:
+                    SessionsView()
                 case .hud:
                     TableSetupView()
                 case .replayer:
-                    ReplayerPlaceholderView()
+                    HandReplayerView()
                 case .settings:
                     SettingsView()
                 }
@@ -40,6 +51,7 @@ struct MainView: View {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case dashboard
     case reports
+    case sessions
     case hud
     case replayer
     case settings
@@ -50,6 +62,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "Dashboard"
         case .reports: return "Reports"
+        case .sessions: return "Sessions"
         case .hud: return "HUD"
         case .replayer: return "Hand Replayer"
         case .settings: return "Settings"
@@ -60,6 +73,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .dashboard: return "chart.line.uptrend.xyaxis"
         case .reports: return "doc.text.magnifyingglass"
+        case .sessions: return "calendar"
         case .hud: return "rectangle.on.rectangle"
         case .replayer: return "play.circle.fill"
         case .settings: return "gear"
@@ -67,20 +81,5 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     }
 }
 
-// Placeholder views
-struct ReplayerPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "play.circle")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-            Text("Hand Replayer")
-                .font(.title)
-            Text("Coming in Phase 4")
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
 // OpponentListView moved to Phase 3
+// HandReplayerView lives in Views/Replayer/HandReplayerView.swift (Phase 4 PR1)

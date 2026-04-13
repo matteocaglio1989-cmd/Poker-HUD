@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundleDisplayName</key>
+    <string>Poker HUD</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.pokerhud.app</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Poker HUD. All rights reserved.</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.utilities</string>
+
+    <!-- Export compliance: the app uses only standard HTTPS (via
+         Supabase + StoreKit) and no custom encryption algorithms.
+         Setting this to false skips the export compliance
+         questionnaire on every App Store Connect upload. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- Permission prompts shown by macOS TCC when the app first calls the
+         Accessibility API and Screen Recording API. Both strings explain
+         exactly what the app will (and won't) do with the permission, which
+         is what Apple's review team looks for. -->
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Poker HUD uses Accessibility to read PokerStars table-window titles so it can position the HUD overlay above the correct table. It does not read, modify, or capture anything else from other applications.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Poker HUD optionally uses Screen Recording as a fallback to detect PokerStars table-window positions when Accessibility permission is not granted. No screen content is ever recorded or transmitted.</string>
+</dict>
+</plist>
