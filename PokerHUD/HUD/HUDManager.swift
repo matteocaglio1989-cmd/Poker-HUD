@@ -311,7 +311,7 @@ class HUDManager {
         }
 
         // 1. If we have a cached binding, use it — but if window titles are
-        //    readable (Screen Recording or Accessibility granted) and the
+        //    readable (Screen Recording granted) and the
         //    cached window's title does NOT contain this table's name,
         //    treat the cache as poisoned and re-match. This is what auto-
         //    corrects the multi-table launch swap that happens when
@@ -335,9 +335,8 @@ class HUDManager {
             tableWindowBinding.removeValue(forKey: table.id)
         }
 
-        // 2. Match by window title (works whenever Screen Recording OR
-        //    Accessibility permission is granted — see PokerStarsWindowDetector
-        //    .enrichWithAXTitles).
+        // 2. Match by window title (requires Screen Recording permission to
+        //    populate `kCGWindowName`).
         if let matched = windows.first(where: { !$0.windowName.isEmpty && $0.windowName.contains(table.tableName) }) {
             tableWindowBinding[table.id] = matched.windowID
             Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to window \(matched.windowID) by name match")
@@ -352,7 +351,7 @@ class HUDManager {
         //    inherently ambiguous (the long-standing multi-table launch
         //    bug), but it's better to bind *something* than to leave the
         //    HUD invisible — and step 1's cache validation will auto-
-        //    correct on the next tick if the user grants Accessibility
+        //    correct on the next tick if the user grants Screen Recording
         //    permission and titles become readable.
         let boundIDs = Set(tableWindowBinding.values)
         let unboundWindows = windows.filter { !boundIDs.contains($0.windowID) }
@@ -360,7 +359,7 @@ class HUDManager {
         if let window = unboundWindows.first {
             tableWindowBinding[table.id] = window.windowID
             if unboundWindows.count > 1 {
-                Log.hud.warning("Bound '\(table.tableName, privacy: .public)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Accessibility permission in System Settings → Privacy & Security for reliable multi-table binding.")
+                Log.hud.warning("Bound '\(table.tableName, privacy: .public)' to window \(window.windowID) but \(unboundWindows.count) windows are unbound and titles are unreadable — grant Screen Recording permission in System Settings → Privacy & Security for reliable multi-table binding.")
             } else {
                 Log.hud.debug("Bound '\(table.tableName, privacy: .public)' to only unbound window \(window.windowID)")
             }
@@ -395,15 +394,15 @@ class HUDManager {
         step: String,
         boundID: CGWindowID?
     ) {
-        let axGranted = AccessibilityPermission.isGranted
+        let screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
         let windowFingerprint = windows
             .map { "\($0.windowID):\($0.windowName.isEmpty ? "<no-title>" : String($0.windowName.prefix(40)))" }
             .joined(separator: " | ")
-        let fingerprint = "\(step)|\(boundID.map { String($0) } ?? "nil")|ax=\(axGranted)|\(windowFingerprint)"
+        let fingerprint = "\(step)|\(boundID.map { String($0) } ?? "nil")|sr=\(screenRecordingGranted)|\(windowFingerprint)"
         if lastFindWindowLog[table.id] == fingerprint { return }
         lastFindWindowLog[table.id] = fingerprint
         let boundStr = boundID.map { String($0) } ?? "nil"
-        Log.hud.debug("[diag] '\(table.tableName, privacy: .public)' → step=\(step, privacy: .public) bound=\(boundStr, privacy: .public) axGranted=\(axGranted) windows=[\(windowFingerprint, privacy: .public)]")
+        Log.hud.debug("[diag] '\(table.tableName, privacy: .public)' → step=\(step, privacy: .public) bound=\(boundStr, privacy: .public) screenRecordingGranted=\(screenRecordingGranted) windows=[\(windowFingerprint, privacy: .public)]")
     }
 
     /// Rebind a table to a specific window
@@ -419,7 +418,7 @@ class HUDManager {
     /// Returns the cached window binding for a specific table, or nil if
     /// none. Used by `AppState.pruneClosedTables()` as the title-less
     /// fallback check when a table's PokerStars window title can't be
-    /// matched (no Screen Recording / Accessibility permission).
+    /// matched (no Screen Recording permission).
     func boundWindowID(for tableId: UUID) -> CGWindowID? {
         tableWindowBinding[tableId]
     }

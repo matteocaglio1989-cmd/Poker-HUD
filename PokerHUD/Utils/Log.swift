@@ -35,7 +35,6 @@ enum Log {
     /// Polling file watcher that detects new hand history files on disk.
     static let filewatcher  = Logger(subsystem: subsystem, category: "filewatcher")
 
-    /// Accessibility + screen-recording permission requests and
-    /// PokerStars window detection.
+    /// Screen-recording permission requests and PokerStars window detection.
     static let ax           = Logger(subsystem: subsystem, category: "accessibility")
 }
