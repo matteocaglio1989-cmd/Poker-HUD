@@ -334,7 +334,7 @@ Add new layers:
 ```
 HUD Layer (NSPanel)
     ├── HUDWindowController
-    ├── TableDetector (Accessibility API)
+    ├── TableDetector (CGWindowListCopyWindowInfo)
     └── HUDPositioner
 ```
 

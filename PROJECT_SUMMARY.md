@@ -200,7 +200,7 @@ sessions           -- Playing sessions
 The next phase will add:
 
 1. **Table Detection**
-   - Use macOS Accessibility API
+   - Use CGWindowListCopyWindowInfo (no Accessibility API — App Store guideline 2.4.5)
    - Detect poker client windows
    - Identify player positions
 
