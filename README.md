@@ -25,7 +25,7 @@ Earlier shipped (Phase 3 - Advanced Reports):
 
 Earlier shipped:
 - ✅ Floating NSPanel HUD overlays with per-seat auto-positioning
-- ✅ Accessibility API window-title enrichment for reliable multi-table binding
+- ✅ CGWindowList-based window-title matching for reliable multi-table binding (Screen Recording permission)
 - ✅ Real-time stat updates with visual flash feedback on new hands
 - ✅ File watcher for auto-import (recursive)
 - ✅ Menu bar HUD-only mode
@@ -43,7 +43,7 @@ Earlier shipped:
 - [x] Basic tests
 
 ### Phase 2 - HUD Overlay ✅ (COMPLETE)
-- [x] Table detection via Accessibility API
+- [x] Table detection via CGWindowListCopyWindowInfo
 - [x] Floating HUD windows (NSPanel)
 - [x] Real-time stat display
 - [x] Auto-positioning per seat

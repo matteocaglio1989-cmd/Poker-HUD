@@ -69,8 +69,8 @@ struct SubscriptionRecord: Codable, Equatable {
 /// App Store Connect product identifiers. Must match the auto-renewable
 /// subscriptions configured in App Store Connect.
 enum SubscriptionProductIDs {
-    static let monthly = "com.pokerhud.app.subscription.monthly"
-    static let yearly  = "com.pokerhud.app.subscription.yearly"
+    static let monthly = "com.pokereye.pokerhud.pro.monthly"
+    static let yearly  = "com.pokereye.pokerhud.pro.yearly"
     static let all: [String] = [monthly, yearly]
 
     static func plan(for productId: String) -> Plan? {

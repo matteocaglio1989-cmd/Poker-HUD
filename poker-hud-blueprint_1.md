@@ -135,7 +135,7 @@ Build a native **macOS Poker HUD & Tracker** application — an open-source alte
 | Language | Swift 5.9+ | Native macOS, performance, strong typing |
 | Database | SQLite via GRDB.swift | No server, fast, HM3-like approach (they dropped PostgreSQL too) |
 | File watching | FSEvents / DispatchSource | Native macOS file system event monitoring |
-| Table detection | Accessibility API (AXUIElement) | Detect poker client windows and seat positions |
+| Table detection | CGWindowListCopyWindowInfo | Enumerate poker client windows and read positions/titles (Screen Recording permission required on macOS 10.15+) |
 | Charts | Swift Charts (macOS 14+) or Charts (danielgindi) | Native charting for reports and graphs |
 | Overlay | NSPanel (level: .floating) | Transparent, always-on-top HUD windows |
 | Architecture | MVVM + Repository pattern | Clean separation, testable |
@@ -361,7 +361,7 @@ Poker-HUD/
 │   │   ├── HUDPopupView.swift         # Expandable stat pop-ups
 │   │   ├── HUDEditorView.swift        # Drag-and-drop HUD customizer
 │   │   ├── HUDPositioner.swift        # Auto-detect seat positions
-│   │   ├── TableDetector.swift        # AXUIElement poker window finder
+│   │   ├── TableDetector.swift        # CGWindowList poker window finder
 │   │   └── HUDConfiguration.swift     # Saved HUD layouts
 │   │
 │   ├── Views/
@@ -471,7 +471,7 @@ claude
 
 ```
 Tasks:
-1. Build TableDetector using Accessibility API to find poker windows
+1. Build TableDetector using CGWindowListCopyWindowInfo to find poker windows
 2. Create HUDWindowController with NSPanel (floating, transparent)
 3. Implement auto-positioning of HUD per player seat
 4. Build StandardHUDView showing key stats per opponent
@@ -546,17 +546,38 @@ class HUDPanel: NSPanel {
 }
 ```
 
-### Table Detection via Accessibility API
+### Table Detection via CGWindowListCopyWindowInfo
+
+Important: The macOS Accessibility API is NOT used for table detection. Apple
+App Store guideline 2.4.5 prohibits using Accessibility features for
+non-accessibility purposes. Instead, we use `CGWindowListCopyWindowInfo`,
+which returns window owner name, title, position, and size. The Screen
+Recording permission is required on macOS 10.15+ for `kCGWindowName` to be
+populated; no pixel content is ever captured.
 
 ```swift
-// Detect poker client windows
-func findPokerTables() -> [AXUIElement] {
-    let apps = NSWorkspace.shared.runningApplications
-    let pokerApps = apps.filter { app in
-        ["PokerStars", "pokerstars", "GGPoker", "partypoker"]
-            .contains(where: { app.localizedName?.contains($0) == true })
+// Detect poker client windows via CGWindowList
+struct DetectedPokerWindow {
+    let windowID: CGWindowID
+    let windowName: String
+    let frame: NSRect
+    let ownerName: String
+}
+
+func findPokerTables() -> [DetectedPokerWindow] {
+    guard let windowList = CGWindowListCopyWindowInfo(
+        [.optionOnScreenOnly, .excludeDesktopElements],
+        kCGNullWindowID
+    ) as? [[String: Any]] else { return [] }
+
+    return windowList.compactMap { window in
+        guard let owner = window[kCGWindowOwnerName as String] as? String,
+              owner.lowercased().contains("pokerstars"),
+              let bounds = window[kCGWindowBounds as String] as? [String: Any],
+              let id = window[kCGWindowNumber as String] as? CGWindowID
+        else { return nil }
+        // ... build DetectedPokerWindow from bounds / kCGWindowName
     }
-    // Use AXUIElement to find table windows and seat positions
 }
 ```
 
@@ -614,7 +635,7 @@ dependencies: [
 
 **Performance:** HM3 boasts speed improvements — your app should use indexed queries, background threads for parsing, and incremental stat updates (not full recalculation per hand).
 
-**Accessibility permissions:** The HUD overlay requires macOS Accessibility permissions to detect poker windows. Guide users through System Settings → Privacy & Security → Accessibility.
+**Screen Recording permission:** The HUD overlay uses `CGWindowListCopyWindowInfo` to read poker window positions and titles. On macOS 10.15+, `kCGWindowName` requires Screen Recording permission (Apple's own policy for window metadata, even when no pixels are captured). Guide users through System Settings → Privacy & Security → Screen & System Audio Recording. The macOS Accessibility API is intentionally NOT used — App Store guideline 2.4.5 prohibits using Accessibility features for non-accessibility purposes.
 
 **Code signing:** For distribution, the app needs a Developer ID certificate. For personal use, ad-hoc signing works.
 
