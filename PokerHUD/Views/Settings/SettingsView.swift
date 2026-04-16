@@ -9,7 +9,6 @@ struct SettingsView: View {
     @State private var editingSite: Site? = nil
     @State private var totalHands = 0
     @State private var totalPlayers = 0
-    @State private var accessibilityGranted = AccessibilityPermission.isGranted
     @State private var screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
     @State private var tableLayoutMode: TableLayoutMode = TableLayoutMode.load()
 
@@ -81,17 +80,8 @@ struct SettingsView: View {
 
             Section("Permissions") {
                 PermissionRow(
-                    title: "Accessibility",
-                    description: "Lets PokerHUD read PokerStars window titles so HUD panels bind to the correct table.",
-                    granted: accessibilityGranted,
-                    openAction: {
-                        AccessibilityPermission.openPrivacySettings()
-                    }
-                )
-
-                PermissionRow(
                     title: "Screen Recording",
-                    description: "Optional. Provides a secondary path to read window titles. Not required when Accessibility is granted.",
+                    description: "Required. Lets PokerHUD read PokerStars window titles so HUD panels bind to the correct table. No screen content is recorded or transmitted.",
                     granted: screenRecordingGranted,
                     openAction: {
                         PokerStarsWindowDetector.requestScreenRecordingPermission()
@@ -103,7 +93,6 @@ struct SettingsView: View {
                 )
 
                 Button("Re-check Permissions") {
-                    accessibilityGranted = AccessibilityPermission.isGranted
                     screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
                 }
             }
@@ -223,8 +212,7 @@ struct SettingsView: View {
 
 /// A single row in the Settings "Permissions" section. Shows the current
 /// grant state with a coloured icon and a button that routes the user to
-/// the right place to toggle it (System Settings pane for Accessibility,
-/// inline prompt for Screen Recording).
+/// the right place to toggle it (inline prompt for Screen Recording).
 struct PermissionRow: View {
     let title: String
     let description: String

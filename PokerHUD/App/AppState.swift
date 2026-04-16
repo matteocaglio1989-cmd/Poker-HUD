@@ -98,18 +98,15 @@ class AppState: ObservableObject {
         self.usageTracker = UsageTracker(subscriptionManager: self.subscriptionManager)
         self.menuBarController = nil // Set after init since it needs self
 
-        // Request Accessibility permission (preferred path — lets AX read
-        // PokerStars window titles regardless of Screen Recording status).
-        // `ensureGranted(prompt: true)` shows the standard macOS dialog at
-        // most once per process lifetime. The user has to act in System
-        // Settings, so this typically returns false on first launch; the
-        // permission flips to granted on the next relaunch.
-        AccessibilityPermission.ensureGranted(prompt: true)
-
-        // Request Screen Recording as a fallback path for window titles.
-        // When Accessibility is granted this is optional, but we still
-        // prompt because some users already have it on and removing the
-        // prompt would silently regress their binding path.
+        // Request Screen Recording permission — required to read PokerStars
+        // window titles via CGWindowList. Without it, `kCGWindowName` is
+        // nil on macOS 10.15+, and multi-table binding falls back to the
+        // title-less heuristic (which is ambiguous with multiple tables
+        // open at once).
+        //
+        // Note: we deliberately do NOT use the macOS Accessibility API.
+        // Apple App Store guideline 2.4.5 prohibits using Accessibility
+        // features for non-accessibility purposes.
         if !PokerStarsWindowDetector.hasScreenRecordingPermission() {
             PokerStarsWindowDetector.requestScreenRecordingPermission()
         }
@@ -307,7 +304,7 @@ class AppState: ObservableObject {
     /// "Closed" means neither of these signals fires for the table:
     ///
     ///   1. A current PokerStars window's title contains the table name
-    ///      (strong signal, requires Screen Recording or Accessibility)
+    ///      (strong signal, requires Screen Recording permission)
     ///   2. The cached binding's windowID is still in the live window list
     ///      (title-less fallback; if no binding exists yet the table is
     ///      treated as newborn-alive to avoid pruning before its first
