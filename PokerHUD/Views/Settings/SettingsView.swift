@@ -11,6 +11,9 @@ struct SettingsView: View {
     @State private var totalPlayers = 0
     @State private var screenRecordingGranted = PokerStarsWindowDetector.hasScreenRecordingPermission()
     @State private var tableLayoutMode: TableLayoutMode = TableLayoutMode.load()
+    @State private var showDeleteAccountConfirm = false
+    @State private var showDeleteAccountError = false
+    @State private var deleteAccountInProgress = false
 
     var body: some View {
         Form {
@@ -35,6 +38,11 @@ struct SettingsView: View {
                 Button("Sign Out", role: .destructive) {
                     Task { await appState.authService.signOut() }
                 }
+
+                Button("Delete Account", role: .destructive) {
+                    showDeleteAccountConfirm = true
+                }
+                .disabled(deleteAccountInProgress)
             }
 
             Section("Subscription") {
@@ -146,6 +154,30 @@ struct SettingsView: View {
             Task { await loadData() }
         }) { site in
             EditSiteView(site: site, onDismiss: { editingSite = nil })
+        }
+        .alert("Delete Account?", isPresented: $showDeleteAccountConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Account", role: .destructive) {
+                Task { await performDeleteAccount() }
+            }
+        } message: {
+            Text("This permanently deletes your PokerEye account, your subscription record, and all usage data from our servers. Your local hand history files on this Mac are not affected. This cannot be undone.\n\nIf you have an active subscription, you must cancel it separately in the App Store — Apple does not allow apps to cancel subscriptions on your behalf.")
+        }
+        .alert("Could Not Delete Account", isPresented: $showDeleteAccountError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(appState.authService.authError ?? "Something went wrong. Please try again.")
+        }
+    }
+
+    /// Invoke the `delete-account` edge function. On success the user is
+    /// signed out locally and the app returns to the sign-in screen.
+    private func performDeleteAccount() async {
+        deleteAccountInProgress = true
+        defer { deleteAccountInProgress = false }
+        let ok = await appState.authService.deleteAccount()
+        if !ok {
+            showDeleteAccountError = true
         }
     }
 

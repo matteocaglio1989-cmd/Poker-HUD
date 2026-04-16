@@ -108,6 +108,42 @@ final class AuthService: ObservableObject {
         self.isAuthenticated = false
     }
 
+    /// Permanently delete the signed-in user's account and all associated
+    /// data (subscription row, usage counters, auth user). Required by
+    /// App Store guideline 5.1.1(v).
+    ///
+    /// Calls the `delete-account` edge function, which runs with the
+    /// service_role key and performs the cascade server-side. On success
+    /// the local session is cleared so the app returns to the sign-in
+    /// screen.
+    ///
+    /// Returns `true` on success, `false` if the delete failed (in which
+    /// case `authError` is populated with a user-facing message).
+    @discardableResult
+    func deleteAccount() async -> Bool {
+        authError = nil
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            struct EmptyBody: Encodable {}
+            _ = try await client.functions.invoke(
+                "delete-account",
+                options: FunctionInvokeOptions(body: EmptyBody())
+            )
+        } catch {
+            self.authError = friendlyMessage(for: error)
+            return false
+        }
+
+        // Server-side delete succeeded. Clear the local session so the
+        // app returns to the sign-in view.
+        try? await client.auth.signOut()
+        self.session = nil
+        self.isAuthenticated = false
+        return true
+    }
+
     // MARK: - Internal
 
     private func friendlyMessage(for error: Error) -> String {
