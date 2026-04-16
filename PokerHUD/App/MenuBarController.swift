@@ -105,16 +105,43 @@ class MenuBarController {
     }
 
     @objc private func showMainWindow() {
+        // Make sure the app is frontmost and not hidden. SwiftUI WindowGroup
+        // apps that have been .hide'd (⌘H) or whose process has been
+        // backgrounded need both `unhide` and `activate` to surface reliably.
+        NSApp.unhide(nil)
         NSApp.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.isKeyWindow == false && $0.className.contains("AppKit") == false }) {
-            window.makeKeyAndOrderFront(nil)
+
+        // Find the main app window. On SwiftUI WindowGroup apps the main
+        // window class is `SwiftUI.AppKitWindow` — we detect it by filtering
+        // out the HUD NSPanels (which we own) and system panels, then
+        // picking the first one that can become the main window.
+        //
+        // IMPORTANT: the previous implementation filtered windows whose
+        // class name contained "AppKit" — which excluded the very window
+        // we wanted to raise, silently doing nothing when the user clicked
+        // the menu item. App Store review flagged the button as
+        // unresponsive (guideline 2.1(a)), so the filter is now structural
+        // (NSPanel + canBecomeMain) rather than string-based.
+        let mainWindow = NSApp.windows.first { window in
+            if window is NSPanel { return false }
+            return window.canBecomeMain
         }
-        // Activate the app to bring windows forward
-        for window in NSApp.windows {
-            if !window.title.isEmpty {
-                window.makeKeyAndOrderFront(nil)
-                break
+
+        if let window = mainWindow {
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
             }
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        // Fallback: no candidate window exists. This happens only when the
+        // user has manually closed every window. Iterate the full NSApp
+        // window list and raise whichever one we can find — SwiftUI keeps
+        // its backing windows around even after a close button press, so
+        // this is almost always enough to re-surface the UI.
+        if let any = NSApp.windows.first(where: { !($0 is NSPanel) }) {
+            any.makeKeyAndOrderFront(nil)
         }
     }
 
