@@ -31,7 +31,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.pokerhud.app.subscription.monthly",
+          "productID" : "com.pokereye.pokerhud.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Poker HUD Monthly",
           "subscriptionGroupID" : "premium",
@@ -53,7 +53,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.pokerhud.app.subscription.yearly",
+          "productID" : "com.pokereye.pokerhud.pro.yearly",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Poker HUD Yearly",
           "subscriptionGroupID" : "premium",
